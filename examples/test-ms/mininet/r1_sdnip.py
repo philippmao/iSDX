@@ -172,7 +172,7 @@ class BgpRouter(Router):
 	if(self.name == 'r1'):
 		writeLine(1, 'bgp router-id 172.0.0.31')
 	if(self.name == 'a1'):
-		writeLine(1, 'bgp router-id %s' % getRouterId(self.intfDict))
+		writeLine(1, 'bgp router-id 172.0.0.01')
         writeLine(1, 'timers bgp %s' % '3 9')
         writeLine(1, '!')
         

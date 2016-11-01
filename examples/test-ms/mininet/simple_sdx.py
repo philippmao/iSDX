@@ -67,13 +67,6 @@ class SDXTopo(Topo):
                             networks=['140.0.0.0/24', '150.0.0.0/24'],
                             asn=300)
         
-        self.addParticipant(fabric=main_switch,
-                            name='c2',
-                            port=8,
-                            mac='08:00:27:bd:f8:b2',
-                            ip='172.0.0.22/16',
-                            networks=['140.0.0.0/24', '150.0.0.0/24'],
-                            asn=300)
            
     def addParticipant(self, fabric, name, port, mac, ip, networks, asn):
 
