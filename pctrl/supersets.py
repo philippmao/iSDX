@@ -4,8 +4,10 @@
 #  Robert MacDavid (Princeton)
 
 from threading import RLock
-
+import math
 from ss_lib import minimize_ss_rules_greedy, best_ss_to_expand_greedy, is_subset_of_superset, removeSubsets, clear_inactive_parts
+
+import json
 
 lock = RLock()
 
@@ -110,12 +112,15 @@ class SuperSets(object):
 
                 # if no merge is possible, recompute from scratch
                 if expansion_index == -1:
+                    # Maybe can replace this with call to initial_computation()
                     self.logger.debug("No SS merge was possible. Recomputing.")
+                    self.logger.debug('pre-recompute:  ' + str(self.supersets))
                     self.recompute_all_supersets(pctrl)
+                    self.logger.debug('post-recompute: ' + str(self.supersets))
 
                     sdx_msgs = {"type": "new", "changes": []}
 
-                    for superset in self.supersets:
+                    for superset_index, superset in enumerate(self.supersets):
                         for participant in superset:
                             sdx_msgs["changes"].append({"participant_id": participant,
                                 "superset": superset_index,
@@ -140,7 +145,6 @@ class SuperSets(object):
                             "superset": expansion_index,
                             "position": bestSuperset.index(participant)})
 
-            # check which participants joined a new superset and communicate to the SDX controller
             return (sdx_msgs, impacted_prefixes)
 
 
@@ -160,14 +164,20 @@ class SuperSets(object):
         for i in range(len(self.supersets)):
             self.supersets[i] = list(self.supersets[i])
 
-        # fix the mask size after a recomputation event
-        self.mask_size = self.max_bits - 1
+        # if there is more than one superset, set the id size appropriately
         self.id_size = 1
-
-        # if there is more than one superset, set the field sizes appropriately
         if len(self.supersets) > 1:
             self.id_size = int(math.ceil(math.log(len(self.supersets), 2)))
-            self.mask_size -= self.id_size
+            
+        # fix the mask size based on the id size
+        self.mask_size = self.max_bits - self.id_size
+
+        # in the unlikely case that there are more participants for a prefix than can fit in
+        # the mask, truncate the list of participants (this may still be very broken)
+        for superset in self.supersets:
+            if len(superset) > self.mask_size:
+                self.logger.warn('Superset too big!  Dropping participants.')
+                del(superset[self.mask_size:])
 
         self.logger.debug("done.~")
         self.logger.debug("Supersets: >> "+str(self.supersets))
@@ -238,7 +248,8 @@ class SuperSets(object):
         if (len(set_bitstring) < self.mask_size):
             pad_len = self.mask_size - len(set_bitstring)
             set_bitstring += '0' * pad_len
-
+        elif (len(set_bitstring) > self.mask_size):
+            self.logger.error('Superset is too big! This shouldnt happen')
 
         #self.logger.debug("****DEBUG: nexthop_part: %d, best_path_size: %d, ss_id: %d, id_size: %d", nexthop_part, self.best_path_size, ss_id, self.id_size)
 
@@ -247,7 +258,6 @@ class SuperSets(object):
         nexthop_bitstring = '{num:0{width}b}'.format(num=nexthop_part, width=self.best_path_size)
 
         vmac_bitstring = '1' + id_bitstring + set_bitstring + nexthop_bitstring
-
 
         if len(vmac_bitstring) != 48:
             self.logger.error("BAD VMAC SIZE!! FIELDS ADD UP TO "+str(len(vmac_bitstring)))
@@ -278,7 +288,7 @@ def get_all_participants_advertising(pctrl, prefix):
     nexthop_2_part = pctrl.nexthop_2_part
 
     routes = bgp_instance.get_routes('input',prefix)
-    pctrl.logger.debug("Supersets all routes:: "+str(routes))
+    pctrl.logger.debug("Supersets all routes:: "+ str(routes))
 
     parts = set([])
 

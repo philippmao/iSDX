@@ -70,28 +70,31 @@ class SDXTopo(Topo):
 
         # Add new router connected to C and B that will be used to inject routes
         r1 = self.addDumpRouter(name='r1',
-                           ip='172.0.0.31/16',
+                           ip='173.0.0.31/16',
                            asn=400,
                            b1=b1,
                            c1=c1)
 
-        dump_host = self.addHost('x3', ip='172.0.255.252/16', mac='08:00:27:89:3c:ff', inNamespace=False)
+        dump_host = self.addHost('x3', ip='173.0.255.252/16', mac='08:00:27:89:3c:ff', inNamespace=False)
         self.addLink(r1, dump_host, 2)
 
     def addDumpRouter(self, name, ip, asn, b1, c1):
         peerb1 = {'mac': '08:00:27:54:56:23', 'ipAddrs': ['1.0.0.2/16']}
         peerc1 = {'mac': '08:00:27:54:56:24', 'ipAddrs': ['2.0.0.2/16']}
+        peerx3 = {'mac': '08:00:27:54:56:27', 'ipAddrs': [ip]}
         intfs = {
             'r1-eth0': peerb1,
-            'r1-eth1': peerc1
+            'r1-eth1': peerc1,
+            'r1-eth2': peerx3
         }
 
         neighbors = [
             {'address': '1.0.0.1', 'as': 200},
-            {'address': '2.0.0.1', 'as': 300}
+            {'address': '2.0.0.1', 'as': 300},
+            {'address': '173.0.255.252', 'as': 64000}
         ]
 
-        networks = []
+        networks = ['180.0.0.0/24']
         peer = self.addHost(name, intfDict=intfs, asNum=asn, neighbors=neighbors, routes=networks, cls=BgpRouter)
         self.addLink(peer, b1, 0, 1)
         self.addLink(peer, c1, 1, 1)

@@ -3,7 +3,7 @@
 
 
 import json
-from multiprocessing import Queue
+from lib import Queue
 import os
 from Queue import Empty
 from time import time
@@ -20,7 +20,7 @@ if np not in sys.path:
     sys.path.append(np)
 import util.log
 
-from lib import MultiSwitchController, MultiTableController, Config, InvalidConfigError
+from lib import MultiSwitchController, MultiTableController, OneSwitchController, Config, InvalidConfigError
 from ofp10 import FlowMod as OFP10FlowMod
 from ofp13 import FlowMod as OFP13FlowMod
 from server import Server
@@ -77,6 +77,8 @@ class RefMon(app_manager.RyuApp):
             self.controller = MultiSwitchController(self.config)
         elif self.config.isMultiTableMode():
             self.controller = MultiTableController(self.config)
+        elif self.config.isOneSwitchMode():
+            self.controller = OneSwitchController(self.config)
 
 	# this must be set before Server, which uses it.
         self.flow_mod_times = Queue()
@@ -125,7 +127,7 @@ class RefMon(app_manager.RyuApp):
     def process_flow_mods(self, msg):
         self.flow_mod_times.put(time())
 
-        self.logger.info('refmon: received flowmod request')
+        self.logger.info('refmon: received flowmod request ' + json.dumps(msg))
 
         # authorization
         if "auth_info" in msg:
@@ -149,7 +151,6 @@ class RefMon(app_manager.RyuApp):
                 self.logger.debug('PARTICIPANT: ' + str(msg['auth_info']['participant']))
                 for flow_mod in msg["flow_mods"]:
                     self.logger.debug('FLOWMOD from ' + str(origin) + ': ' + json.dumps(flow_mod))
-
 
                 # push flow mods to the data plane
                 for flow_mod in msg["flow_mods"]:

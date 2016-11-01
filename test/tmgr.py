@@ -17,8 +17,11 @@ import subprocess
 import traceback
 import time
 import shlex
+import readline
+from multiprocessing.connection import Client
 
 import tlib
+from _socket import SHUT_WR
 
 np = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 if np not in sys.path:
@@ -28,7 +31,8 @@ import util.log
 config = None       # parsed spec file
 hosts = {}
 tests = {}
-bgprouters = []
+bgprouters = {}
+participants = {}
 
 cmdfuncs = {}
 
@@ -52,10 +56,10 @@ log = flog('TMGR')
 log.info("Starting TMGR")
 
 def main (argv):
-    global config, bgprouters, hosts, tests, cmdfuncs
+    global config, bgprouters, hosts, tests, cmdfuncs, participants
     
     if len(argv) < 2:
-        log.error('usage: tmgr config.spec [ commands ]')
+        log.error('usage: tmgr torch.cfg [ commands ]')
         exit()
     
     try:
@@ -64,9 +68,10 @@ def main (argv):
         log.error('Bad configuration: ' + repr(e))
         exit()
     
-    hosts = config.listeners
+    hosts = config.hosts
     tests = config.tests
     bgprouters = config.bgprouters
+    participants = config.participants
        
     cmdfuncs = {
         'listener': listener, 'l': listener,
@@ -74,7 +79,11 @@ def main (argv):
         'verify': verify, 'v': verify,
         'announce': announce, 'a': announce, 
         'withdraw': withdraw, 'w': withdraw,
+        'inflow' : inflow,
+        'outflow' : outflow,
+        'unflow' : unflow,
         'bgp': bgp,
+        'router': router,
         'delay': delay,
         'exec': remote, 'x': remote, 'remote': remote,
         'local': local, 'll': local,
@@ -84,9 +93,11 @@ def main (argv):
         'reset': reset, 'z': reset,
         'kill': kill, 'k': kill,
         'dump': dump, 'd': dump,
-        'config': show, 
+        'hosts': show, 
         'help': usage, '?': usage,
         'quit': terminate, 'q': terminate,
+        'echo': echo,
+        'wait': wait,
     }
     
     if len(argv) == 2:
@@ -100,11 +111,15 @@ def main (argv):
                 continue
             except Exception, e:
                 log.error('MM:00 ERROR: ' + repr(e))
-                traceback.print_exc(file=sys.stdout)
-                break
+                #traceback.print_exc(file=sys.stdout)
+                continue
     else:
         for i in range(2, len(argv)):
-            parse(argv[i])
+            try:
+                parse(argv[i])
+            except Exception, e:
+                log.error('MM:00 ERROR on arg:' + str(i-1) + ': ' + repr(e))
+                    
         
     log.info('MM:00 INFO: BYE')
 
@@ -113,12 +128,20 @@ def parse (line):
     global cmdfuncs
     
     tokens = line.partition('#')[0].split()
+    try:
+        tokens = shlex.split(line.partition('#')[0])
+    except Exception, e:
+        log.error('MM:00 PARSE ERROR: ' + repr(e))
+        return
+    
     n = len(tokens)
     if n == 0:
         return
     cmd = tokens[0]
     del tokens[0]
     
+    #print(cmd)
+    #print(tokens)
     if cmd not in cmdfuncs:
         log.error('MM:00 ERROR: unknown command: ' + cmd)
     else:
@@ -132,38 +155,31 @@ def parse (line):
 
 def connect (host, why):    
     # should be either a listener host or a router host (edge-router)
-    try:
-        hostdata = hosts[host]
-    except:
-        if host not in bgprouters:
+    if host not in bgprouters and host not in hosts and host not in participants:
             log.error('MM:' + host + ' ERROR: ' + why + ': Unknown host: ' + host)
             return None    
     try:
-        cmdifc = hostdata['cmdifc']
-        cmdport = hostdata['cmdport']
+        hostdata = hosts[host]
     except:
-        if platform.system() == 'Windows':
-            cmdifc = '127.0.0.1'
-            cmdport = base36(host)
-        else:
-            cmdifc = '/tmp/' + host
-            cmdport = 0
-    
-    #print 'MM:' + host + ' INFO: ' + why + ': Connecting to ' + host + ' at ' + cmdifc + ':' + str(cmdport)
+        try:
+            hostdata = bgprouters[host]
+        except:
+            hostdata = participants[host]
+
+    #print 'MM:' + host + ' INFO: ' + why + ': Connecting to ' + host + ' at ' + hostdata.host + ':' + str(hostdata.port)
 
     try:
-        if cmdifc.find('/') >= 0:
+        if hostdata.port is None:
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) # @UndefinedVariable
-            s.connect(cmdifc)
+            s.connect(hostdata.host)
         else:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect((cmdifc, cmdport))
+            s.connect((hostdata.host, int(hostdata.port)))
     except Exception, e:
         log.error('MM:' + host + ' ERROR: ' + why + ': ' + repr(e))
         return None
     return s 
  
-
 # grab any tnode queued data - this is usually just the result of tnode startup
     
 def dump (args):
@@ -179,20 +195,22 @@ def dump (args):
 
 # force tnode to exit
 
-def kill (host):
-    log.info('MM:' + host + ' QUIT')
-    r = generic(host, 'QUIT', 'quit\n')
-    if r is not None:
-        log.info('MM:' + host + ' output = ' + r.strip())
+def kill (args):
+    for host in args:
+        log.info('MM:' + host + ' QUIT')
+        r = generic(host, 'QUIT', 'quit\n')
+        if r is not None:
+            log.info('MM:' + host + ' output = ' + r.strip())
 
 
 # terminate all listeners on a tnode, tnode does not exit
 
-def reset (host):
-    log.info('MM:' + host + ' RESET')
-    r = generic(host, 'RESET', 'reset\n')
-    if r is not None:
-        log.info('MM:' + host + ' output = ' + r.strip())
+def reset (args):
+    for host in args:
+        log.info('MM:' + host + ' RESET')
+        r = generic(host, 'RESET', 'reset\n')
+        if r is not None:
+            log.info('MM:' + host + ' output = ' + r.strip())
 
 # execute a command locally
 
@@ -203,7 +221,7 @@ def local (args):
     
     cmd = ''
     for arg in args:
-        cmd += arg + ' '
+        cmd += '"' + arg + '" '
     log.info('MM:00 LOCAL: ' + cmd)
     try:
         p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -225,18 +243,38 @@ def remote (args):
     del args[0]
     cmd = ''
     for arg in args:
-        cmd += arg + ' '
+        cmd += '"' + arg + '" '
     log.info('MM:' + host + ' REXEC: ' + cmd)
     r = generic(host, 'REXEC', 'exec ' + cmd + '\n')
     if r is not None:
         log.debug('MM:' + host + ' REXEC: output = \n' + r.strip())
         
+def router (args):
+    if len(args) < 2:
+        log.error('MM:00 ROUTER: ERROR: usage: router arg arg ...')
+        return
+    host = args[0]
+    if host not in bgprouters:
+        log.error('MM:' + host + ' ERROR: ' + 'ROUTER' + ' ' + host + ' : must be a BGP router')
+        return
+    del args[0]
+    cmd = ''
+    for arg in args:
+        cmd += '"' + arg + '" '
+    log.info('MM:' + host + ' ROUTER: ' + cmd)
+    r = generic(host, 'ROUTER', 'router ' + cmd + '\n')
+    if r is not None:
+        log.debug('MM:' + host + ' ROUTER: output = \n' + r.strip())
         
 # generic command interface to a tnode - send cmd, capture data
 # return None id cannot connect or socket error
 # return '' if no data
 
 def generic (host, label, cmd):
+    if host in participants:
+        log.error('MM:' + host + ' ERROR: ' + label + ': Cannot send to a partipant: ' + host)
+        return None   
+        
     s = connect(host, label)
     if s == None:
         return None
@@ -261,6 +299,44 @@ def generic (host, label, cmd):
         return None
     return alldata
 
+# generic and use Client/Listener pickles
+
+def genericObjNW (host, label, cmd):
+    
+    if host not in participants:
+            log.error('MM:' + host + ' ERROR: ' + label + ': Can only send to a participant: ' + host)
+            return None    
+    try:
+        hostdata = hosts[host]
+    except:
+        try:
+            hostdata = bgprouters[host]
+        except:
+            hostdata = participants[host]
+
+    #print 'MM:' + host + ' INFO: ' + why + ': Connecting to ' + host + ' at ' + hostdata.host + ':' + str(hostdata.port)
+
+    try:
+        if hostdata.port is None:
+            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) # @UndefinedVariable
+            s.connect(hostdata.host)
+        else:
+            s = Client((hostdata.host, int(hostdata.port)))
+    except Exception, e:
+        log.error('MM:' + host + ' ERROR: ' + label + ': ' + repr(e))
+        return None
+
+    try:
+        s.send(cmd)
+        s.close()
+    except Exception, e:
+        log.error('MM:' + host + ' ERROR: ' + label + ': '+ repr(e))
+        try:
+            s.close()
+        except:
+            pass
+    return None
+
  
 # verify a transmission - tell source to send to dst IP addr.
 # look for result from appropriate host and interface       
@@ -273,13 +349,22 @@ def verify (args):
     xdst = args[1]
     dport = args[2]   
     rand = str(random.randint(1000000000, 9999999999)) # must be 10 characters
+    
+    # validate that the source is a valid node - the binding addresses also comes from the node descriptions
+    
     try:
-        baddr, daddr = config.verifycheck(src, xdst, dport) 
-    except Exception, e:                 
-        log.error('MM:00 ERROR: VERIFY: ' + repr(e))
+        srchost = hosts[src]
+    except:
+        log.error('MM:00 ERROR: VERIFY: source is unknown: ' + src)
+        return
+    
+    try:
+        xdsthost = hosts[xdst]
+    except:
+        log.error('MM:00 ERROR: VERIFY: expected destination is unknown: ' + xdst)
         return
             
-    r = generic(src, 'VERIFY', 'test ' + rand + ' ' + baddr + ' ' + daddr + ' ' + str(dport) + '\n')
+    r = generic(src, 'VERIFY', 'test ' + rand + ' ' + srchost.bind + ' ' + xdsthost.bind + ' ' + str(dport) + '\n')
     if r is None:   # connection error
         return
     log.info('MM:' + src + ' VERIFY: ' + r.strip())
@@ -290,6 +375,8 @@ def verify (args):
     
     for _ in range(5):
         result = generic(xdst, 'RESULT', 'result ' + rand + '\n')
+        if result is None:
+            return
         tokens = result.split()
         # possible return codes are:
         # COMPLETE - transfer is done
@@ -310,6 +397,8 @@ def verify (args):
             log.error('MM:' + xdst + ' TEST FAILED - DATA NOT FOUND ON EXPECTED HOST (' + xdst + ') - checking all hosts')
             for h in sorted(hosts):
                 p = generic(h, 'RESULT', 'result ' + rand + '\n')
+                if p is None:
+                    return
                 if p.find('COMPLETE') >= 0:
                     log.error('MM:' + h + ' TEST MISDIRECTED ' + rand + ' to ' + p.strip())
                     return
@@ -395,8 +484,9 @@ def listener2(host):
     if host not in hosts:
         log.error('MM:00 ERROR: LISTENER: unknown host: ' + host)
         return
-    for p in hosts[host]['ports']:
-        listener3(host, hosts[host]['bind'], p)
+    h = hosts[host]
+    for p in h.tcp:
+        listener3(host, h.bind, p)
         
 def listener3(host, bind, port):
     if host not in hosts:
@@ -419,23 +509,26 @@ def delay (args):
         log.error('MM:00 ERROR: DELAY: usage: delay seconds')
         
                 
-def show (args):
-    global config
+def show (args): 
+    print 'hosts'
+    for p in hosts:
+        if hosts[p].port is None:
+            print '   ' + p + ' ' + hosts[p].host
+        else:
+            print '   ' + p + ' ' + hosts[p].host + ':' + hosts[p].port
     print 'bgprouters'
-    print json.dumps(config.bgprouters, indent=4, sort_keys=True) 
-    print 'peers'
-    print json.dumps(config.peers, indent=4, sort_keys=True) 
-    print 'listeners'
-    print json.dumps(config.listeners, indent=4, sort_keys=True) 
-    print 'tests'
-    print json.dumps(config.tests, indent=4, sort_keys=True) 
-    print 'mode'
-    print json.dumps(config.mode, indent=4, sort_keys=True) 
-    print 'policies'
-    print json.dumps(config.policies, indent=4, sort_keys=True) 
+    for p in bgprouters:
+        if bgprouters[p].port is None:
+            print '   ' + p + ' ' + bgprouters[p].host
+        else:
+            print '   ' + p + ' ' + bgprouters[p].host + ':' + bgprouters[p].port
     print 'participants'
-    print json.dumps(config.participants, indent=4, sort_keys=True)
-
+    for p in participants:
+        if participants[p].port is None:
+            print '   ' + p + ' ' + participants[p].host
+        else:
+            print '   ' + p + ' ' + participants[p].host + ':' + participants[p].port
+    
 
 # announce a route
 def announce (args):
@@ -485,20 +578,196 @@ def bgp (args):
     if r is not None and len(r) > 0:
         log.info('MM:' + host + ' BGP: ' + r.strip())
     
-               
+# create inbound flow rule
+def inflow (args):
+    n = len(args)
+    if n < 4 or n & 1 != 0 or args[n-2] != '>':
+        log.error('MM:XX' + ' ERROR: USAGE: inflow [-c cookie] [-s srcaddr/prefix] [-d dstaddr/prefix] [-u udpport] [-t tcpport] > edge_router')
+        return
+    dst = args[n-1]
+    asys, router = tlib.host2as_router(dst)
+    if asys is None or asys not in participants:
+        log.error('MM:XX' + ' ERROR: inbound flow has bad destination')
+        return 
+    if dst not in bgprouters:
+        log.error('MM:XX' + ' ERROR: inbound flow has bad destination')
+        return        
+    das, dasport = tlib.host2as_router(dst)
+    if das is None:
+        log.error('MM:XX' + ' ERROR: inbound flow has bad destination')
+        return
+    if tlib.as2part(das) is None:
+        log.error('MM:XX' + ' ERROR: inbound flow has bad participant')
+        return
+    
+    fwd = int(dasport) 
+    policy,error = rules(args[0:n-2], fwd)
+    if error is not None:
+        log.error('MM:XX' + ' ERROR: ' + error)
+        return
+    #print policy
+    
+    message = {}   
+    policies = []
+    message['new_policies'] = {}
+    message['new_policies']['inbound'] = policies
+    policies.append(policy)
+    #print json.dumps(message, indent=4, sort_keys=True)
+    genericObjNW(asys, 'FLOW', json.dumps(message))    
+
+# create outbound flow rule
+def outflow (args):
+    n = len(args)
+    if n < 5 or n & 1 != 1 or args[n-2] != '>':
+        log.error('MM:XX' + ' ERROR: USAGE: outflow edgerouter [-c cookie] [-s srcaddr/prefix] [-d dstaddr/prefix] [-u udpport] [-t tcpport] > participant')
+        return
+    
+    src = args[0]
+    if src not in bgprouters:
+        log.error('MM:XX' + ' ERROR: outbound flow has bad source')
+        return
+    sas, sasport = tlib.host2as_router(src)
+    if sas is None:
+        log.error('MM:XX' + ' ERROR: outbound flow has bad source')
+        return
+    if tlib.as2part(sas) is None:
+        log.error('MM:XX' + ' ERROR: outbound flow has bad participant')
+        return
+    
+    dst = args[n-1]
+    das = dst  # destination is an AS not a host !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    if dst not in participants:
+        log.error('MM:XX' + ' ERROR: outbound flow has bad destination')
+        return
+    if tlib.as2part(das) is None:
+        log.error('MM:XX' + ' ERROR: outbound flow has bad destination')
+        return
+    fwd = int(tlib.as2part(das)) 
+    
+    policy,error = rules(args[1:n-2], fwd)
+    if error is not None:
+        log.error('MM:XX' + ' ERROR: ' + error)
+        return
+    #print policy
+    
+    message = {}   
+    policies = []
+    message['new_policies'] = {}
+    message['new_policies']['outbound'] = policies
+    policies.append(policy)
+    #print json.dumps(message, indent=4, sort_keys=True)  
+    genericObjNW(sas, 'FLOW', json.dumps(message))       
+    
+def rules (args, fwd):
+    pset = False
+    cset = False
+    dset = False
+    sset = False
+    policy = {}
+    policy["action"] = {"fwd": fwd}
+    policy["match"] = {}
+    
+    for i in range(0, len(args)/2):
+        cmd = args[2*i]
+        arg = args[2*i+1]
+        if cmd == '-c':
+            cset = True
+            policy["cookie"] = int(arg)
+        elif cmd == '-s':
+            sset = True
+            addr_prefix = arg.split('/')
+            if len(addr_prefix) != 2:
+                return None, 'bad addr/prefix: ' + arg
+            addr = addr_prefix[0]
+            prefix = int(addr_prefix[1])
+            prefix = '.'.join([str((0xffffffff << (32 - prefix) >> i) & 0xff)
+                    for i in [24, 16, 8, 0]])
+            policy["match"]["ipv4_src"] = [ addr, prefix]
+        elif cmd == '-d':
+            dset = True
+            addr_prefix = arg.split('/')
+            if len(addr_prefix) != 2:
+                return None, 'bad addr/prefix: ' + arg
+            addr = addr_prefix[0]
+            prefix = int(addr_prefix[1])
+            prefix = '.'.join([str((0xffffffff << (32 - prefix) >> i) & 0xff)
+                    for i in [24, 16, 8, 0]])
+            policy["match"]["ipv4_dst"] = [ addr, prefix]
+        elif cmd == '-t':
+            if pset:
+                return None, 'only one of -u and -t allowed'
+            pset = True
+            policy["match"]["tcp_dst"] = int(arg)
+        elif cmd == '-u':
+            if pset:
+                return None, 'only one of -u and -t allowed'
+            pset = True
+            policy["match"]["udp_dst"] = int(arg)
+        else:
+            return None, 'unknown switch: ' + cmd
+    if not cset:
+        return None, 'cookie must be set'
+    if not sset and not dset and not pset:
+        return None, 'empty match conditions'
+    return policy, None
+
+# remove a flow
+def unflow (args):
+    #print('unflow: ' + str(args))
+    if len(args) < 2:
+        log.error('MM:XX' + ' ERROR: unflow: usage: unflow participant cookie ...')
+        return
+    if args[0] not in participants:
+        log.error('MM:XX' + ' ERROR: unflow: unknown participant')
+        return
+    
+    message = {}
+    message['removal_cookies'] = []
+    for i in range(1, len(args)):
+        if not args[i].isdigit():
+            log.error('MM:XX' + ' ERROR: unflow: bad cookie')
+            return
+        message['removal_cookies'].append(int(args[i]))
+        
+    #print json.dumps(message, indent=4, sort_keys=True)
+    genericObjNW(args[0], 'UNFLOW', json.dumps(message))
+                 
 def terminate (args):
     log.info('MM:00 EXITING')
     os._exit(0)
+    
+def wait (args):
+    if len(args) > 0:
+        raw_input(args[0])
+    else:
+        raw_input("Type return to continue> ")
+    
+def echo (args):
+    host = args[0]
+    del args[0]
+    all = ''
+    for arg in args:
+        all += ' ' + '"' + arg + '"'
+    log.info('MM:' + host + ' ECHO ' + all)
+    r = generic(host, 'ECHO', 'echo ' + all)
+    if r is not None:
+        log.info('MM:' + host + ' echo = ' + r.strip())
+    
 
 def usage (args):
     print (
-    'Usage:\n'     
+    'Usage:\n' 
+    'hosts                           # list known hosts\n'    
     'listener anyhost bind port      # start a listener on the host to receive data\n'
     'test test_name test_name ...    # run the named sequence of commands\n'
     'verify host host port           # send data xmit request to source node and check expected destination\n'
     'announce bgprouter network ...  # advertise BGP route\n'
     'withdraw bgprouter network ...  # withdraw BGP route\n'
+    'flow participant cookie port >> participant  # create a dynamic policy\n'
+    'flow participant cookie << port # create a dynamic policy\n'
+    'unflow participant cookie ...   # remove a flow\n'
     'bgp bgprouter                   # show advertised bgp routes\n'
+    'router bgprouter cmd arg arg    # run arbitrary command on router\n'
     'delay seconds                   # pause for things to settle\n'
     'exec anynode cmd arg arg        # execute cmd on node\n'
     'local cmd arg arg               # execute cmd on local machine\n'
@@ -508,7 +777,6 @@ def usage (args):
     'reset anynode                   # reset (close) listeners - takes a few seconds to take effect\n'
     'kill anynode                    # terminate a node, non recoverable\n'
     'dump anynode                    # dump any messages from a node - mainly to see if nodes are on-line\n'
-    'config                          # print result of spec file parsing\n'
     'help                            # print this message\n'
     'quit                            # exit this manager; leave nodes intact\n'
     '\nWhere:\n'

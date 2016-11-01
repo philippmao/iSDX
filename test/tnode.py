@@ -17,6 +17,7 @@ import string
 import subprocess
 import copy
 import shlex
+import tlib
 
 buf = "\x00" * 1024     # buffer for traffic generation
 host = ""               # me
@@ -32,34 +33,31 @@ connection_timeout = 5  # for sending/eating data
 def main (argv):
     global host, hosts, tests
     
-    if len(argv) == 3:      # get command connection details from json
-        host = argv[1]
-        cfile = argv[2]
-    
-        with open(cfile) as f:
-            try:    
-                config = json.load(f)
-            except Exception, e:
-                print 'bad json in config file: ' + cfile + ': ' + repr(e)
-                exit()
-        try:
-            cmdifc = config["hosts"][host]['cmdifc']
-            cmdport = config["hosts"][host]['cmdport']
-        except:
-            print 'No command interface spec for this host: ' + host
-            exit()
-    elif len(argv) == 2:     # get command connection by default based on OS
-        host = argv[1]
-        if platform.system() == 'Windows':
-            cmdifc = '127.0.0.1'
-            cmdport = base36(host)
-        else:
-            cmdifc = '/tmp/' + host
-            cmdport = '0'
+    if len(argv) == 3:      # tnode.py torch.cfg hostname
+        cfile = argv[1]
+        host = argv[2]
     else:
-        print 'usage: tnode hostname [ config.json ]'
+        print 'usage: tnode torch.cfg hostname'
         exit()
-           
+    
+    try:
+        config = tlib.parser(cfile)
+        hosts = config.hosts
+        bgprouters = config.bgprouters
+    except Exception, e:
+        print 'Bad configuration: ' + repr(e)
+        exit()
+        
+    if host in hosts:
+        cmdifc = hosts[host].host
+        cmdport = hosts[host].port
+    elif host in bgprouters:
+        cmdifc = bgprouters[host].host
+        cmdport = bgprouters[host].port
+    else:
+        print 'unknown hostname'
+        exit()
+          
     create_command_listener(cmdifc, cmdport)
     
     print host + ':00 Exiting'
@@ -68,18 +66,18 @@ def main (argv):
 
 def create_command_listener (baddr, port):
     try:
-        if baddr.find('/') >= 0:
+        if port is None:
             try:
                 if os.path.exists(baddr):
                     os.unlink(baddr)
             except OSError:
-                print 'could not create/remove unix socket ' + baddr
+                print 'could not remove old unix socket ' + baddr
                 return
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) # @UndefinedVariable
             s.bind(baddr)
         else:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.bind((baddr, port))
+            s.bind((baddr, int(port)))
     except socket.error , msg:
         print 'Bind failed on command interface ' + baddr + ' port ' + str(port) + ' Error Code : ' + str(msg[0]) + ' Message ' + msg[1] + '\n'
         return
@@ -353,6 +351,41 @@ def cmd_thread(conn):
             conn.close()
             return
         return
+    
+    if cmd == 'router':
+        del tokens[0]
+        all = ""
+        for arg in tokens:
+            all += arg + ' '
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect(('127.0.0.1', 2605))
+            seq = 'sdnip\n'  # password in sdnip.py
+            seq += 'enable\n'  # reach privileged bgp commands
+            seq += all + '\n' 
+            seq += 'quit\nquit\n' # unwind the commands (or connection won't terminate
+            s.sendall(seq)
+            
+            while True:
+                data = s.recv(4096)
+                if data is None or len(data) == 0:
+                    break
+                conn.sendall(data)
+            s.close()
+            conn.close()
+        except Exception, e:
+            conn.sendall(host + ':XX ERROR: ' + 'ROUTER ' + repr(e) + '\n')
+            conn.close()
+            return
+        return
+    
+    if cmd == 'echo':
+        del tokens[0]
+        all = ""
+        for arg in tokens:
+            all += "<" + arg + "> "
+        conn.sendall(all + '\n')
+        conn.close()
     
     conn.sendall(host + ':XX ERROR: Bad command: ' + data)
     conn.close()

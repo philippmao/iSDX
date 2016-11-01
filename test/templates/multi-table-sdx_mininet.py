@@ -7,6 +7,7 @@ from mininet.log import setLogLevel, info
 from mininet.node import RemoteController, OVSSwitch, Node
 from sdnip import BgpRouter, SdnipHost
 import sys, json, yaml
+import os
 
 ROUTE_SERVER_IP = '172.0.255.254'
 ROUTE_SERVER_ASN = 65000
@@ -21,16 +22,16 @@ class SDXTopo( Topo ):
         # will be attached to this switch.
 
         # IXP fabric
-        main_switch = self.addSwitch( 's1' )
-        arp_switch = self.addSwitch( 's2' )
+        main_switch = self.addSwitch( 'S1' )
+        arp_switch = self.addSwitch( 'S2' )
         self.addLink(main_switch, arp_switch, 1, 1)
 
         # Add node for central Route Server"
-        route_server = self.addHost('x1', ip = '172.0.255.254/16', mac='08:00:27:89:3b:ff', inNamespace = False)
+        route_server = self.addHost('zzz1', ip = '172.0.255.254/16', mac='08:00:27:89:3b:ff', inNamespace = False)
         self.addLink(main_switch, route_server, 2)
         
         # Add node for ARP Proxy"
-        arp_proxy = self.addHost('x2', ip = '172.0.255.253/16', mac='08:00:27:89:33:ff', inNamespace = False)
+        arp_proxy = self.addHost('zzz2', ip = '172.0.255.253/16', mac='08:00:27:89:33:ff', inNamespace = False)
         self.addLink(arp_switch, arp_proxy, 2)
         
         # Add Participants to the IXP
@@ -100,7 +101,7 @@ if __name__ == "__main__":
         
     argc = len(sys.argv)
     if argc < 2 or argc > 4:
-        raise Exception('usage: sdx_mininet config.json [ path_to_tnode.py [ [ semaphore_name ]')
+        raise Exception('usage: sdx_mininet config.json [ "path_to_tnode.py torch.cfg" [ semaphore_name ] ]')
     config_file = sys.argv[1]
     configfd = open(config_file)
     config = yaml.safe_load(configfd)
@@ -127,7 +128,10 @@ if __name__ == "__main__":
         
         for host in net.hosts:
             if host.name in tnodenames:
-                host.cmd('python ' + tnode_file + ' ' + host.name + '&')
+                host.cmd('python ' + tnode_file + ' ' + host.name + ' &')
+                if 'MININET_TCPDUMP' in os.environ and host.name.find('_') == -1:
+                    # tcpdump on routers, but not hosts
+                    host.cmd('tcpdump -e -qnn > /tmp/' + host.name + '.tcpdump &')
     
     # if a semaphore was provided, write into it to signal the next process to start
     if argc > 3:

@@ -12,12 +12,12 @@ announce 1 110.0.0.0/24 140.0.0.0/24 150.0.0.0/24
 announce 2 120.0.0.0/24 150.0.0.0/24 160.0.0.0/24
 announce 3 130.0.0.0/24 160.0.0.0/24 140.0.0.0/24
 
-flow a1 80 >> b
-flow b1 80 >> c
-flow c1 80 >> a
-flow a1 81 >> c
-flow b1 81 >> a
-flow c1 81 >> b
+outflow a1 -t 80 > b
+outflow b1 -t 80 > c
+outflow c1 -t 80 > a
+outflow a1 -t 81 > c
+outflow b1 -t 81 > a
+outflow c1 -t 81 > b
 
 listener AUTOGEN 80 81 88
 
@@ -40,8 +40,8 @@ test regress {
 }
 
 test info {
-	local ovs-ofctl dump-flows s1
-	local ovs-ofctl dump-flows s2
-	local ovs-ofctl dump-flows s3
-	local ovs-ofctl dump-flows s4
+	local ovs-ofctl dump-flows S1
+	local ovs-ofctl dump-flows S2
+	local ovs-ofctl dump-flows S3
+	local ovs-ofctl dump-flows S4
 }

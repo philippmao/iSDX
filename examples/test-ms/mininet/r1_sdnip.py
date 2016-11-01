@@ -165,14 +165,15 @@ class BgpRouter(Router):
         writeLine(0, 'debug bgp')
         writeLine(0, '!')
         writeLine(0, 'router bgp %s' % self.asNum)
-	if(self.name == 'b1'):
-		writeLine(1, 'bgp router-id 172.0.0.11')
-	if(self.name == 'c1'):
-		writeLine(1, 'bgp router-id 172.0.0.21')
-	if(self.name == 'r1'):
-		writeLine(1, 'bgp router-id 172.0.0.31')
-	if(self.name == 'a1'):
-		writeLine(1, 'bgp router-id 172.0.0.01')
+        if(self.name == 'b1'):
+            writeLine(1, 'bgp router-id 172.0.0.11')
+        if(self.name == 'c1'):
+            writeLine(1, 'bgp router-id 172.0.0.21')
+        if(self.name == 'r1'):
+            writeLine(1, 'bgp router-id 173.0.0.31')
+        if(self.name == 'a1'):
+            writeLine(1, 'bgp router-id 172.0.0.01')
+
         writeLine(1, 'timers bgp %s' % '3 9')
         writeLine(1, '!')
         

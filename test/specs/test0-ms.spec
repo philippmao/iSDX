@@ -18,11 +18,11 @@ announce 1 100.0.0.0/24 110.0.0.0/24
 announce 2 140.0.0.0/24 150.0.0.0/24
 announce 3 140.0.0.0/24 150.0.0.0/24
 
-flow a1 80 >> b
-flow a1 4321 >> c
-flow a1 4322 >> c
-flow c1 << 4321
-flow c2 << 4322
+outflow a1 -c 11 -t 80 > b
+outflow a1 -c 22 -t 4321 > c
+outflow a1 -c 33 -t 4322 > c
+inflow -c 44 -t 4321 > c1
+inflow -c 55 -t 4322 > c2
 
 listener AUTOGEN 80 4321 4322 8888
 
@@ -42,10 +42,10 @@ test xfer {
 }
 
 test info {
-	local ovs-ofctl dump-flows s1
-	local ovs-ofctl dump-flows s2
-	local ovs-ofctl dump-flows s3
-	local ovs-ofctl dump-flows s4
+	local ovs-ofctl dump-flows S1
+	local ovs-ofctl dump-flows S2
+	local ovs-ofctl dump-flows S3
+	local ovs-ofctl dump-flows S4
 	exec a1 ip route
 	bgp a1
 	exec b1 ip route

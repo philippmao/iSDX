@@ -6,7 +6,7 @@ from mininet.cli import CLI
 from mininet.log import setLogLevel, info
 from mininet.node import RemoteController, OVSSwitch, Node
 from sdnip import BgpRouter, SdnipHost
-
+import sys, json, yaml
 
 ROUTE_SERVER_IP = '172.0.255.254'
 ROUTE_SERVER_ASN = 65000
@@ -43,58 +43,20 @@ class SDXTopo(Topo):
         # Add Participants to the IXP
         # Each participant consists of 1 quagga router PLUS
         # 1 host per network advertised behind quagga
-        self.addParticipant(fabric=main_switch,
-                            name='a1',
-                            port=5,
-                            mac='08:00:27:89:3b:9f',
-                            ip='172.0.0.01/16',
-                            networks=['100.0.0.0/24', '110.0.0.0/24'],
-                            asn=100)
 
-        self.addParticipant(fabric=main_switch,
-                            name='b1',
-                            port=6,
-                            mac='08:00:27:92:18:1f',
-                            ip='172.0.0.11/16',
-                            networks=['140.0.0.0/24', '150.0.0.0/24','1.0.0.0/24'],
-                            asn=200)
-
-        self.addParticipant(fabric=main_switch,
-                            name='c1',
-                            port=7,
-                            mac='08:00:27:54:56:ea',
-                            ip='172.0.0.21/16',
-                            networks=['140.0.0.0/24', '150.0.0.0/24','2.0.0.0/24'],
-                            asn=300)
-			    
-	r1 = self.addHost(name='r1',
-                              ip='172.0.0.31/16',
-                              hostname='r1',
-                              privateLogDir=True,
-                              privateRunDir=True,
-                              inMountNamespace=True,
-                              inPIDNamespace=True,
-                              inUTSNamespace=True)
+        config = args[0][0]      
+        for host in sorted(config):
+            print host
+            self.addParticipant(fabric=main_switch,
+                                name=host,
+                                port=config[host]['port'],
+                                mac=config[host]['mac'],
+                                ip=config[host]['ip'],
+                                networks=config[host]['networks'],
+                                asn=config[host]['asn'],
+                                netnames=config[host]['netnames'])
         
-    def AddInterfaces(net):
-	
-	Link(net.getNodeByName('b1'), net.getNodeByName('r1'), intfName1='r1', intfName2='b1')
-	Link(net.getNodeByName('c3'), net.getNodeByName('r1'), intfName1='r1', intfName2='c3')
-           
-	node = net.getNodeByName('b1')
-        node.cmd('/root/.disable_rp_filtering.sh')
-
-	node = net.getNodeByName('c1')
-        node.cmd('/root/.disable_rp_filtering.sh')
-
-	node = net.getNodeByName('r1')
-	node.cmd('/root/.disable_rp_filtering.sh')
-	node.cmd('ifconfig b1 1.0.0.2/24')
-	node.cmd('ifconfig c1 1.0.0.2/24')
-	node.cmd('ifconfig lo 109.207.108.1/24') ## CHange based on the bview R6 is advertising
-	
-    def addParticipant(self, fabric, name, port, mac, ip, networks, asn):
-
+    def addParticipant(self,fabric,name,port,mac,ip,networks,asn,netnames):
         # Adds the interface to connect the router to the Route server
         peereth0 = [{'mac': mac, 'ipAddrs': [ip]}]
         intfs = {name+'-eth0': peereth0}
@@ -104,25 +66,15 @@ class SDXTopo(Topo):
             eth = {'ipAddrs': [replace_ip( net, '254')]}  # ex.: 100.0.0.254
             i = len(intfs)
             intfs[name+'-eth'+str(i)] = eth
-	    
-	if(name=='b1'):
-		eth = {'ipAddrs':'1.0.0.1'}
-		intfs['b1r1'] = eth
-	
-	if(name=='c1'):
-		eth = {'ipAddrs':'2.0.0.1'}
-		intfs['c1r1'] = eth
             
         # Set up the peer router
         neighbors = [{'address': ROUTE_SERVER_IP, 'as': ROUTE_SERVER_ASN}]
-	if(name=='b1'):
-		neighbors.append({'address':'1.0.0.2','as':400})
-		
-	if(name=='c1'):
-		neighbors.append({'address':'2.0.0.2','as':400})
-		
-        peer = self.addHost(name, intfDict=intfs, asNum=asn,
-                            neighbors=neighbors, routes=networks, cls=BgpRouter)
+        peer = self.addHost(name,
+                            intfDict=intfs,
+                            asNum=asn,
+                            neighbors=neighbors,
+                            routes=networks,
+                            cls=BgpRouter)
         self.addLink(fabric, peer, port)
         
         # Adds a host connected to the router via the gateway interface
@@ -131,6 +83,7 @@ class SDXTopo(Topo):
             i += 1
             ips = [replace_ip(net, '1')]  # ex.: 100.0.0.1/24
             hostname = 'h' + str(i) + '_' + name  # ex.: h1_a1
+            hostname = netnames[i-1]
             host = self.addHost(hostname,
                                 cls=SdnipHost,
                                 ips=ips,
@@ -149,14 +102,26 @@ def replace_ip(network, ip):
 
 if __name__ == "__main__":
     setLogLevel('info')
-    topo = SDXTopo()
+        
+    argc = len(sys.argv)
+    if argc < 2 or argc > 4:
+        raise Exception('usage: sdx_mininet config.json [ path_to_tnode.py [ [ semaphore_name ]')
+    config_file = sys.argv[1]
+    configfd = open(config_file)
+    config = yaml.safe_load(configfd)
+    configfd.close()
+    
+    if argc > 2:
+        tnode_file = sys.argv[2]
+    else:
+        tnode_file = None
+            
+    topo = SDXTopo((config, ))
 
     net = Mininet(topo=topo, controller=RemoteController, switch=OVSSwitch)
 
     net.start()
- 
-    AddInterfaces(net)
- 
+
     CLI(net)
 
     net.stop()

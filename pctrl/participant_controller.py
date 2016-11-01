@@ -26,6 +26,8 @@ from ss_lib import vmac_part_port_match
 from ss_rule_scheme import update_outbound_rules, init_inbound_rules, init_outbound_rules, msg_clear_all_outbound, ss_process_policy_change
 from supersets import SuperSets
 
+import pprint
+
 
 TIMING = True
 
@@ -49,7 +51,7 @@ class ParticipantController(object):
         # self.cfg.dp_mode = config_file["dp_mode"]
 
 
-        self.load_policies(policy_file)
+        self.policies = self.load_policies(policy_file)
 
         # The port 0 MAC is used for tagging outbound rules as belonging to us
         self.port0_mac = self.cfg.port0_mac
@@ -89,9 +91,12 @@ class ParticipantController(object):
         self.arp_client = self.cfg.get_arp_client(self.logger)
         self.arp_client.send({'msgType': 'hello', 'macs': self.cfg.get_macs()})
 
+        # Participant Server for dynamic route updates
+        self.participant_server = self.cfg.get_participant_server(self.id, self.logger)
+        if self.participant_server is not None:
+            self.participant_server.start(self)
+
         self.refmon_client = self.cfg.get_refmon_client(self.logger)
-         # class for building flow mod msgs to the reference monitor
-        self.fm_builder = FlowModMsgBuilder(self.id, self.refmon_client.key)
 
         # Send flow rules for initial policies to the SDX's Reference Monitor
         self.initialize_dataplane()
@@ -110,22 +115,38 @@ class ParticipantController(object):
         ps_thread_xrs.join()
         self.logger.debug("Return from ps_thread.join()")
 
+    def sanitize_policies(self, policies):
+
+        port_count = len(self.cfg.ports)
+
+        # sanitize the inbound policies
+        if 'inbound' in policies:
+            for policy in policies['inbound']:
+                if 'action' not in policy:
+                    continue
+                if 'fwd' in policy['action'] and int(policy['action']['fwd']) >= port_count:
+                    policy['action']['fwd'] = 0
+                    self.logger.warn('Port count in inbound policy is too big.  Setting it to 0.')
+
+        # sanitize the outbound policies
+        if 'outbound' in policies:
+            for policy in policies['outbound']:
+                # If no cookie field, give it cookie 0. (Should be OK for multiple flows with same cookie,
+                # though they can't be individually removed.  TODO: THIS SHOULD BE VERIFIED)
+                if 'cookie' not in policy:
+                    policy['cookie'] = 0
+                    self.logger.warn('Cookie not specified in new policy.  Defaulting to 0.')
+
+        return policies
+
 
     def load_policies(self, policy_file):
         # Load policies from file
 
         with open(policy_file, 'r') as f:
-            self.policies = json.load(f)
+            policies = json.load(f)
 
-        port_count = len(self.cfg.ports)
-
-        # sanitize the input policies
-        if 'inbound' in self.policies:
-            for policy in self.policies['inbound']:
-                if 'action' not in policy:
-                    continue
-                if 'fwd' in policy['action'] and int(policy['action']['fwd']) >= port_count:
-                    policy['action']['fwd'] = 0
+        return self.sanitize_policies(policies)
 
 
     def initialize_dataplane(self):
@@ -141,11 +162,11 @@ class ParticipantController(object):
 
         rule_msgs = init_inbound_rules(self.id, self.policies,
                                         self.supersets, final_switch)
-        self.logger.debug("Rule Messages INBOUND:: "+str(rule_msgs))
+        self.logger.debug("Rule Messages INBOUND:: "+json.dumps(rule_msgs))
 
         rule_msgs2 = init_outbound_rules(self, self.id, self.policies,
                                         self.supersets, final_switch)
-        self.logger.debug("Rule Messages OUTBOUND:: "+str(rule_msgs2))
+        self.logger.debug("Rule Messages OUTBOUND:: "+json.dumps(rule_msgs2))
 
         if 'changes' in rule_msgs2:
             if 'changes' not in rule_msgs:
@@ -153,7 +174,7 @@ class ParticipantController(object):
             rule_msgs['changes'] += rule_msgs2['changes']
 
         #TODO: Initialize Outbound Policies from RIB
-        self.logger.debug("Rule Messages:: "+str(rule_msgs))
+        self.logger.debug("Rule Messages:: "+json.dumps(rule_msgs))
         if 'changes' in rule_msgs:
             self.dp_queued.extend(rule_msgs["changes"])
 
@@ -167,13 +188,20 @@ class ParticipantController(object):
         self.logger.debug("Pushing current flow mod queue:")
 
         # it is crucial that dp_queued is traversed chronologically
+        fm_builder = FlowModMsgBuilder(self.id, self.refmon_client.key)
         for flowmod in self.dp_queued:
             self.logger.debug("MOD: "+str(flowmod))
-            self.fm_builder.add_flow_mod(**flowmod)
+            if (flowmod['mod_type'] == 'remove'):
+                fm_builder.delete_flow_mod(flowmod['mod_type'], flowmod['rule_type'], flowmod['cookie'][0], flowmod['cookie'][1])
+            elif (flowmod['mod_type'] == 'insert'):
+                fm_builder.add_flow_mod(**flowmod)
+            else:
+                self.logger.error("Unhandled flow type: " + flowmod['mod_type'])
+                continue
             self.dp_pushed.append(flowmod)
 
         self.dp_queued = []
-        self.refmon_client.send(json.dumps(self.fm_builder.get_msg()))
+        self.refmon_client.send(json.dumps(fm_builder.get_msg()))
 
 
     def stop(self):
@@ -227,7 +255,7 @@ class ParticipantController(object):
                 break
 
             data = json.loads(tmp)
-            self.logger.debug("XRS Event received: %s", data)
+            self.logger.debug("XRS Event received: %s", json.dumps(data))
 
             self.process_event(data)
 
@@ -261,7 +289,93 @@ class ParticipantController(object):
             self.logger.warn("UNKNOWN EVENT TYPE RECEIVED: "+str(data))
 
 
+    def update_policies(self, new_policies, in_out):
+        if in_out != 'inbound' and in_out != 'outbound':
+            self.logger.exception("Illegal argument to update_policies: " + in_out)
+            raise
+        if in_out not in new_policies:
+            return
+        if in_out not in self.policies:
+            self.policies[in_out] = []
+        new_cookies = {x['cookie'] for x in new_policies[in_out] if 'cookie' in x}
+        self.logger.debug('new_cookies: ' + str(new_cookies))
+
+        # remove any items with same cookie (TODO: verify that this is the behavior we want)
+        self.policies[in_out] = [x for x in self.policies[in_out] if x['cookie'] not in new_cookies]
+        self.logger.debug('new_policies[io]: ' + str(new_policies[in_out]))
+        self.policies[in_out].extend(new_policies[in_out])
+
+    # Remove polices that match the cookies and return the list of cookies for removed policies
+    def remove_policies_by_cookies(self, cookies, in_out):
+        if in_out != 'inbound' and in_out != 'outbound':
+            self.logger.exception("Illegal argument to update_policies: " + in_out)
+            raise
+        if in_out in self.policies:
+            to_remove = [x['cookie'] for x in self.policies[in_out] if x['cookie'] in cookies]
+            self.policies[in_out] = [x for x in self.policies[in_out] if x['cookie'] not in cookies]
+            self.logger.debug('removed cookies: ' + str(to_remove) + ' from: ' + in_out)
+            return to_remove
+        return []
+
+    def queue_flow_removals(self, cookies, in_out):
+        removal_msgs = []
+        for cookie in cookies:
+            mod =  {"rule_type":in_out,
+                    "cookie":(cookie,2**16-1), "mod_type":"remove"}
+            removal_msgs.append(mod)
+        self.logger.debug('queue_flow_removals: ' + str(removal_msgs))
+        self.dp_queued.extend(removal_msgs)
+            
+
     def process_policy_changes(self, change_info):
+        if not self.cfg.isSupersetsMode():
+            self.logger.warn('Dynamic policy updates only supported in SuperSet mode')
+            return
+
+        # First step towards a less brute force approach: Handle removals without having to remove everything
+        if 'removal_cookies' in change_info:
+            cookies = change_info['removal_cookies']
+            removed_in_cookies = self.remove_policies_by_cookies(cookies, 'inbound')
+            self.queue_flow_removals(removed_in_cookies, 'inbound')
+            removed_out_cookies = self.remove_policies_by_cookies(cookies, 'outbound')
+            self.queue_flow_removals(removed_out_cookies, 'outbound')
+            if not 'new_policies' in change_info:
+                self.push_dp()
+                return
+
+        # Remainder of this method is brute force approach: wipe everything and re-do it
+        # This should be replaced by a more fine grained approach
+        self.logger.debug("Wiping outbound rules.")
+        wipe_msgs = msg_clear_all_outbound(self.policies, self.port0_mac)
+        self.dp_queued.extend(wipe_msgs)
+
+        self.logger.debug("pre-updated policies: " + json.dumps(self.policies))
+        if 'removal_cookies' in change_info:
+            cookies = change_info['removal_cookies']
+            self.remove_policies_by_cookies(cookies, 'inbound')
+            self.remove_policies_by_cookies(cookies, 'outbound')
+
+        if 'new_policies' in change_info:
+            new_policies = change_info['new_policies']
+            self.sanitize_policies(new_policies)
+            self.update_policies(new_policies, 'inbound')
+            self.update_policies(new_policies, 'outbound')
+
+        self.logger.debug("updated policies: " + json.dumps(self.policies))
+        self.logger.debug("pre-recomputed supersets: " + json.dumps(self.supersets.supersets))
+
+        self.initialize_dataplane()
+        self.push_dp()
+
+        # Send gratuitous ARP responses for all
+        garp_required_vnhs = self.VNH_2_prefix.keys()
+        for vnh in garp_required_vnhs:
+            self.process_arp_request(None, vnh)
+            
+        return
+
+        # Original code below...
+        
         "Process the changes in participants' policies"
         # TODO: Implement the logic of dynamically changing participants' outbound and inbound policy
         '''
@@ -560,7 +674,7 @@ def main():
     ctrlr_thread = Thread(target=ctrlr.xstart)
     ctrlr_thread.daemon = True
     ctrlr_thread.start()
-
+    
     atexit.register(ctrlr.stop)
     signal(SIGTERM, lambda signum, stack_frame: exit(1))
 
