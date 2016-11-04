@@ -56,7 +56,7 @@ class PctrlClient(object):
             except EOFError as ee:
                 break
 
-            logger.debug('Trace: Got rv: %s', rv)
+            #logger.debug('Trace: Got rv: %s', rv)
             if not (rv and self.process_message(**json.loads(rv))):
                 break
 

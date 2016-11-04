@@ -97,10 +97,10 @@ class PctrlClient(object):
             THA = VMAC, TPA = vnhip
         """
 
-        if data["THA"] == data["eth_dst"]:
-            logger.debug("ARP Reply relayed: "+str(data))
-        else:
-            logger.debug("Gratuitous ARP relayed: "+str(data))
+        #if data["THA"] == data["eth_dst"]:
+            #logger.debug("ARP Reply relayed: ")
+        #else:
+            #logger.debug("Gratuitous ARP relayed: ")
 
         garp_message = craft_garp_response(**data)
         arpListener.send(garp_message)

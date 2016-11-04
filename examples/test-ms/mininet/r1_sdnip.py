@@ -137,9 +137,10 @@ class BgpRouter(Router):
                  % (BgpRouter.binDir, self.quaggaConfFile, self.socket, self.quaggaPidFile))
 
     def generateConfig(self):
-        self.generateQuagga()
+        self.generateQuagga
         self.generateZebra()
         
+    @property
     def generateQuagga(self):
         configFile = open(self.quaggaConfFile, 'w+')
         
@@ -174,7 +175,7 @@ class BgpRouter(Router):
         if(self.name == 'a1'):
             writeLine(1, 'bgp router-id 172.0.0.01')
 
-        writeLine(1, 'timers bgp %s' % '3 9')
+        writeLine(1, 'timers bgp %s' % '30 90')
         writeLine(1, '!')
         
         for neighbor in self.neighbors:
@@ -182,12 +183,26 @@ class BgpRouter(Router):
             writeLine(1, 'neighbor %s ebgp-multihop' % neighbor['address'])
             writeLine(1, 'neighbor %s timers connect %s' % (neighbor['address'], '5'))
             writeLine(1, 'neighbor %s advertisement-interval %s' % (neighbor['address'], '1'))
+            if self.name == 'b1':
+                if neighbor['address'] == '1.0.0.2':
+                    writeLine(1, 'neighbor %s route-map localpref in' % (neighbor['address']))
+            if self.name == 'c1':
+                if neighbor['address'] == '2.0.0.2':
+                    writeLine(1, 'neighbor %s route-map localpref in' % (neighbor['address']))
             if 'port' in neighbor:
                 writeLine(1, 'neighbor %s port %s' % (neighbor['address'], neighbor['port']))
             writeLine(1, '!')
             
         for route in self.routes:
             writeLine(1, 'network %s' % route)
+
+        writeLine(0,'!')
+        if self.name == 'b1':
+            writeLine(0,'route-map localpref permit 10')
+            writeLine(1, 'set local-preference 500')
+        if self.name == 'c1':
+            writeLine(0, 'route-map localpref permit 10')
+            writeLine(1, 'set local-preference 500')
 	
         configFile.close()
     

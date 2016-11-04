@@ -179,53 +179,53 @@ def get_index(seq, attr, value):
 ''' main '''
 if __name__ == '__main__':
     from rib import rib
-
-    passed_tests = 0
-    failed_tests = 0
+    #passed_tests = 0
+    #failed_tests = 0
     # AS tests
     aspath = "1 2 3 4 5"
     if (5 != aspath_length(aspath)):
         print "aspath_length() failed"
-        failed_tests += 1
-    else:
-        passed_tests += 1
-    if ("1" != get_advertised_as(aspath)):
-        print "get_advertised_as() failed"
-        failed_tests += 1
-    else:
-        passed_tests += 1
+        print aspath_length(aspath)
+        #failed_tests += 1
+    #else:
+        #passed_tests += 1
+    #if ("1" != get_advertised_as(aspath)):
+        #print "get_advertised_as() failed"
+        #failed_tests += 1
+    #else:
+        #passed_tests += 1
 
     # IP conversions
-    ip = "128.64.32.16"
-    ip_as_long = 0x80402010
-    if (ip_as_long != ip_to_long(ip)):
-        print "ip_to_long() failed"
-        failed_tests += 1
-    else:
-        passed_tests += 1
-    if (ip != long_to_ip(ip_as_long)):
-        print "long_to_ip() failed"
-        failed_tests += 1
-    else:
-        passed_tests += 1
+    #ip = "128.64.32.16"
+    #ip_as_long = 0x80402010
+    #if (ip_as_long != ip_to_long(ip)):
+        #print "ip_to_long() failed"
+        #failed_tests += 1
+    #else:
+       #passed_tests += 1
+    #if (ip != long_to_ip(ip_as_long)):
+        #print "long_to_ip() failed"
+        #failed_tests += 1
+    #else:
+       # passed_tests += 1
 
     # BPS
     # Starting part is from the RIB module
-    myrib = rib('172.0.0.1',"testing")
+    #myrib = rib('172.0.0.1',"testing")
 
-    myrib['100.0.0.1/16'] = ('172.0.0.2', 'igp', '100, 200, 300', '0', 'false')
+    #myrib['100.0.0.1/16'] = ('172.0.0.2', 'igp', '100, 200, 300', '0', 'false')
     #myrib['100.0.0.1/16'] = ['172.0.0.2', 'igp', '100, 200, 300', '0', 'false']
     #myrib['100.0.0.1/16'] = {'next_hop':'172.0.0.2', 'origin':'igp', 'as_path':'100, 200, 300',
     #                          'med':'0', 'atomic_aggregate':'false'}
-    myrib.commit()
+    #myrib.commit()
 
-    myrib.update('100.0.0.1/16', 'next_hop', '190.0.0.2')
-    myrib.commit()
+   # myrib.update('100.0.0.1/16', 'next_hop', '190.0.0.2')
+    #myrib.commit()
 
-    print decision_process(myrib,"100.0.0.1/16")
+    #print decision_process(myrib,"100.0.0.1/16")
 
-    print "Passed:", passed_tests
-    print "Failed:", failed_tests
+    #print "Passed:", passed_tests
+    #print "Failed:", failed_tests
 
 #    mypeer = peer('172.0.0.22')
 

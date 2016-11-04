@@ -59,7 +59,7 @@ def _receiver(conn,stdout):
             _write(stdout, line)
             ''' example: announce route 1.2.3.4 next-hop 5.6.7.8 as-path [ 100 200 ] '''
 
-            recvLogger.debug(line)
+            #recvLogger.debug(line)
 
         except:
             pass

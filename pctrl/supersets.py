@@ -22,8 +22,8 @@ class SuperSets(object):
 
         self.logger = pctrl.logger
 
-        self.logger.debug("Max bits: "+str(self.max_bits)+" Best path bits: "+str(self.best_path_size))
-        self.logger.debug("VMAC size: "+str(self.VMAC_size)+" Port size: "+str(self.port_size))
+        #self.logger.debug("Max bits: "+str(self.max_bits)+" Best path bits: "+str(self.best_path_size))
+        #self.logger.debug("VMAC size: "+str(self.VMAC_size)+" Port size: "+str(self.port_size))
 
         # this is decided each time a recomputation occurs
         self.mask_size = 0
@@ -196,7 +196,7 @@ class SuperSets(object):
         vmac_addr = ""
 
         if vnh not in VNH_2_prefix:
-            self.logger.debug("VNH "+str(vnh)+" not found in get_vmac call!")
+            #self.logger.debug("VNH "+str(vnh)+" not found in get_vmac call!")
             return vmac_addr
         prefix = VNH_2_prefix[vnh]
 
@@ -204,13 +204,13 @@ class SuperSets(object):
         # first part of the returned tuple is next hop
         route = bgp_instance.get_route('local', prefix)
         if route is None:
-            self.logger.debug("prefix "+str(prefix)+" not found in local")
-            bgp_instance.rib['local'].dump(self.logger)
+            #self.logger.debug("prefix "+str(prefix)+" not found in local")
+            #self.logger.debug("rib_dump")
             return vmac_addr
 
         next_hop = route.next_hop
         if next_hop not in nexthop_2_part:
-            self.logger.debug("Next Hop "+str(next_hop)+" not found in get_vmac call!")
+            #self.logger.debug("Next Hop "+str(next_hop)+" not found in get_vmac call!")
             return vmac_addr
 
         nexthop_part = nexthop_2_part[next_hop]

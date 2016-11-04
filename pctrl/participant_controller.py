@@ -453,10 +453,10 @@ class ParticipantController(object):
                         'SHA': vmac, 'THA': part_mac,
                         'eth_src': vmac, 'eth_dst': part_mac})
 
-        if gratuitous:
-            self.logger.debug("Sending Gratuitious ARP: "+str(arp_responses))
-        else:
-            self.logger.debug("Sending ARP Response: "+str(arp_responses))
+        #if gratuitous:
+            #self.logger.debug("Sending Gratuitious ARP: ")
+        #else:
+            #self.logger.debug("Sending ARP Response: ")
 
         for arp_response in arp_responses:
             arp_response['msgType'] = 'garp'
@@ -574,7 +574,7 @@ class ParticipantController(object):
 
     def send_announcement(self, announcement):
         "Send the announcements to XRS"
-	self.logger.debug("Sending announcements to XRS: %s", announcement)
+	#self.logger.debug("Sending announcements to XRS: %s", announcement)
 	self.xrs_client.send({'msgType': 'bgp', 'announcement': announcement})
 
 

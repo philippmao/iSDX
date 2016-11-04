@@ -94,7 +94,7 @@ class BGPPeer(object):
                             announce_route = self.get_route_with_neighbor("input", prefix, neighbor)
                             if announce_route is None:
                                 self.logger.debug('-------------- announce_route is None')
-                                self.rib['input'].dump(logger)
+                                self.logger('rib_dump')
                                 self.logger.debug('--------------')
                                 self.logger.debug(str(prefix)+' '+str(neighbor))
                                 assert(announce_route is not None)
@@ -161,7 +161,7 @@ class BGPPeer(object):
         elif('withdraw' in update):
             deleted_route = update['withdraw']
             prefix = deleted_route.prefix
-            self.logger.debug(" Peer Object for: "+str(self.id)+" ---processing withdraw for prefix: "+str(prefix))
+            #self.logger.debug(" Peer Object for: "+str(self.id)+" ---processing withdraw for prefix: "+str(prefix))
             if deleted_route is not None:
                 # delete route if being used
                 current_best_route = self.get_route('local',prefix)
@@ -178,8 +178,8 @@ class BGPPeer(object):
                             #self.logger.debug('decision_process_local: withdraw: best_route: '+str(type(best_route))+' '+str(best_route))
                             best_route = best_path_selection(routes)
                             self.update_route('local', best_route)
-                        else:
-                            self.logger.debug(" Peer Object for: "+str(self.id)+" ---No best route available for prefix "+str(prefix)+" after receiving withdraw message.")
+                        #else:
+                            #self.logger.debug(" no best route message")
                     else:
                         self.logger.debug(" Peer Object for: "+str(self.id)+" ---BGP withdraw for prefix "+str(prefix)+" has no impact on best path")
                 else:
@@ -204,19 +204,19 @@ class BGPPeer(object):
                 # XXX: TODO: improve on this? give a chance for change to show up in db.
                 time.sleep(.1)
                 best_route = self.get_route("local", prefix)
-            self.logger.debug(" Peer Object for: "+str(self.id)+" -- Previous Outbound route: "+str(prev_route)+" New Best Path: "+str(best_route))
+            #self.logger.debug(" Peer Object for: "+str(self.id)+" -- Previous Outbound route: "+str(prev_route)+" New Best Path: "+str(best_route))
             if best_route == None:
-                self.logger.debug('=============== best_route is None ====================')
-                self.logger.debug(str(prefix))
-                self.logger.debug('----')
-                self.rib['local'].dump(self.logger)
-                self.logger.debug('----')
-                self.logger.debug(str(updates))
-                self.logger.debug('----')
-                self.logger.debug(str(update))
-                self.logger.debug('----')
-                self.logger.debug(str(self.get_route("local", prefix)))
-                self.logger.debug('----')
+                #self.logger.debug('=============== best_route is None ====================')
+                #self.logger.debug(str(prefix))
+                #self.logger.debug('----')
+                #self.logger.debug('local.rib.dump')
+                #self.logger.debug('----')
+                #self.logger.debug(str(updates))
+                #self.logger.debug('----')
+                #self.logger.debug(str(update))
+                #self.logger.debug('----')
+                #self.logger.debug(str(self.get_route("local", prefix)))
+                #elf.logger.debug('----')
                 assert(best_route is None)
             #self.logger.debug("**********best route for: "+str(prefix)+" route:: "+str(best_route))
 

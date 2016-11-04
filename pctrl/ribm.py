@@ -91,9 +91,9 @@ class rib(object):
     def dump(self, logger):
         # dump of db for debugging
         rows = self.session.find()
-        logger.debug(str(rows.count()))
-        for row in rows:
-            logger.debug(str(tuple(k+'='+str(row[k]) for k in labels+tuple(['_id']))))
+        #logger.debug(str(rows.count()))
+        #for row in rows:
+            #logger.debug(str(tuple(k+'='+str(row[k]) for k in labels+tuple(['_id']))))
 
 
 ''' main '''
