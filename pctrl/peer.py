@@ -54,13 +54,18 @@ class BGPPeer(object):
         #self.logger.debug('==>>> '+str(neighbor)+' '+str(route))
 
         if ('state' in route['neighbor'] and route['neighbor']['state']=='down'):
-            #TODO WHY NOT COMPLETELY DELETE LOCAL?
+            self.logger.debug("PEER DOWN - ASN " + str(self.asn))
+
             routes = self.rib['input'].get_all()
 
             for route_item in routes:
-                self.rib['local'].delete(prefix=route_item.prefix)
+                route_list.append({'withdraw': route_item})
+
+            self.rib["output"].delete_all()
+            self.rib["output"].commit()
 
             self.rib["input"].delete_all()
+            self.rib["input"].commit()
 
         if ('update' in route['neighbor']['message']):
             if ('attribute' in route['neighbor']['message']['update']):
@@ -135,7 +140,7 @@ class BGPPeer(object):
             # message.
 
             announce_route = update['announce']
-            #self.logger.debug("decision process local:: "+str(announce_route))
+            self.logger.debug("decision process local:: "+str(announce_route))
             prefix = announce_route.prefix
             self.logger.debug(" Peer Object for: "+str(self.id)+" --- processing update for prefix: "+str(prefix))
             current_best_route = self.get_route('local', prefix)
@@ -151,7 +156,7 @@ class BGPPeer(object):
             if bgp_routes_are_equal(new_best_route, current_best_route):
                 self.logger.debug(" Peer Object for: "+str(self.id)+" --- No change in Best Path...move on "+str(prefix))
             else:
-                #self.logger.debug('decision_process_local: announce: new_best_route: '+str(type(new_best_route))+' '+str(new_best_route))
+                self.logger.debug('decision_process_local: announce: new_best_route: '+str(type(new_best_route))+' '+str(new_best_route))
                 self.update_route('local', new_best_route)
                 # Check
                 updated_best_path = self.get_route('local', prefix)
@@ -161,7 +166,7 @@ class BGPPeer(object):
         elif('withdraw' in update):
             deleted_route = update['withdraw']
             prefix = deleted_route.prefix
-            #self.logger.debug(" Peer Object for: "+str(self.id)+" ---processing withdraw for prefix: "+str(prefix))
+            self.logger.debug(" Peer Object for: "+str(self.id)+" ---processing withdraw for prefix: "+str(prefix))
             if deleted_route is not None:
                 # delete route if being used
                 current_best_route = self.get_route('local',prefix)
@@ -175,11 +180,12 @@ class BGPPeer(object):
                         self.delete_route('local',prefix)
                         routes = self.get_routes('input',prefix)
                         if routes:
-                            #self.logger.debug('decision_process_local: withdraw: best_route: '+str(type(best_route))+' '+str(best_route))
+                            self.logger.debug('decision_process_local: withdraw')
                             best_route = best_path_selection(routes)
+                            self.logger.debug('decision procces finished')
                             self.update_route('local', best_route)
-                        #else:
-                            #self.logger.debug(" no best route message")
+                        else:
+                            self.logger.debug(" no best route message")
                     else:
                         self.logger.debug(" Peer Object for: "+str(self.id)+" ---BGP withdraw for prefix "+str(prefix)+" has no impact on best path")
                 else:
@@ -202,11 +208,11 @@ class BGPPeer(object):
             best_route = self.get_route("local", prefix)
             if best_route == None:
                 # XXX: TODO: improve on this? give a chance for change to show up in db.
-                time.sleep(.1)
+                #time.sleep(.1)
                 best_route = self.get_route("local", prefix)
-            #self.logger.debug(" Peer Object for: "+str(self.id)+" -- Previous Outbound route: "+str(prev_route)+" New Best Path: "+str(best_route))
+            self.logger.debug(" Peer Object for: "+str(self.id)+" -- Previous Outbound route: "+str(prev_route)+" New Best Path: "+str(best_route))
             if best_route == None:
-                #self.logger.debug('=============== best_route is None ====================')
+                self.logger.debug('=============== best_route is None ====================')
                 #self.logger.debug(str(prefix))
                 #self.logger.debug('----')
                 #self.logger.debug('local.rib.dump')
@@ -227,8 +233,10 @@ class BGPPeer(object):
                     # self.logger.debug(str(best_route)+' '+str(prev_route))
                     self.update_route("output", best_route)
 
-                    # add the VNH to the list of changed VNHs
-                    changed_vnhs.append(prefix_2_VNH[prefix])
+                    vnh = self.prefix_2_vnh[prefix]
+                    vmac = self.VNH_2_vmac[vnh]
+                    if not vmac:
+                        changed_vnhs.append(prefix_2_VNH[prefix])
                     if best_route:
                         # announce the route to each router of the participant
                         for port in ports:
@@ -248,10 +256,12 @@ class BGPPeer(object):
                         "There is a new best path available now"
                         # store announcement in output rib
                         self.update_route("output", best_route)
-
-                        # add the VNH to the list of changed VNHs
-                        self.logger.debug(" Peer Object for: "+str(self.id)+" ^^^bgp_update_peers:: "+str(best_route))
-                        changed_vnhs.append(prefix_2_VNH[prefix])
+                        vnh = self.prefix_2_vnh[prefix]
+                        vmac = self.VNH_2_vmac[vnh]
+                        if not vmac:
+                            # add the VNH to the list of changed VNHs
+                            self.logger.debug(" Peer Object for: "+str(self.id)+" ^^^bgp_update_peers:: "+str(best_route))
+                            changed_vnhs.append(prefix_2_VNH[prefix])
 
                         for port in ports:
                             announcements.append(announce_route(port["IP"],

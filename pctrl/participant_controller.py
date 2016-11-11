@@ -62,6 +62,11 @@ class ParticipantController(object):
         self.num_VNHs_in_use = 0
         self.VNH_2_prefix = {}
         self.prefix_2_VNH = {}
+        self.VNH_2_vmac = {}
+        self.vmac_2_VNH = {}
+        self.FEC_list = []
+        self.VNH_2_FEC = {}
+        self.FEC_2_VNH = {}
 
 
         # Superset related params
@@ -433,6 +438,8 @@ class ParticipantController(object):
             gratuitous = True
             # set fields appropriately for gratuitous arps
             i = 0
+            self.VNH_2_vmac[vnh] = vmac
+            self.vmac_2_VNH[vmac] = vnh
             for port in self.cfg.ports:
                 eth_dst = vmac_part_port_match(self.id, i, self.supersets, False)
                 arp_responses.append({'SPA': vnh, 'TPA': vnh,
@@ -453,10 +460,10 @@ class ParticipantController(object):
                         'SHA': vmac, 'THA': part_mac,
                         'eth_src': vmac, 'eth_dst': part_mac})
 
-        #if gratuitous:
-            #self.logger.debug("Sending Gratuitious ARP: ")
-        #else:
-            #self.logger.debug("Sending ARP Response: ")
+        if gratuitous:
+            self.logger.debug("Sending Gratuitious ARP: ")
+        else:
+            self.logger.debug("Sending ARP Response: ")
 
         for arp_response in arp_responses:
             arp_response['msgType'] = 'garp'
@@ -574,7 +581,7 @@ class ParticipantController(object):
 
     def send_announcement(self, announcement):
         "Send the announcements to XRS"
-	#self.logger.debug("Sending announcements to XRS: %s", announcement)
+	self.logger.debug("Sending announcements to XRS: %s", announcement)
 	self.xrs_client.send({'msgType': 'bgp', 'announcement': announcement})
 
 
@@ -582,14 +589,16 @@ class ParticipantController(object):
         "Assign VNHs for the advertised prefixes"
         if self.cfg.isSupersetsMode():
             " Superset"
-            # TODO: Do we really need to assign a VNH for each advertised prefix?
             if ('announce' in update):
                 prefix = update['announce'].prefix
 
+            if ('withdraw' in update):
+                prefix = update['withdraw'].prefix
+
                 if (prefix not in self.prefix_2_VNH):
+                    #check if prefix can be integrated into existing FEC
+                    vnh = self.supersets.assign_FEC(prefix)
                     # get next VNH and assign it the prefix
-                    self.num_VNHs_in_use += 1
-                    vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
 
                     self.prefix_2_VNH[prefix] = vnh
                     self.VNH_2_prefix[vnh] = prefix
@@ -603,7 +612,6 @@ class ParticipantController(object):
         "Assign VNHs for the advertised prefixes"
         if self.cfg.isSupersetsMode():
             " Superset"
-            # TODO: Do we really need to assign a VNH for each advertised prefix?
             #self.bgp_instance.rib["local"].dump()
             prefixes = self.bgp_instance.rib["local"].get_prefixes()
             #print 'init_vnh_assignment: prefixes:', prefixes
@@ -611,8 +619,7 @@ class ParticipantController(object):
             for prefix in prefixes:
                 if (prefix not in self.prefix_2_VNH):
                     # get next VNH and assign it the prefix
-                    self.num_VNHs_in_use += 1
-                    vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
+                    vnh = self.supersets.assign_FEC(prefix)
 
                     self.prefix_2_VNH[prefix] = vnh
                     self.VNH_2_prefix[vnh] = prefix

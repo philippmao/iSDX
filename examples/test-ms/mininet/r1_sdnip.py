@@ -186,9 +186,11 @@ class BgpRouter(Router):
             if self.name == 'b1':
                 if neighbor['address'] == '1.0.0.2':
                     writeLine(1, 'neighbor %s route-map localpref in' % (neighbor['address']))
+                    writeLine(1, 'neighbor %s route-map denyr1 out' % (neighbor['address']))
             if self.name == 'c1':
                 if neighbor['address'] == '2.0.0.2':
                     writeLine(1, 'neighbor %s route-map localpref in' % (neighbor['address']))
+                    writeLine(1, 'neighbor %s route-map denyr1 out' % (neighbor['address']))
             if 'port' in neighbor:
                 writeLine(1, 'neighbor %s port %s' % (neighbor['address'], neighbor['port']))
             writeLine(1, '!')
@@ -200,9 +202,13 @@ class BgpRouter(Router):
         if self.name == 'b1':
             writeLine(0,'route-map localpref permit 10')
             writeLine(1, 'set local-preference 500')
+            writeLine(0,'!')
+            writeLine(0,'route-map denyr1 deny 10')
         if self.name == 'c1':
             writeLine(0, 'route-map localpref permit 10')
             writeLine(1, 'set local-preference 500')
+            writeLine(0, '!')
+            writeLine(0, 'route-map denyr1 deny 10')
 	
         configFile.close()
     

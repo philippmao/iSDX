@@ -64,7 +64,7 @@ class SuperSets(object):
                     if fwd_part not in rulecounts:
                         rulecounts[fwd_part] = 0
                     rulecounts[fwd_part] += 1
-        self.logger.debug(": RuleCounts:: "+str(rulecounts))
+        #self.logger.debug(": RuleCounts:: "+str(rulecounts))
 
         return rulecounts
 
@@ -91,10 +91,21 @@ class SuperSets(object):
                 if ('withdraw' in update):
                     prefix = update['withdraw'].prefix
                     # withdraws always change the bits of a VMAC
+                    # check if for this vnh a garp was already sent
+                    vnh = self.prefix_2_vnh[prefix]
+                    vmac = self.VNH_2_vmac[vnh]
+                    if vmac:
+                        continue
                     impacted_prefixes.append(prefix)
                 if ('announce' not in update):
                     continue
                 prefix = update['announce'].prefix
+
+                # check if for this vnh a garp was already sent
+                vnh = self.prefix_2_vnh[prefix]
+                vmac = self.VNH_2_vmac[vnh]
+                if vmac:
+                    continue
 
                 # get set of all participants advertising that prefix
                 new_set = get_all_participants_advertising(pctrl, prefix)
@@ -268,6 +279,31 @@ class SuperSets(object):
 
         return vmac_addr
 
+    def assign_FEC(self,pctrl,prefix):
+        route = self.bgp_instance.get_route('local', prefix)
+        next_hop = route.next_hop
+        next_hop_part = self.bgp_instance.nexthop_2_part[next_hop]
+        part_set = self.bgp_instance.get_all_participants_advertising(pctrl, prefix)
+        for FEC in self.FEC_list:
+            if FEC['next_hop_part'] == next_hop_part:
+                if FEC['participants_advertising'] == part_set:
+                    vnh = FEC['vnh']
+                    break
+
+        if vnh:
+            return vnh
+        else:
+            self.num_VNHs_in_use +=1
+            vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
+            new_FEC =  {}
+            new_FEC['id'] = len(self.FEC_list)+1
+            new_FEC['next_hop_part'] = next_hop
+            new_FEC['participants_advertising'] == part_set
+            new_FEC['vnh'] = vnh
+            self.VNH_2_FEC[vnh]=new_FEC
+            self.FEC_2_VNH[new_FEC]=vnh
+            self.FEC_list.append(new_FEC)
+            return vnh
 
 def get_prefix2part_sets(pctrl):
     prefixes = pctrl.prefix_2_VNH.keys()
@@ -288,7 +324,7 @@ def get_all_participants_advertising(pctrl, prefix):
     nexthop_2_part = pctrl.nexthop_2_part
 
     routes = bgp_instance.get_routes('input',prefix)
-    pctrl.logger.debug("Supersets all routes:: "+ str(routes))
+    #pctrl.logger.debug("Supersets all routes:: "+ str(routes))
 
     parts = set([])
 

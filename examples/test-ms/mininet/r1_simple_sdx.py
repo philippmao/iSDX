@@ -94,7 +94,7 @@ class SDXTopo(Topo):
             {'address': '173.0.255.252', 'as': 64000}
         ]
 
-        networks = ['180.0.0.0/24']
+        networks = []
         peer = self.addHost(name, intfDict=intfs, asNum=asn, neighbors=neighbors, routes=networks, cls=BgpRouter)
         self.addLink(peer, b1, 0, 1)
         self.addLink(peer, c1, 1, 1)
