@@ -195,42 +195,45 @@ class SuperSets(object):
 
 
 
-    def get_vmac(self, pctrl, vnh):
+    def get_vmac(self, pctrl, FEC):
         """ Returns a VMAC for advertisements.
         """
         bgp_instance = pctrl.bgp_instance
         nexthop_2_part = pctrl.nexthop_2_part
-        VNH_2_prefix = pctrl.VNH_2_prefix
+        #VNH_2_prefix = pctrl.VNH_2_prefix
 
 
         vmac_bitstring = ""
         vmac_addr = ""
 
-        if vnh not in VNH_2_prefix:
+        #if vnh not in VNH_2_prefix:
             #self.logger.debug("VNH "+str(vnh)+" not found in get_vmac call!")
-            return vmac_addr
-        prefix = VNH_2_prefix[vnh]
+            #return vmac_addr
+        #prefix = VNH_2_prefix[vnh]
 
 
         # first part of the returned tuple is next hop
-        route = bgp_instance.get_route('local', prefix)
-        if route is None:
+        #route = bgp_instance.get_route('local', prefix)
+        #route = FEC['next_hop']
+        #if route is None:
             #self.logger.debug("prefix "+str(prefix)+" not found in local")
             #self.logger.debug("rib_dump")
-            return vmac_addr
+            #return vmac_addr
 
-        next_hop = route.next_hop
+        print "FEC = "
+        print FEC
+        next_hop = FEC['next_hop_part']
         if next_hop not in nexthop_2_part:
             #self.logger.debug("Next Hop "+str(next_hop)+" not found in get_vmac call!")
             return vmac_addr
 
-        nexthop_part = nexthop_2_part[next_hop]
+        #nexthop_part = nexthop_2_part[next_hop]
 
         # the participants who are involved in policies
         active_parts = self.recompute_rulecounts(pctrl).keys()
 
         # the set of participants which advertise this prefix
-        prefix_set = set(get_all_participants_advertising(pctrl, prefix))
+        prefix_set = FEC['part_advertising']
 
         # remove everyone but the active participants!
         prefix_set.intersection_update(active_parts)
@@ -242,9 +245,9 @@ class SuperSets(object):
                 ss_id = i
                 break
         if ss_id == -1:
-            self.logger.error("In get_vmac: Prefix "+str(prefix)+" doesn't belong to any superset (This should never happen) >>")
+            self.logger.error("In get_vmac: Prefix "+str(FEC)+" doesn't belong to any superset (This should never happen) >>")
             self.logger.error(">> Supersets at the moment of failure: "+str(self.supersets))
-            self.logger.error(">> Set of advertisers of prefix "+str(prefix)+" is "+str(prefix_set))
+            self.logger.error(">> Set of advertisers of prefix "+str(FEC)+" is "+str(prefix_set))
             return vmac_addr
 
 
@@ -266,7 +269,7 @@ class SuperSets(object):
 
         id_bitstring = '{num:0{width}b}'.format(num=ss_id, width=self.id_size)
 
-        nexthop_bitstring = '{num:0{width}b}'.format(num=nexthop_part, width=self.best_path_size)
+        nexthop_bitstring = '{num:0{width}b}'.format(num=next_hop, width=self.best_path_size)
 
         vmac_bitstring = '1' + id_bitstring + set_bitstring + nexthop_bitstring
 
@@ -279,34 +282,9 @@ class SuperSets(object):
 
         return vmac_addr
 
-    def assign_FEC(self,pctrl,prefix):
-        route = self.bgp_instance.get_route('local', prefix)
-        next_hop = route.next_hop
-        next_hop_part = self.bgp_instance.nexthop_2_part[next_hop]
-        part_set = self.bgp_instance.get_all_participants_advertising(pctrl, prefix)
-        for FEC in self.FEC_list:
-            if FEC['next_hop_part'] == next_hop_part:
-                if FEC['participants_advertising'] == part_set:
-                    vnh = FEC['vnh']
-                    break
-
-        if vnh:
-            return vnh
-        else:
-            self.num_VNHs_in_use +=1
-            vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
-            new_FEC =  {}
-            new_FEC['id'] = len(self.FEC_list)+1
-            new_FEC['next_hop_part'] = next_hop
-            new_FEC['participants_advertising'] == part_set
-            new_FEC['vnh'] = vnh
-            self.VNH_2_FEC[vnh]=new_FEC
-            self.FEC_2_VNH[new_FEC]=vnh
-            self.FEC_list.append(new_FEC)
-            return vnh
 
 def get_prefix2part_sets(pctrl):
-    prefixes = pctrl.prefix_2_VNH.keys()
+    prefixes = pctrl.prefix_2_FEC.keys()
 
     groups = []
 

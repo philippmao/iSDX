@@ -192,10 +192,11 @@ class BGPPeer(object):
                     self.logger.debug(" Peer Object for: "+str(self.id)+" --- This is weird. How can we not have any delete object in this function")
 
 
-    def bgp_update_peers(self, updates, prefix_2_VNH, ports):
+    def bgp_update_peers(self, updates, prefix_2_FEC , VNH_2_vmac, ports):
         # TODO: Verify if the new logic makes sense
         changed_vnhs = []
         announcements = []
+        new_FECs = []
         for update in updates:
             if 'announce' in update:
                 prefix = update['announce'].prefix
@@ -208,7 +209,7 @@ class BGPPeer(object):
             best_route = self.get_route("local", prefix)
             if best_route == None:
                 # XXX: TODO: improve on this? give a chance for change to show up in db.
-                #time.sleep(.1)
+                time.sleep(.1)
                 best_route = self.get_route("local", prefix)
             self.logger.debug(" Peer Object for: "+str(self.id)+" -- Previous Outbound route: "+str(prev_route)+" New Best Path: "+str(best_route))
             if best_route == None:
@@ -232,18 +233,16 @@ class BGPPeer(object):
                     # store announcement in output rib
                     # self.logger.debug(str(best_route)+' '+str(prev_route))
                     self.update_route("output", best_route)
-
-                    vnh = self.prefix_2_vnh[prefix]
-                    vmac = self.VNH_2_vmac[vnh]
-                    if not vmac:
-                        changed_vnhs.append(prefix_2_VNH[prefix])
+                    vnh = prefix_2_FEC[prefix]['vnh']
+                    if vnh not in VNH_2_vmac:
+                        new_FECs.append(prefix_2_FEC[prefix])
                     if best_route:
                         # announce the route to each router of the participant
                         for port in ports:
                             # TODO: Create a sender queue and import the announce_route function
                             #self.logger.debug ("********** Failure: "+str(port["IP"])+' '+str(prefix)+" route::failure "+str(best_route))
                             announcements.append(announce_route(port["IP"], prefix,
-                                prefix_2_VNH[prefix], best_route.as_path))
+                                vnh, best_route.as_path))
                     else:
                         self.logger.debug("Race condition problem for prefix: "+str(prefix))
                         continue
@@ -256,31 +255,27 @@ class BGPPeer(object):
                         "There is a new best path available now"
                         # store announcement in output rib
                         self.update_route("output", best_route)
-                        vnh = self.prefix_2_vnh[prefix]
-                        vmac = self.VNH_2_vmac[vnh]
-                        if not vmac:
-                            # add the VNH to the list of changed VNHs
-                            self.logger.debug(" Peer Object for: "+str(self.id)+" ^^^bgp_update_peers:: "+str(best_route))
-                            changed_vnhs.append(prefix_2_VNH[prefix])
-
+                        vnh = prefix_2_FEC[prefix]['vnh']
+                        if vnh not in VNH_2_vmac:
+                            new_FECs.append(prefix_2_FEC[prefix])
                         for port in ports:
                             announcements.append(announce_route(port["IP"],
-                                                 prefix, prefix_2_VNH[prefix],
+                                                 prefix, vnh,
                                                  best_route.as_path))
 
                 else:
                     "Currently there is no best route to this prefix"
                     if prev_route:
                         # Clear this entry from the output rib
-                        if prefix in prefix_2_VNH:
+                        if prefix in prefix_2_FEC:
                             self.delete_route("output", prefix)
                             for port in self.ports:
                                 # TODO: Create a sender queue and import the announce_route function
                                 announcements.append(withdraw_route(port["IP"],
                                     prefix,
-                                    prefix_2_VNH[prefix]))
+                                    prefix_2_FEC[prefix]['vnh']))
 
-        return changed_vnhs, announcements
+        return new_FECs, announcements
 
 
     def getlock(self, prefix):
