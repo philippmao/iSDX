@@ -267,13 +267,12 @@ class BGPPeer(object):
                     "Currently there is no best route to this prefix"
                     if prev_route:
                         # Clear this entry from the output rib
-                        if prefix in prefix_2_FEC:
-                            self.delete_route("output", prefix)
-                            for port in self.ports:
-                                # TODO: Create a sender queue and import the announce_route function
-                                announcements.append(withdraw_route(port["IP"],
-                                    prefix,
-                                    prefix_2_FEC[prefix]['vnh']))
+                        self.delete_route("output", prefix)
+                        for port in self.ports:
+                            # TODO: Create a sender queue and import the announce_route function
+                            announcements.append(withdraw_route(port["IP"],
+                                prefix,
+                                prefix_2_FEC[prefix]['vnh']))
 
         return new_FECs, announcements
 

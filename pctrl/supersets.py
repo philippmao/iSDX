@@ -72,6 +72,8 @@ class SuperSets(object):
     def update_supersets(self, pctrl, updates):
         with lock:
             policies = pctrl.policies
+            prefix_2_FEC = pctrl.prefix_2_FEC
+            VNH_2_vmac = pctrl.VNH_2_vmac
 
             self.logger.debug("Updating supersets...")
 
@@ -92,9 +94,8 @@ class SuperSets(object):
                     prefix = update['withdraw'].prefix
                     # withdraws always change the bits of a VMAC
                     # check if for this vnh a garp was already sent
-                    vnh = self.prefix_2_vnh[prefix]
-                    vmac = self.VNH_2_vmac[vnh]
-                    if vmac:
+                    vnh = prefix_2_FEC[prefix]['vnh']
+                    if vnh in VNH_2_vmac:
                         continue
                     impacted_prefixes.append(prefix)
                 if ('announce' not in update):
@@ -102,9 +103,8 @@ class SuperSets(object):
                 prefix = update['announce'].prefix
 
                 # check if for this vnh a garp was already sent
-                vnh = self.prefix_2_vnh[prefix]
-                vmac = self.VNH_2_vmac[vnh]
-                if vmac:
+                vnh = prefix_2_FEC[prefix]['vnh']
+                if vnh in VNH_2_vmac:
                     continue
 
                 # get set of all participants advertising that prefix
@@ -220,8 +220,8 @@ class SuperSets(object):
             #self.logger.debug("rib_dump")
             #return vmac_addr
 
-        print "FEC = "
-        print FEC
+
+        print "FEC = ", FEC
         next_hop = FEC['next_hop_part']
         if next_hop not in nexthop_2_part:
             #self.logger.debug("Next Hop "+str(next_hop)+" not found in get_vmac call!")

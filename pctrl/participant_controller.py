@@ -513,7 +513,7 @@ class ParticipantController(object):
 
             # ss_changed_prefs are prefixes for which the VMAC bits have changed
             # these prefixes must have gratuitous arps sent
-            garp_required_vnhs = [self.prefix_2_FEC[prefix]['vnh'] for prefix in ss_changed_prefs]
+            garp_required_FECs = [self.prefix_2_FEC[prefix] for prefix in ss_changed_prefs]
 
             "If a recomputation event was needed, wipe out the flow rules."
             if ss_changes["type"] == "new":
@@ -524,9 +524,10 @@ class ParticipantController(object):
                 #if a recomputation was needed, all VMACs must be reARPed
                 # TODO: confirm reARPed is a word
                 #garp_required_vnhs = self.VNH_2_prefix.keys()
-                print self.prefix_2_FEC.values()
+                print " ss_changes new"
+                print "self.prefix_2_FEC", self.prefix_2_FEC
                 garp_required_FECs =[]
-                for FEC in self.prefix_2_FEC.values():
+                for FEC in self.FEC_list.values():
                     garp_required_FECs.append(FEC)
                 #garp_required_vnhs = self.prefix_2_FEC.values()['vnh']
 
@@ -563,22 +564,29 @@ class ParticipantController(object):
         new_FECs, announcements = self.bgp_instance.bgp_update_peers(updates,
                 self.prefix_2_FEC, self.VNH_2_vmac, self.cfg.ports)
 
+        print "announcements:", announcements
+
         """ Combine the VNHs which have changed BGP default routes with the
             VNHs which have changed supersets.
         """
 
         #new_FECs = set(new_FECs)
-        new_FECs.append(garp_required_FECs)
+
+        new_FECs = new_FECs + garp_required_FECs
+        print "new_FECs:", new_FECs
+
+        #remove duplicates
+        new_FECs = {v['id']: v for v in new_FECs}.values()
 
         # Send gratuitous ARP responses for all them
-        print "new_FECs"
-        print new_FECs
+        print "new_FECs (no duplicates):", new_FECs
         for FEC in new_FECs:
             self.process_arp_request(None, FEC)
 
         # Tell Route Server that it needs to announce these routes
         for announcement in announcements:
             # TODO: Complete the logic for this function
+            print "sending announcement:", announcement
             self.send_announcement(announcement)
 
         if TIMING:
@@ -603,13 +611,13 @@ class ParticipantController(object):
             if ('withdraw' in update):
                 prefix = update['withdraw'].prefix
 
-            print "now in vnh assignement"
-            print prefix
-            if (prefix not in self.prefix_2_FEC):
-                print "starting assign_FEC"
-                #check if prefix can be integrated into existing FEC
-                #vnh = self.supersets.assign_FEC(self,prefix)
-                route = self.bgp_instance.get_route('local', prefix)
+            print "now in vnh assignement for prefix:", prefix
+            #if (prefix not in self.prefix_2_FEC):
+            print "starting assign_FEC"
+            #check if prefix can be integrated into existing FEC
+            #vnh = self.supersets.assign_FEC(self,prefix)
+            route = self.bgp_instance.get_route('local', prefix)
+            if route is not None:
                 next_hop = route.next_hop
                 next_hop_part = self.nexthop_2_part[next_hop]
                 part_set = get_all_participants_advertising(self,prefix)
@@ -617,6 +625,9 @@ class ParticipantController(object):
                 if (next_hop_part, part_set_tuple) in self.FEC_list:
                     self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
                     vnh = self.FEC_list[(next_hop_part, part_set_tuple)]['vnh']
+                    print "integrated in existing FEC"
+                    print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
+                    print "self.prefix_2_FEC:", self.prefix_2_FEC
                     return vnh
                 else :
                     self.num_VNHs_in_use += 1
@@ -629,8 +640,12 @@ class ParticipantController(object):
                     new_FEC['part_advertising'] = part_set
                     self.prefix_2_FEC[prefix] = new_FEC
                     self.FEC_list[(next_hop_part, part_set_tuple)] = new_FEC
-                    print self.FEC_list
+                    print "New FEC for prefix", prefix
+                    print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
+                    print "self.FEC_list", self.FEC_list
                     return vnh
+            else:
+                return
                 #get next VNH and assign it the prefix
                 #self.prefix_2_VNH[prefix] = vnh
                 #self.VNH_2_prefix[vnh] = prefix
