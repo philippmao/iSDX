@@ -54,9 +54,9 @@ case $2 in
         sleep 1
 
         cd $RUN_DIR/pctrl
-        #sudo python participant_controller.py $TEST_DIR 1 &
+        sudo python participant_controller.py $TEST_DIR 1 &
         sudo python participant_controller.py $TEST_DIR 2 &
-        #sudo python participant_controller.py $TEST_DIR 3 &
+        sudo python participant_controller.py $TEST_DIR 3 &
         sleep 1
 
         cd $RUN_DIR

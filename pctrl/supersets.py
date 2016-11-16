@@ -94,10 +94,11 @@ class SuperSets(object):
                     prefix = update['withdraw'].prefix
                     # withdraws always change the bits of a VMAC
                     # check if for this vnh a garp was already sent
-                    vnh = prefix_2_FEC[prefix]['vnh']
-                    if vnh in VNH_2_vmac:
-                        continue
-                    impacted_prefixes.append(prefix)
+                    if prefix in prefix_2_FEC:
+                        vnh = prefix_2_FEC[prefix]['vnh']
+                        if vnh in VNH_2_vmac:
+                            continue
+                    #impacted_prefixes.append(prefix)
                 if ('announce' not in update):
                     continue
                 prefix = update['announce'].prefix

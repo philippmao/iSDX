@@ -372,10 +372,10 @@ class ParticipantController(object):
         self.push_dp()
 
         # Send gratuitous ARP responses for all
-        garp_required_vnhs = self.prefix_2_FEC.values()['vnh']
+        garp_required_FECs = self.prefix_2_FEC.values()['vnh']
         #garp_required_vnhs = self.VNH_2_prefix.keys()
-        for vnh in garp_required_vnhs:
-            self.process_arp_request(None, vnh)
+        for FEC in garp_required_FECs:
+            self.process_arp_request(None, FEC)
             
         return
 
@@ -493,7 +493,7 @@ class ParticipantController(object):
         # should think about getting rid of such redundant computations.
         for update in updates:
             self.bgp_instance.decision_process_local(update)
-            self.vnh_assignment(update)
+            self.FEC_assignment(update)
 
         if TIMING:
             elapsed = time.time() - tstart
@@ -601,54 +601,78 @@ class ParticipantController(object):
 	self.xrs_client.send({'msgType': 'bgp', 'announcement': announcement})
 
 
-    def vnh_assignment(self, update):
+    def FEC_assignment(self, update):
         "Assign VNHs for the advertised prefixes"
         if self.cfg.isSupersetsMode():
             " Superset"
             if ('announce' in update):
                 prefix = update['announce'].prefix
+                route = self.bgp_instance.get_route('local', prefix)
+                if route is not None:
+                    next_hop = route.next_hop
+                    next_hop_part = self.nexthop_2_part[next_hop]
+                    part_set = get_all_participants_advertising(self, prefix)
+                    part_set_tuple = tuple(part_set)
+                    if (next_hop_part, part_set_tuple) in self.FEC_list:
+                        self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
+                        print "integrated in existing FEC"
+                        print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
+                        print "self.prefix_2_FEC:", self.prefix_2_FEC
+                        return
+                    else:
+                        self.num_VNHs_in_use += 1
+                        vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
+                        print "vnh:", vnh
+                        print "self.id:", self.id
+                        if vnh in self.nexthop_2_part:
+                            print "vnh same as own ip"
+                            self.num_VNHs_in_use += 1
+                            vnh = vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
+                        new_FEC = {}
+                        new_FEC['id'] = len(self.FEC_list) + 1
+                        new_FEC['vnh'] = vnh
+                        new_FEC['next_hop_part'] = next_hop_part
+                        new_FEC['part_advertising'] = part_set
+                        self.prefix_2_FEC[prefix] = new_FEC
+                        self.FEC_list[(next_hop_part, part_set_tuple)] = new_FEC
+                        print "New FEC for prefix", prefix
+                        print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
+                        print "self.FEC_list", self.FEC_list
+                        return
 
             if ('withdraw' in update):
                 prefix = update['withdraw'].prefix
-
-            print "now in vnh assignement for prefix:", prefix
-            #if (prefix not in self.prefix_2_FEC):
-            print "starting assign_FEC"
-            #check if prefix can be integrated into existing FEC
-            #vnh = self.supersets.assign_FEC(self,prefix)
-            route = self.bgp_instance.get_route('local', prefix)
-            if route is not None:
-                next_hop = route.next_hop
-                next_hop_part = self.nexthop_2_part[next_hop]
-                part_set = get_all_participants_advertising(self,prefix)
-                part_set_tuple = tuple(part_set)
-                if (next_hop_part, part_set_tuple) in self.FEC_list:
-                    self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
-                    vnh = self.FEC_list[(next_hop_part, part_set_tuple)]['vnh']
-                    print "integrated in existing FEC"
-                    print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
-                    print "self.prefix_2_FEC:", self.prefix_2_FEC
-                    return vnh
-                else :
-                    self.num_VNHs_in_use += 1
-                    vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
-                    print vnh
-                    new_FEC = {}
-                    new_FEC['id'] = len(self.FEC_list) + 1
-                    new_FEC['vnh'] = vnh
-                    new_FEC['next_hop_part'] = next_hop_part
-                    new_FEC['part_advertising'] = part_set
-                    self.prefix_2_FEC[prefix] = new_FEC
-                    self.FEC_list[(next_hop_part, part_set_tuple)] = new_FEC
-                    print "New FEC for prefix", prefix
-                    print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
-                    print "self.FEC_list", self.FEC_list
-                    return vnh
-            else:
-                return
-                #get next VNH and assign it the prefix
-                #self.prefix_2_VNH[prefix] = vnh
-                #self.VNH_2_prefix[vnh] = prefix
+                route = self.bgp_instance.get_route('local', prefix)
+                if route is not None:
+                    next_hop = route.next_hop
+                    next_hop_part = self.nexthop_2_part[next_hop]
+                    part_set = get_all_participants_advertising(self, prefix)
+                    part_set_tuple = tuple(part_set)
+                    if (next_hop_part, part_set_tuple) in self.FEC_list:
+                        self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
+                        print "integrated in existing FEC"
+                        print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
+                        print "self.prefix_2_FEC:", self.prefix_2_FEC
+                        return
+                    else:
+                        self.num_VNHs_in_use += 1
+                        vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
+                        print vnh
+                        new_FEC = {}
+                        new_FEC['id'] = len(self.FEC_list) + 1
+                        new_FEC['vnh'] = vnh
+                        new_FEC['next_hop_part'] = next_hop_part
+                        new_FEC['part_advertising'] = part_set
+                        self.prefix_2_FEC[prefix] = new_FEC
+                        self.FEC_list[(next_hop_part, part_set_tuple)] = new_FEC
+                        print "New FEC for prefix", prefix
+                        print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
+                        print "self.FEC_list", self.FEC_list
+                        return
+                #else :
+                    #if prefix in self.prefix_2_FEC:
+                        #self.prefix_2_FEC.pop(prefix)
+                    #return
         else:
             "Disjoint"
             # TODO: @Robert: Place your logic here for VNH assignment for MDS scheme
@@ -664,29 +688,34 @@ class ParticipantController(object):
             #print 'init_vnh_assignment: prefixes:', prefixes
             #print 'init_vnh_assignment: prefix_2_VNH:', self.prefix_2_VNH
             for prefix in prefixes:
-                if (prefix not in self.prefix_2_FEC):
-                    print "starting assign_FEC"
-                    # check if prefix can be integrated into existing FEC
-                    # vnh = self.supersets.assign_FEC(self,prefix)
                     route = self.bgp_instance.get_route('local', prefix)
-                    next_hop = route.next_hop
-                    next_hop_part = self.bgp_instance.nexthop_2_part[next_hop]
-                    part_set = self.bgp_instance.get_all_participants_advertising(prefix)
-                    if (next_hop_part, part_set) in self.FEC_list:
-                        self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set)]
-                        vnh = self.FEC_list[(next_hop_part, part_set)]['vnh']
-                        return vnh
-                    else:
-                        self.num_VNHs_in_use += 1
-                        vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
-                        print vnh
-                        new_FEC = {}
-                        new_FEC['id'] = len(self.FEC_list) + 1
-                        new_FEC['vnh'] = vnh
-                        self.prefix_2_FEC[prefix] = new_FEC
-                        self.FEC_list[(next_hop_part, part_set)] = new_FEC
-                        print self.FEC_list
-                        return vnh
+                    if route is not None:
+                        next_hop = route.next_hop
+                        next_hop_part = self.nexthop_2_part[next_hop]
+                        part_set = get_all_participants_advertising(self, prefix)
+                        part_set_tuple = tuple(part_set)
+                        if (next_hop_part, part_set_tuple) in self.FEC_list:
+                            self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
+                            print "integrated in existing FEC"
+                            print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
+                            print "self.prefix_2_FEC:", self.prefix_2_FEC
+                            return
+                        else:
+                            self.num_VNHs_in_use += 1
+                            vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
+                            print vnh
+                            new_FEC = {}
+                            new_FEC['id'] = len(self.FEC_list) + 1
+                            new_FEC['vnh'] = vnh
+                            new_FEC['next_hop_part'] = next_hop_part
+                            new_FEC['part_advertising'] = part_set
+                            self.prefix_2_FEC[prefix] = new_FEC
+                            self.FEC_list[(next_hop_part, part_set_tuple)] = new_FEC
+                            print "New FEC for prefix", prefix
+                            print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
+                            print "self.FEC_list", self.FEC_list
+                            return
+
         else:
             "Disjoint"
             # TODO: @Robert: Place your logic here for VNH assignment for MDS scheme

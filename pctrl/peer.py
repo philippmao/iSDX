@@ -194,7 +194,6 @@ class BGPPeer(object):
 
     def bgp_update_peers(self, updates, prefix_2_FEC , VNH_2_vmac, ports):
         # TODO: Verify if the new logic makes sense
-        changed_vnhs = []
         announcements = []
         new_FECs = []
         for update in updates:
