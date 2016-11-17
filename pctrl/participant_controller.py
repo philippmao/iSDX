@@ -453,8 +453,6 @@ class ParticipantController(object):
             # dig up the IP of the target participant
             vnh = FEC
             vmac = self.VNH_2_vmac[vnh]
-            print "non Gratitious ARP, vmac:", vmac
-            print "VNH_2_vmac", self.VNH_2_vmac
             for port in self.cfg.ports:
                 if part_mac == port["MAC"]:
                     part_ip = port["IP"]
@@ -528,8 +526,6 @@ class ParticipantController(object):
                 #if a recomputation was needed, all VMACs must be reARPed
                 # TODO: confirm reARPed is a word
                 #garp_required_vnhs = self.VNH_2_prefix.keys()
-                print " ss_changes new"
-                print "self.prefix_2_FEC", self.prefix_2_FEC
                 garp_required_FECs =[]
                 for FEC in self.FEC_list.values():
                     garp_required_FECs.append(FEC)
@@ -568,7 +564,6 @@ class ParticipantController(object):
         new_FECs, announcements = self.bgp_instance.bgp_update_peers(updates,self.prefix_2_VNH_nrfp,
                 self.prefix_2_FEC, self.VNH_2_vmac, self.cfg.ports)
 
-        print "announcements:", announcements
 
         """ Combine the VNHs which have changed BGP default routes with the
             VNHs which have changed supersets.
@@ -577,20 +572,17 @@ class ParticipantController(object):
         #new_FECs = set(new_FECs)
 
         new_FECs = new_FECs + garp_required_FECs
-        print "new_FECs:", new_FECs
 
         #remove duplicates
         new_FECs = {v['id']: v for v in new_FECs}.values()
 
         # Send gratuitous ARP responses for all them
-        print "new_FECs (no duplicates):", new_FECs
         for FEC in new_FECs:
             self.process_arp_request(None, FEC)
 
         # Tell Route Server that it needs to announce these routes
         for announcement in announcements:
             # TODO: Complete the logic for this function
-            print "sending announcement:", announcement
             self.send_announcement(announcement)
 
         if TIMING:

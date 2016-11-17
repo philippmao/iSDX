@@ -27,17 +27,11 @@ class FEC(object):
                     part_set_tuple = tuple(part_set)
                     if (next_hop_part, part_set_tuple) in self.FEC_list:
                         self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
-                        print "integrated in existing FEC"
-                        print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
-                        print "self.prefix_2_FEC:", self.prefix_2_FEC
                         return
                     else:
                         self.num_VNHs_in_use += 1
                         vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
-                        print "vnh:", vnh
-                        print "self.id:", self.id
                         if vnh in self.nexthop_2_part:
-                            print "vnh same as own ip"
                             self.num_VNHs_in_use += 1
                             vnh = vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
                         new_FEC = {}
@@ -47,9 +41,6 @@ class FEC(object):
                         new_FEC['part_advertising'] = part_set
                         self.prefix_2_FEC[prefix] = new_FEC
                         self.FEC_list[(next_hop_part, part_set_tuple)] = new_FEC
-                        print "New FEC for prefix", prefix
-                        print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
-                        print "self.FEC_list", self.FEC_list
                         return
 
             if ('withdraw' in update):
@@ -62,14 +53,10 @@ class FEC(object):
                     part_set_tuple = tuple(part_set)
                     if (next_hop_part, part_set_tuple) in self.FEC_list:
                         self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
-                        print "integrated in existing FEC"
-                        print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
-                        print "self.prefix_2_FEC:", self.prefix_2_FEC
                         return
                     else:
                         self.num_VNHs_in_use += 1
                         vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
-                        print vnh
                         new_FEC = {}
                         new_FEC['id'] = len(self.FEC_list) + 1
                         new_FEC['vnh'] = vnh
@@ -77,9 +64,6 @@ class FEC(object):
                         new_FEC['part_advertising'] = part_set
                         self.prefix_2_FEC[prefix] = new_FEC
                         self.FEC_list[(next_hop_part, part_set_tuple)] = new_FEC
-                        print "New FEC for prefix", prefix
-                        print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
-                        print "self.FEC_list", self.FEC_list
                         return
                 else :
                     if prefix in self.prefix_2_FEC:
@@ -97,8 +81,6 @@ class FEC(object):
             " Superset"
             #self.bgp_instance.rib["local"].dump()
             prefixes = self.bgp_instance.rib["local"].get_prefixes()
-            #print 'init_vnh_assignment: prefixes:', prefixes
-            #print 'init_vnh_assignment: prefix_2_VNH:', self.prefix_2_VNH
             for prefix in prefixes:
                     route = self.bgp_instance.get_route('local', prefix)
                     if route is not None:
@@ -108,13 +90,9 @@ class FEC(object):
                         part_set_tuple = tuple(part_set)
                         if (next_hop_part, part_set_tuple) in self.FEC_list:
                             self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
-                            print "integrated in existing FEC"
-                            print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
-                            print "self.prefix_2_FEC:", self.prefix_2_FEC
                         else:
                             self.num_VNHs_in_use += 1
                             vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
-                            print vnh
                             new_FEC = {}
                             new_FEC['id'] = len(self.FEC_list) + 1
                             new_FEC['vnh'] = vnh
@@ -122,9 +100,6 @@ class FEC(object):
                             new_FEC['part_advertising'] = part_set
                             self.prefix_2_FEC[prefix] = new_FEC
                             self.FEC_list[(next_hop_part, part_set_tuple)] = new_FEC
-                            print "New FEC for prefix", prefix
-                            print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
-                            print "self.FEC_list", self.FEC_list
 
         else:
             "Disjoint"
