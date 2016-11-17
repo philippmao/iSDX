@@ -52,7 +52,7 @@ class BGPPeer(object):
         # Extract out neighbor information in the given BGP update
         neighbor = route["neighbor"]["ip"]
         #self.logger.debug('==>>> '+str(neighbor)+' '+str(route))
-
+        print "UPDATE", route
         if ('state' in route['neighbor'] and route['neighbor']['state']=='down'):
             self.logger.debug("PEER DOWN - ASN " + str(self.asn))
 
@@ -166,7 +166,7 @@ class BGPPeer(object):
         elif('withdraw' in update):
             deleted_route = update['withdraw']
             prefix = deleted_route.prefix
-            self.logger.debug(" Peer Object for: "+str(self.id)+" ---processing withdraw for prefix: "+str(prefix))
+            #self.logger.debug(" Peer Object for: "+str(self.id)+" ---processing withdraw for prefix: "+str(prefix))
             if deleted_route is not None:
                 # delete route if being used
                 current_best_route = self.get_route('local',prefix)
@@ -180,19 +180,19 @@ class BGPPeer(object):
                         self.delete_route('local',prefix)
                         routes = self.get_routes('input',prefix)
                         if routes:
-                            self.logger.debug('decision_process_local: withdraw')
+                            #self.logger.debug('decision_process_local: withdraw')
                             best_route = best_path_selection(routes)
-                            self.logger.debug('decision procces finished')
-                            self.update_route('local', best_route)
-                        else:
-                            self.logger.debug(" no best route message")
+                            #self.logger.debug('decision procces finished')
+                            #self.update_route('local', best_route)
+                        #else:
+                            #self.logger.debug(" no best route message")
                     else:
                         self.logger.debug(" Peer Object for: "+str(self.id)+" ---BGP withdraw for prefix "+str(prefix)+" has no impact on best path")
                 else:
                     self.logger.debug(" Peer Object for: "+str(self.id)+" --- This is weird. How can we not have any delete object in this function")
 
 
-    def bgp_update_peers(self, updates, prefix_2_FEC , VNH_2_vmac, ports):
+    def bgp_update_peers(self, updates,prefix_2_VNH_nrfp, prefix_2_FEC , VNH_2_vmac, ports):
         # TODO: Verify if the new logic makes sense
         announcements = []
         new_FECs = []
@@ -210,9 +210,9 @@ class BGPPeer(object):
                 # XXX: TODO: improve on this? give a chance for change to show up in db.
                 time.sleep(.1)
                 best_route = self.get_route("local", prefix)
-            self.logger.debug(" Peer Object for: "+str(self.id)+" -- Previous Outbound route: "+str(prev_route)+" New Best Path: "+str(best_route))
+           # self.logger.debug(" Peer Object for: "+str(self.id)+" -- Previous Outbound route: "+str(prev_route)+" New Best Path: "+str(best_route))
             if best_route == None:
-                self.logger.debug('=============== best_route is None ====================')
+                #self.logger.debug('=============== best_route is None ====================')
                 #self.logger.debug(str(prefix))
                 #self.logger.debug('----')
                 #self.logger.debug('local.rib.dump')
@@ -271,7 +271,7 @@ class BGPPeer(object):
                             # TODO: Create a sender queue and import the announce_route function
                             announcements.append(withdraw_route(port["IP"],
                                 prefix,
-                                prefix_2_FEC[prefix]['vnh']))
+                                prefix_2_VNH_nrfp[prefix]))
 
         return new_FECs, announcements
 

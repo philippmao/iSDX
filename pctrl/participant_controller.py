@@ -25,6 +25,7 @@ from peer import BGPPeer
 from ss_lib import vmac_part_port_match
 from ss_rule_scheme import update_outbound_rules, init_inbound_rules, init_outbound_rules, msg_clear_all_outbound, ss_process_policy_change
 from supersets import SuperSets, get_all_participants_advertising
+from FEC import FEC
 
 import pprint
 
@@ -63,9 +64,8 @@ class ParticipantController(object):
         self.VNH_2_vmac = {}
         self.vmac_2_VNH = {}
         self.FEC_list = {}
-        self.VNH_2_FEC = {}
-        self.FEC_2_VNH = {}
         self.prefix_2_FEC = {}
+        self.prefix_2_VNH_nrfp = {}
 
 
         # Superset related params
@@ -87,6 +87,7 @@ class ParticipantController(object):
 
         # ExaBGP Peering Instance
         self.bgp_instance = self.cfg.get_bgp_instance()
+        self.FEC = FEC(self)
 
         # Route server client, Reference monitor client, Arp Proxy client
         self.xrs_client = self.cfg.get_xrs_client(self.logger)
@@ -162,7 +163,7 @@ class ParticipantController(object):
         if self.cfg.isMultiTableMode():
             final_switch = "main-out"
 
-        self.init_vnh_assignment()
+        self.FEC.init_vnh_assignment()
 
         rule_msgs = init_inbound_rules(self.id, self.policies,
                                         self.supersets, final_switch)
@@ -426,10 +427,8 @@ class ParticipantController(object):
 
     def process_arp_request(self, part_mac, FEC):
         vmac = ""
-        if self.cfg.isSupersetsMode():
-            vmac = self.supersets.get_vmac(self, FEC)
-        else:
-            vmac = "whoa" # MDS vmac goes here
+        #if self.cfg.isSupersetsMode():
+            #vmac = self.supersets.get_vmac(self, FEC)
 
         arp_responses = list()
 
@@ -437,6 +436,7 @@ class ParticipantController(object):
         if part_mac is None:
             gratuitous = True
             # set fields appropriately for gratuitous arps
+            vmac = self.supersets.get_vmac(self, FEC)
             i = 0
             vnh = FEC['vnh']
             self.VNH_2_vmac[vnh] = vmac
@@ -451,6 +451,10 @@ class ParticipantController(object):
         else: # if it wasn't gratuitous
             gratuitous = False
             # dig up the IP of the target participant
+            vnh = FEC
+            vmac = self.VNH_2_vmac[vnh]
+            print "non Gratitious ARP, vmac:", vmac
+            print "VNH_2_vmac", self.VNH_2_vmac
             for port in self.cfg.ports:
                 if part_mac == port["MAC"]:
                     part_ip = port["IP"]
@@ -493,7 +497,7 @@ class ParticipantController(object):
         # should think about getting rid of such redundant computations.
         for update in updates:
             self.bgp_instance.decision_process_local(update)
-            self.FEC_assignment(update)
+            self.FEC.FEC_assignment(update)
 
         if TIMING:
             elapsed = time.time() - tstart
@@ -561,7 +565,7 @@ class ParticipantController(object):
             self.logger.debug("Time taken to push dp msgs: "+str(elapsed))
             tstart = time.time()
 
-        new_FECs, announcements = self.bgp_instance.bgp_update_peers(updates,
+        new_FECs, announcements = self.bgp_instance.bgp_update_peers(updates,self.prefix_2_VNH_nrfp,
                 self.prefix_2_FEC, self.VNH_2_vmac, self.cfg.ports)
 
         print "announcements:", announcements
@@ -597,129 +601,8 @@ class ParticipantController(object):
 
     def send_announcement(self, announcement):
         "Send the announcements to XRS"
-	self.logger.debug("Sending announcements to XRS: %s", announcement)
+	#self.logger.debug("Sending announcements to XRS: %s", announcement)
 	self.xrs_client.send({'msgType': 'bgp', 'announcement': announcement})
-
-
-    def FEC_assignment(self, update):
-        "Assign VNHs for the advertised prefixes"
-        if self.cfg.isSupersetsMode():
-            " Superset"
-            if ('announce' in update):
-                prefix = update['announce'].prefix
-                route = self.bgp_instance.get_route('local', prefix)
-                if route is not None:
-                    next_hop = route.next_hop
-                    next_hop_part = self.nexthop_2_part[next_hop]
-                    part_set = get_all_participants_advertising(self, prefix)
-                    part_set_tuple = tuple(part_set)
-                    if (next_hop_part, part_set_tuple) in self.FEC_list:
-                        self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
-                        print "integrated in existing FEC"
-                        print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
-                        print "self.prefix_2_FEC:", self.prefix_2_FEC
-                        return
-                    else:
-                        self.num_VNHs_in_use += 1
-                        vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
-                        print "vnh:", vnh
-                        print "self.id:", self.id
-                        if vnh in self.nexthop_2_part:
-                            print "vnh same as own ip"
-                            self.num_VNHs_in_use += 1
-                            vnh = vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
-                        new_FEC = {}
-                        new_FEC['id'] = len(self.FEC_list) + 1
-                        new_FEC['vnh'] = vnh
-                        new_FEC['next_hop_part'] = next_hop_part
-                        new_FEC['part_advertising'] = part_set
-                        self.prefix_2_FEC[prefix] = new_FEC
-                        self.FEC_list[(next_hop_part, part_set_tuple)] = new_FEC
-                        print "New FEC for prefix", prefix
-                        print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
-                        print "self.FEC_list", self.FEC_list
-                        return
-
-            if ('withdraw' in update):
-                prefix = update['withdraw'].prefix
-                route = self.bgp_instance.get_route('local', prefix)
-                if route is not None:
-                    next_hop = route.next_hop
-                    next_hop_part = self.nexthop_2_part[next_hop]
-                    part_set = get_all_participants_advertising(self, prefix)
-                    part_set_tuple = tuple(part_set)
-                    if (next_hop_part, part_set_tuple) in self.FEC_list:
-                        self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
-                        print "integrated in existing FEC"
-                        print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
-                        print "self.prefix_2_FEC:", self.prefix_2_FEC
-                        return
-                    else:
-                        self.num_VNHs_in_use += 1
-                        vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
-                        print vnh
-                        new_FEC = {}
-                        new_FEC['id'] = len(self.FEC_list) + 1
-                        new_FEC['vnh'] = vnh
-                        new_FEC['next_hop_part'] = next_hop_part
-                        new_FEC['part_advertising'] = part_set
-                        self.prefix_2_FEC[prefix] = new_FEC
-                        self.FEC_list[(next_hop_part, part_set_tuple)] = new_FEC
-                        print "New FEC for prefix", prefix
-                        print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
-                        print "self.FEC_list", self.FEC_list
-                        return
-                #else :
-                    #if prefix in self.prefix_2_FEC:
-                        #self.prefix_2_FEC.pop(prefix)
-                    #return
-        else:
-            "Disjoint"
-            # TODO: @Robert: Place your logic here for VNH assignment for MDS scheme
-            self.logger.debug("VNH assignment called for disjoint vmac_mode")
-
-
-    def init_vnh_assignment(self):
-        "Assign VNHs for the advertised prefixes"
-        if self.cfg.isSupersetsMode():
-            " Superset"
-            #self.bgp_instance.rib["local"].dump()
-            prefixes = self.bgp_instance.rib["local"].get_prefixes()
-            #print 'init_vnh_assignment: prefixes:', prefixes
-            #print 'init_vnh_assignment: prefix_2_VNH:', self.prefix_2_VNH
-            for prefix in prefixes:
-                    route = self.bgp_instance.get_route('local', prefix)
-                    if route is not None:
-                        next_hop = route.next_hop
-                        next_hop_part = self.nexthop_2_part[next_hop]
-                        part_set = get_all_participants_advertising(self, prefix)
-                        part_set_tuple = tuple(part_set)
-                        if (next_hop_part, part_set_tuple) in self.FEC_list:
-                            self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
-                            print "integrated in existing FEC"
-                            print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
-                            print "self.prefix_2_FEC:", self.prefix_2_FEC
-                            return
-                        else:
-                            self.num_VNHs_in_use += 1
-                            vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
-                            print vnh
-                            new_FEC = {}
-                            new_FEC['id'] = len(self.FEC_list) + 1
-                            new_FEC['vnh'] = vnh
-                            new_FEC['next_hop_part'] = next_hop_part
-                            new_FEC['part_advertising'] = part_set
-                            self.prefix_2_FEC[prefix] = new_FEC
-                            self.FEC_list[(next_hop_part, part_set_tuple)] = new_FEC
-                            print "New FEC for prefix", prefix
-                            print "self.prefix_2_FEC[prefix]:", self.prefix_2_FEC[prefix]
-                            print "self.FEC_list", self.FEC_list
-                            return
-
-        else:
-            "Disjoint"
-            # TODO: @Robert: Place your logic here for VNH assignment for MDS scheme
-            self.logger.debug("VNH assignment called for disjoint vmac_mode")
 
 
 def get_prefixes_from_announcements(route):

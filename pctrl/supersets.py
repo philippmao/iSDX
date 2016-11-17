@@ -224,20 +224,26 @@ class SuperSets(object):
 
         print "FEC = ", FEC
         next_hop = FEC['next_hop_part']
-        if next_hop not in nexthop_2_part:
+        #if next_hop not in nexthop_2_part:
             #self.logger.debug("Next Hop "+str(next_hop)+" not found in get_vmac call!")
-            return vmac_addr
+            #return vmac_addr
 
         #nexthop_part = nexthop_2_part[next_hop]
 
         # the participants who are involved in policies
         active_parts = self.recompute_rulecounts(pctrl).keys()
 
+        print "active_parts:", active_parts
+
         # the set of participants which advertise this prefix
         prefix_set = FEC['part_advertising']
 
+        print "prefix_set:", prefix_set
+
         # remove everyone but the active participants!
         prefix_set.intersection_update(active_parts)
+
+        print "active_prefix_set:", prefix_set
 
         # find the superset it belongs to
         ss_id = -1
@@ -254,6 +260,9 @@ class SuperSets(object):
 
         # build the mask bits
         set_bitstring = ""
+        print "supersets:", self.supersets
+        print "superset[i]:", self.supersets[i]
+        print "pctrl.cfg.peers_out:", pctrl.cfg.peers_out
         for part in self.supersets[i]:
             if part in prefix_set and part in pctrl.cfg.peers_out:
                 set_bitstring += '1'
@@ -280,6 +289,8 @@ class SuperSets(object):
         # convert bitstring to hexstring and then to a mac address
         vmac_addr = '{num:0{width}x}'.format(num=int(vmac_bitstring,2), width=self.VMAC_size/4)
         vmac_addr = ':'.join([vmac_addr[i]+vmac_addr[i+1] for i in range(0,self.VMAC_size/4,2)])
+
+        print "vmac:", vmac_addr
 
         return vmac_addr
 
