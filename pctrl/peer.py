@@ -98,10 +98,10 @@ class BGPPeer(object):
                             # TODO: Avoid multiple interactions with the DB
                             announce_route = self.get_route_with_neighbor("input", prefix, neighbor)
                             if announce_route is None:
-                                self.logger.debug('-------------- announce_route is None')
-                                self.logger('rib_dump')
-                                self.logger.debug('--------------')
-                                self.logger.debug(str(prefix)+' '+str(neighbor))
+                                #self.logger.debug('-------------- announce_route is None')
+                                #self.logger('rib_dump')
+                                #self.logger.debug('--------------')
+                                #self.logger.debug(str(prefix)+' '+str(neighbor))
                                 assert(announce_route is not None)
                             else:
                                 route_list.append({'announce': announce_route})
@@ -140,9 +140,9 @@ class BGPPeer(object):
             # message.
 
             announce_route = update['announce']
-            self.logger.debug("decision process local:: "+str(announce_route))
+            #self.logger.debug("decision process local:: "+str(announce_route))
             prefix = announce_route.prefix
-            self.logger.debug(" Peer Object for: "+str(self.id)+" --- processing update for prefix: "+str(prefix))
+            #self.logger.debug(" Peer Object for: "+str(self.id)+" --- processing update for prefix: "+str(prefix))
             current_best_route = self.get_route('local', prefix)
             if current_best_route:
                 # This is what should be fed to the desicion process
@@ -152,16 +152,16 @@ class BGPPeer(object):
                 # This is the first time for this prefix
                 new_best_route = announce_route
 
-            self.logger.debug(" Peer Object for: "+str(self.id)+" ---Best Route after Selection: "+str(prefix)+' '+str(new_best_route))
+            #self.logger.debug(" Peer Object for: "+str(self.id)+" ---Best Route after Selection: "+str(prefix)+' '+str(new_best_route))
             if bgp_routes_are_equal(new_best_route, current_best_route):
                 self.logger.debug(" Peer Object for: "+str(self.id)+" --- No change in Best Path...move on "+str(prefix))
             else:
-                self.logger.debug('decision_process_local: announce: new_best_route: '+str(type(new_best_route))+' '+str(new_best_route))
+                #self.logger.debug('decision_process_local: announce: new_best_route: '+str(type(new_best_route))+' '+str(new_best_route))
                 self.update_route('local', new_best_route)
                 # Check
                 updated_best_path = self.get_route('local', prefix)
-                self.logger.debug(" Peer Object for: "+str(self.id)+" Pushed: "+str(new_best_route)+" Observing: "+str(updated_best_path))
-                self.logger.debug(" Peer Object for: "+str(self.id)+" --- Best Path changed: "+str(prefix)+' '+str(new_best_route)+" Older best route: "+str(current_best_route))
+                #self.logger.debug(" Peer Object for: "+str(self.id)+" Pushed: "+str(new_best_route)+" Observing: "+str(updated_best_path))
+                #self.logger.debug(" Peer Object for: "+str(self.id)+" --- Best Path changed: "+str(prefix)+' '+str(new_best_route)+" Older best route: "+str(current_best_route))
 
         elif('withdraw' in update):
             deleted_route = update['withdraw']
@@ -182,8 +182,7 @@ class BGPPeer(object):
                         if routes:
                             #self.logger.debug('decision_process_local: withdraw')
                             best_route = best_path_selection(routes)
-                            #self.logger.debug('decision procces finished')
-                            #self.update_route('local', best_route)
+                            self.update_route('local', best_route)
                         #else:
                             #self.logger.debug(" no best route message")
                     else:
@@ -196,6 +195,9 @@ class BGPPeer(object):
         # TODO: Verify if the new logic makes sense
         announcements = []
         new_FECs = []
+        #self.logger.debug("rib local,input dump")
+        #self.rib['local'].dump(self.logger)
+        #self.rib['input'].dump(self.logger)
         for update in updates:
             if 'announce' in update:
                 prefix = update['announce'].prefix
@@ -210,12 +212,14 @@ class BGPPeer(object):
                 # XXX: TODO: improve on this? give a chance for change to show up in db.
                 time.sleep(.1)
                 best_route = self.get_route("local", prefix)
-           # self.logger.debug(" Peer Object for: "+str(self.id)+" -- Previous Outbound route: "+str(prev_route)+" New Best Path: "+str(best_route))
+                #self.logger.debug(" Peer Object for: "+str(self.id)+" -- Previous Outbound route: "+str(prev_route)+" New Best Path: "+str(best_route))
             if best_route == None:
                 #self.logger.debug('=============== best_route is None ====================')
                 #self.logger.debug(str(prefix))
                 #self.logger.debug('----')
                 #self.logger.debug('local.rib.dump')
+                #self.rib['local'].dump(self.logger)
+                #self.rib['input'].dump(self.logger)
                 #self.logger.debug('----')
                 #self.logger.debug(str(updates))
                 #self.logger.debug('----')
@@ -227,40 +231,38 @@ class BGPPeer(object):
             #self.logger.debug("**********best route for: "+str(prefix)+" route:: "+str(best_route))
 
             if ('announce' in update):
-                # Check if best path has changed for this prefix
-                if not bgp_routes_are_equal(best_route, prev_route):
-                    # store announcement in output rib
-                    # self.logger.debug(str(best_route)+' '+str(prev_route))
-                    self.update_route("output", best_route)
-                    vnh = prefix_2_FEC[prefix]['vnh']
-                    if vnh not in VNH_2_vmac:
-                        new_FECs.append(prefix_2_FEC[prefix])
-                    if best_route:
-                        # announce the route to each router of the participant
-                        for port in ports:
-                            # TODO: Create a sender queue and import the announce_route function
-                            #self.logger.debug ("********** Failure: "+str(port["IP"])+' '+str(prefix)+" route::failure "+str(best_route))
-                            announcements.append(announce_route(port["IP"], prefix,
-                                vnh, best_route.as_path))
-                    else:
-                        self.logger.debug("Race condition problem for prefix: "+str(prefix))
-                        continue
+                # Check if best path has changed for this prefi
+                # store announcement in output rib
+                #self.logger.debug(str(best_route)+' '+str(prev_route))
+                self.update_route("output", best_route)
+                vnh = prefix_2_FEC[prefix]['vnh']
+                if vnh not in VNH_2_vmac:
+                    new_FECs.append(prefix_2_FEC[prefix])
+                if best_route:
+                    # announce the route to each router of the participant
+                    for port in ports:
+                         # TODO: Create a sender queue and import the announce_route function
+                        #self.logger.debug ("********** Failure: "+str(port["IP"])+' '+str(prefix)+" route::failure "+str(best_route))
+                        announcements.append(announce_route(port["IP"], prefix,
+                            vnh, best_route.as_path))
+                else:
+                    self.logger.debug("Race condition problem for prefix: "+str(prefix))
+                    continue
 
             elif ('withdraw' in update):
                 # A new announcement is only needed if the best path has changed
                 if best_route:
                     "There is a best path available for this prefix"
-                    if not bgp_routes_are_equal(best_route, prev_route):
-                        "There is a new best path available now"
-                        # store announcement in output rib
-                        self.update_route("output", best_route)
-                        vnh = prefix_2_FEC[prefix]['vnh']
-                        if vnh not in VNH_2_vmac:
-                            new_FECs.append(prefix_2_FEC[prefix])
-                        for port in ports:
-                            announcements.append(announce_route(port["IP"],
-                                                 prefix, vnh,
-                                                 best_route.as_path))
+                    "There is a new best path available now"
+                    # store announcement in output rib
+                    self.update_route("output", best_route)
+                    vnh = prefix_2_FEC[prefix]['vnh']
+                    if vnh not in VNH_2_vmac:
+                        new_FECs.append(prefix_2_FEC[prefix])
+                    for port in ports:
+                        announcements.append(announce_route(port["IP"],
+                                                prefix, vnh,
+                                                best_route.as_path))
 
                 else:
                     "Currently there is no best route to this prefix"

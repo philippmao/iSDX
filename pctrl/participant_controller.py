@@ -452,7 +452,10 @@ class ParticipantController(object):
             gratuitous = False
             # dig up the IP of the target participant
             vnh = FEC
+            #print "Arp for vnh:", vnh
             vmac = self.VNH_2_vmac[vnh]
+            #print "Vmac:", vmac
+           # print "self.prefix_2_FEC:", self.prefix_2_FEC
             for port in self.cfg.ports:
                 if part_mac == port["MAC"]:
                     part_ip = port["IP"]
@@ -489,7 +492,7 @@ class ParticipantController(object):
 
         # Map to update for each prefix in the route advertisement.
         updates = self.bgp_instance.update(route)
-        #self.logger.debug("process_bgp_route:: "+str(updates))
+        self.logger.debug("process_bgp_route:: "+str(updates))
         # TODO: This step should be parallelized
         # TODO: The decision process for these prefixes is going to be same, we
         # should think about getting rid of such redundant computations.

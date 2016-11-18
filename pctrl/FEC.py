@@ -12,6 +12,7 @@ class FEC(object):
         self.id = pctrl.id
         self.pctrl = pctrl
         self.prefix_2_VNH_nrfp = pctrl.prefix_2_VNH_nrfp
+        self.logger = pctrl.logger
 
     def FEC_assignment(self, update):
         "Assign VNHs for the advertised prefixes"
@@ -26,6 +27,7 @@ class FEC(object):
                     part_set = get_all_participants_advertising(self.pctrl, prefix)
                     part_set_tuple = tuple(part_set)
                     if (next_hop_part, part_set_tuple) in self.FEC_list:
+                        #self.logger.debug(str(prefix) + "integrated in existing FEC:" + str(self.FEC_list[(next_hop_part, part_set_tuple)]))
                         self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
                         return
                     else:
@@ -52,6 +54,7 @@ class FEC(object):
                     part_set = get_all_participants_advertising(self, prefix)
                     part_set_tuple = tuple(part_set)
                     if (next_hop_part, part_set_tuple) in self.FEC_list:
+                        #self.logger.debug(str(prefix) + "integrated in existing FEC:" + str(self.FEC_list[(next_hop_part, part_set_tuple)]))
                         self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
                         return
                     else:
