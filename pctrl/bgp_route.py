@@ -47,4 +47,4 @@ class BGPRoute:
         return 0
 
     def __str__(self):
-        return str(self.prefix)+'\t'+str(self.next_hop)+'\t'+str(self.as_path)+'\t'
+        return '|' + str(self.prefix) + '\t|' + str(self.neighbor) + '\t|' + str(self.next_hop) + '\t|' + str(self.as_path) + '\t|'

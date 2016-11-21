@@ -19,7 +19,7 @@ def bitsRequired(supersets):
     """ How many bits are needed to represent any set in this construction?
     """
     if supersets is None:
-    	return 0
+        return 0
 
     logM = 1
     if len(supersets) > 1:
@@ -34,7 +34,7 @@ def rulesRequired(supersets, rulecounts):
     """ How many rules will be needed by this superset construction?
     """
     if supersets is None:
-    	return 0
+        return 0
 
     total = 0
     for superset in supersets:

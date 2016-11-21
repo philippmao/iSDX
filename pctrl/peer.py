@@ -28,7 +28,7 @@ class BGPPeer(object):
         self.logger = util.log.getLogger('P'+str(self.id)+'-peer')
 
         tables = [
-            {'name': 'input', 'primary_keys': ('prefix', 'neighbor'), 'mappings': []},
+            {'name': 'input', 'primary_keys': ('prefix', 'neighbor'), 'mappings': [('prefix',)]},
             {'name': 'local', 'primary_keys': ('prefix',), 'mappings': []},
             {'name': 'output', 'primary_keys': ('prefix',), 'mappings': []}
         ]
@@ -290,11 +290,4 @@ def withdraw_route(neighbor, prefix, next_hop):
 
 ''' main '''
 if __name__ == '__main__':
-
-    mypeer = peer('172.0.0.22')
-
-    route = '''{ "exabgp": "2.0", "time": 1387421714, "neighbor": { "ip": "172.0.0.21", "update": { "attribute": { "origin": "igp", "as-path": [ [ 300 ], [ ] ], "med": 0, "atomic-aggregate": false }, "announce": { "ipv4 unicast": { "140.0.0.0/16": { "next-hop": "172.0.0.22" }, "150.0.0.0/16": { "next-hop": "172.0.0.22" } } } } } }'''
-
-    mypeer.update(route)
-
-    print mypeer.filter_route('input', 'as_path', '300')
+    pass
