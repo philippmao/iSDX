@@ -1,6 +1,7 @@
 #  Author:
 #  Philipp Mao
 
+
 class FEC(object):
     def __init__(self, pctrl):
         self.FEC_list  = pctrl.FEC_list
@@ -14,7 +15,7 @@ class FEC(object):
         self.prefix_2_VNH_nrfp = pctrl.prefix_2_VNH_nrfp
         self.logger = pctrl.logger
 
-    def FEC_assignment(self, update):
+    def assignment(self, update):
         "Assign VNHs for the advertised prefixes"
         if self.cfg.isSupersetsMode():
             " Superset"
@@ -104,10 +105,6 @@ class FEC(object):
                             self.prefix_2_FEC[prefix] = new_FEC
                             self.FEC_list[(next_hop_part, part_set_tuple)] = new_FEC
 
-        else:
-            "Disjoint"
-            # TODO: @Robert: Place your logic here for VNH assignment for MDS scheme
-            #self.logger.debug("VNH assignment called for disjoint vmac_mode")
 
 def get_all_participants_advertising(pctrl, prefix):
     bgp_instance = pctrl.bgp_instance

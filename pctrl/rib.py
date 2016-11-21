@@ -1,190 +1,344 @@
 #!/usr/bin/env python
 #  Author:
-#  Muhammad Shahbaz (muhammad.shahbaz@gatech.edu)
-#  Arpit Gupta (arpitg@cs.princeton.edu)
+#  Rudiger Birkner (NSG @ ETHZ)
 
-from collections import namedtuple
-import os
-import sqlite3
-from threading import RLock
+from collections import defaultdict, namedtuple
 
-lock = RLock()
-
-# have all the rib implementations return a consistent interface
-labels = ('prefix', 'neighbor', 'next_hop', 'origin', 'as_path', 'communities', 'med',     'atomic_aggregate')
-types  = ('text',   'text',     'text',     'text',   'text',    'text',        'integer', 'boolean')
-RibTuple = namedtuple('RibTuple', labels)
-
-class rib(object):
-
-    def __init__(self,ip,name):
-        with lock:
-            # Create a database in RAM
-            self.db = sqlite3.connect('/home/vagrant/iSDX/xrs/ribs/'+ip+'.db',check_same_thread=False)
-            self.db.row_factory = sqlite3.Row
-            self.name = name
-
-            qs = ', '.join(['?']*len(labels))
-            self.insertStmt = 'insert into %s values (%s)' % (self.name, qs)
-
-            stmt = (
-                    'create table if not exists '+self.name+
-                    ' ('+ ', '.join([l+' '+t for l,t in zip(labels, types)])+')'
-                    )
-
-            cursor = self.db.cursor()
-            cursor.execute(stmt)
-            self.db.commit()
+from bgp_route import BGPRoute
 
 
-    def __del__(self):
-        with lock:
-            self.db.close()
+class LocalRIB(object):
+    def __init__(self, participant_id, tables):
+        self.participant_id = participant_id
+        self.tables = dict()
+        for table in tables:
+            self.tables[table['name']] = Table(table['name'], table['primary_keys'], table['mappings'])
+
+    def add(self, name, rib_entry):
+        self.tables[name].add(rib_entry)
+
+    def get(self, name, key_items, all_entries):
+        return self.tables[name].get(key_items, all_entries)
+
+    def delete(self, name, key_items):
+        self.tables[name].delete(key_items)
+
+    def commit(self):
+        pass
+
+    def rollback(self):
+        pass
 
 
-    # special case for as_path: externally it is list of ints, but internally (in the db) a string.
-    def _as_path_list2str(self, as_path):
-        return ' '.join(str(ap) for ap in as_path)
+class Table(object):
+    def __init__(self, name, primary_keys, mappings):
+        self.name = name
+        self.primary_keys = primary_keys
+        self.num_entries = 0
+        self.entries = dict()
+        self.mappings = dict()
 
-    def _as_path_str2list(self, as_path):
-        return [int(ap) for ap in as_path.split()]
+        self.mappings[primary_keys] = defaultdict(BGPRoute)
+        for mapping in mappings:
+            keys = tuple(mapping['keys'])
+            self.mappings[keys] = defaultdict(set)
 
-    def _as_path_kwargs(self, kwargs):
-        if 'as_path' in kwargs:
-            kwargs['as_path'] = self._as_path_list2str(kwargs['as_path'])
+    def add(self, entry):
+        # insert entry into main db
+        self.entries[self.num_entries] = entry
 
-    def _ri2db(self, item):
-        return tuple(item[:4]) + (self._as_path_list2str(item[4]),) + tuple(item[5:])
+        # add reference to entry for all required mappings
+        for m_keys in self.mappings.keys():
+            new_keys = list()
 
-    def _db2ri(self, item):
-        item = tuple(item)
-        return RibTuple(*(item[:4]) + (self._as_path_str2list(item[4]),) + tuple(item[5:]))
+            for key in m_keys:
+                if 'prefix' == key:
+                    new_keys.append(entry.prefix)
+                elif 'neighbor' == key:
+                    new_keys.append(entry.neighbor)
+                elif 'next_hop' == key:
+                    new_keys.append(entry.next_hop)
+                elif 'origin' == key:
+                    new_keys.append(entry.origin)
+                elif 'as_path' == key:
+                    new_keys.append(entry.as_path)
+                elif 'communities' == key:
+                    new_keys.append(entry.communities)
+                elif 'med' == key:
+                    new_keys.append(entry.med)
+                elif 'atomic_aggregate' == key:
+                    new_keys.append(entry.atomic_aggregate)
 
-    def _doSelectUnsafe(self, kwargs):
-        cursor = self.db.cursor()
+                new_keys = tuple(new_keys)
 
-        if kwargs:
-            self._as_path_kwargs(kwargs)
-            keys, values = zip(*kwargs.items())
-            stmt = (
-                    'select * from '+self.name+' where ' +
-                    ' and '.join(k+' = ?' for k in keys)
-                    )
-            cursor.execute(stmt, values)
+                mapping = self.mappings[m_keys]
+                if m_keys == self.primary_keys:
+                    mapping[new_keys] = self.num_entries
+                else:
+                    mapping[new_keys].add(self.num_entries)
+
+        self.num_entries += 1
+
+    def get(self, key_items, all_entries):
+        keys = list()
+        values = list()
+        for key in key_items.keys():
+            if 'prefix' == key:
+                keys.append('prefix')
+                values.append(key_items.prefix)
+            elif 'neighbor' == key:
+                keys.append('neighbor')
+                values.append(key_items.neighbor)
+            elif 'next_hop' == key:
+                keys.append('next_hop')
+                values.append(key_items.next_hop)
+            elif 'origin' == key:
+                keys.append('origin')
+                values.append(key_items.origin)
+            elif 'as_path' == key:
+                keys.append('as_path')
+                values.append(key_items.as_path)
+            elif 'communities' == key:
+                keys.append('communities')
+                values.append(key_items.communities)
+            elif 'med' == key:
+                keys.append('med')
+                values.append(key_items.med)
+            elif 'atomic_aggregate' == key:
+                keys.append('atomic_aggregate')
+                values.append(key_items.atomic_aggregate)
+
+        keys = tuple(keys)
+        values = tuple(values)
+
+        entry_ids = list(self.mappings[keys][values])
+
+        results = None
+        if all_entries:
+            results = list()
+            for entry_id in entry_ids:
+                if entry_id in self.entries:
+                    results.append(self.entries[entry_id])
         else:
-            stmt = 'select * from '+self.name
-            cursor.execute(stmt)
+            for entry_id in entry_ids:
+                if entry_id in self.entries:
+                    results.append(self.entries[entry_id])
+                    break
 
-        return cursor
+        return results
 
+    def delete(self, key_items):
+        keys = list()
+        values = list()
+        for key in key_items.keys():
+            if 'prefix' == key:
+                keys.append('prefix')
+                values.append(key_items.prefix)
+            elif 'neighbor' == key:
+                keys.append('neighbor')
+                values.append(key_items.neighbor)
+            elif 'next_hop' == key:
+                keys.append('next_hop')
+                values.append(key_items.next_hop)
+            elif 'origin' == key:
+                keys.append('origin')
+                values.append(key_items.origin)
+            elif 'as_path' == key:
+                keys.append('as_path')
+                values.append(key_items.as_path)
+            elif 'communities' == key:
+                keys.append('communities')
+                values.append(key_items.communities)
+            elif 'med' == key:
+                keys.append('med')
+                values.append(key_items.med)
+            elif 'atomic_aggregate' == key:
+                keys.append('atomic_aggregate')
+                values.append(key_items.atomic_aggregate)
 
-    def add(self, item):
-        assert isinstance(item, RibTuple)
+        keys = tuple(keys)
+        values = tuple(values)
 
-        with lock:
-            #print "Add:", item
-            # see if already present
-            cursor = self._doSelectUnsafe(item._asdict())
-            row = cursor.fetchone()
-            if row is not None:
-                return
+        entry_ids = list(self.mappings[keys][values])
 
-            # not present; insert
-            item = self._ri2db(item)
-            cursor.execute(self.insertStmt, item)
-            self.db.commit()
+        for entry_id in entry_ids:
+            entry = self.entries[entry_id]
 
-    def get(self, **kwargs):
-        assert len(kwargs)
-        assert set(kwargs.keys()).issubset(set(labels))
+            for keys, mapping in self.mappings.iteritems():
+                del_key = list()
+                for key in keys:
+                    if 'prefix' == key:
+                        del_key.append(entry.prefix)
+                    elif 'neighbor' == key:
+                        del_key.append(entry.neighbor)
+                    elif 'next_hop' == key:
+                        del_key.append(entry.next_hop)
+                    elif 'origin' == key:
+                        del_key.append(entry.origin)
+                    elif 'as_path' == key:
+                        del_key.append(entry.as_path)
+                    elif 'communities' == key:
+                        del_key.append(entry.communities)
+                    elif 'med' == key:
+                        del_key.append(entry.med)
+                    elif 'atomic_aggregate' == key:
+                        del_key.append(entry.atomic_aggregate)
 
-        with lock:
-            cursor = self._doSelectUnsafe(kwargs)
-            row = cursor.fetchone()
-            if row is None:
-                return row
-            return self._db2ri(row)
+                del_key = tuple(del_key)
 
+                if del_key == self.primary_keys:
+                    del mapping[del_key]
+                else:
+                    mapping[del_key].remove(entry_id)
 
-    def get_all(self, **kwargs):
-        assert set(kwargs.keys()).issubset(set(labels))
-
-        with lock:
-            cursor = self._doSelectUnsafe(kwargs)
-            return [self._db2ri(c) for c in cursor.fetchall()]
-
-
-    def get_prefixes(self):
-        with lock:
-            cursor = self._doSelectUnsafe({})
-
-            output = [c['prefix'] for c in cursor.fetchall()]
-            return sorted(output)
-
-
-    def update(self, names, item):
-        # validate names
-        if isinstance(names, str):
-            names = (names,)
-        assert names
-        assert isinstance(names, tuple) or isinstance(names, list)
-        assert set(names).issubset(set(labels))
-        # validate item
-        assert isinstance(item, RibTuple)
-
-        ds = dict((name, value) for name, value in item._asdict().items() if name in names)
-
-        with lock:
-            # get rows with given parameters
-            cursor = self._doSelectUnsafe(ds)
-            row = cursor.fetchone()
-            if row is None:
-                # not present, so insert
-                cursor.execute(self.insertStmt, self._ri2db(item))
-            else:
-                # present, so update
-                # make custom update statement based on search criteria
-                others = tuple(label for label in labels if label not in names)
-                updateStmt = (
-                        'update '+self.name+' set ' +
-                        ', '.join(other+' = ?' for other in others) +
-                        ' where ' +
-                        ' and '.join(name+' = ?' for name in names)
-                        )
-                item = RibTuple(*self._ri2db(item))
-                ovalues = tuple(getattr(item, other) for other in others)
-                nvalues = tuple(getattr(item, name) for name in names)
-                cursor.execute(updateStmt, ovalues + nvalues)
-            self.db.commit()
+            del self.entries[entry_id]
 
 
-    def delete(self, **kwargs):
-        assert set(kwargs.keys()).issubset(set(labels))
-
-        with lock:
-            cursor = self.db.cursor()
-
-            if kwargs:
-                self._as_path_kwargs(kwargs)
-                keys, values = zip(*kwargs.items())
-                stmt = (
-                        'delete from '+self.name+' where ' +
-                        ' and '.join(k+' = ?' for k in keys)
-                        )
-                cursor.execute(stmt, values)
-            else:
-                stmt = 'delete from '+self.name
-                cursor.execute(stmt)
-
-            self.db.commit()
+def pretty_print(rib_entry, filter=None):
+    if isinstance(rib_entry, list):
+        for entry in rib_entry:
+            print '|'
+            for key, value in entry.iteritems():
+                if not filter or (filter and key in filter):
+                    print '-> ' + str(key) + ': ' + str(value)
+    else:
+        for key, value in rib_entry.iteritems():
+            if not filter or (filter and key in filter):
+                print '-> ' + str(key) + ': ' + str(value)
 
 
-    def dump(self, logger):
-        # dump of db for debugging
-        with lock:
-            cursor = self.db.cursor()
-            cursor.execute('''select * from ''' + self.name)
-            rows = cursor.fetchall()
-        logger.dump(str(len(rows)))
-        for row in rows:
-            logger.dump(str(row))
+''' main '''
+if __name__ == '__main__':
+    myrib = LocalRIB(1, ['input'])
+
+    routes = [
+        {
+            'table': 'input',
+            'prefix': '100.0.0.0/8',
+            'next_hop': '172.0.0.1',
+            'origin': 'igp',
+            'as_path': '7000,7100',
+            'communities': '',
+            'med': '',
+            'atomic_aggregate': ''
+        },
+        {
+            'table': 'input',
+            'prefix': '90.0.0.0/8',
+            'next_hop': '172.0.0.1',
+            'origin': 'igp',
+            'as_path': '7000,7100',
+            'communities': '',
+            'med': '',
+            'atomic_aggregate': ''
+        },
+        {
+            'table': 'input',
+            'prefix': '80.0.0.0/8',
+            'next_hop': '172.0.0.3',
+            'origin': 'igp',
+            'as_path': '7000,7100',
+            'communities': '',
+            'med': '',
+            'atomic_aggregate': ''
+        },
+        {
+            'table': 'input',
+            'prefix': '70.0.0.0/8',
+            'next_hop': '172.0.0.1',
+            'origin': 'igp',
+            'as_path': '7000,7100',
+            'communities': '',
+            'med': '',
+            'atomic_aggregate': ''
+        },
+        {
+            'table': 'input',
+            'prefix': '100.0.0.0/8',
+            'next_hop': '172.0.0.3',
+            'origin': 'igp',
+            'as_path': '7000,7100',
+            'communities': '',
+            'med': '',
+            'atomic_aggregate': ''
+        },
+        {
+            'table': 'input',
+            'participant': 3,
+            'prefix': '100.0.0.0/8',
+            'next_hop': '172.0.0.1',
+            'origin': 'igp',
+            'as_path': '7000,7100',
+            'communities': '',
+            'med': '',
+            'atomic_aggregate': ''
+        },
+        {
+            'table': 'input',
+            'prefix': '100.0.0.0/8',
+            'next_hop': '172.0.0.3',
+            'origin': 'igp',
+            'as_path': '7000,7100',
+            'communities': '',
+            'med': '',
+            'atomic_aggregate': ''
+        },
+        {
+            'table': 'input',
+            'prefix': '110.0.0.0/8',
+            'next_hop': '172.0.0.1',
+            'origin': 'igp',
+            'as_path': '7000,7100',
+            'communities': '',
+            'med': '',
+            'atomic_aggregate': ''
+        },
+    ]
+
+    for route in routes:
+        myrib.add(route['table'], route['participant'], route['prefix'], route)
+
+    column_p = ['participant']
+    results2 = myrib.get('input', column_p, None, {'prefix': '100.0.0.0/8'}, True)
+    pretty_print(results2, ['participant'])
+
+    print "+++++++++++++++++++++++++++++++++"
+
+    results3 = myrib.get('input', ['participant', 'prefix', 'as_path'], None, {'prefix': '100.0.0.0/8'}, False)
+    pretty_print(results3, ['participant', 'prefix', 'as_path'])
+
+    print "+++++++++++++++++++++++++++++++++"
+
+    results4 = myrib.get('input', None, ('participant', [2,3,4]), {'prefix': '100.0.0.0/8'}, True)
+    pretty_print(results4)
+
+    print "+++++++++++++++++++++++++++++++++"
+
+    results4 = myrib.get('input', None, None, {'next_hop': '172.0.0.3', 'prefix': '100.0.0.0/8'}, True)
+    pretty_print(results4)
+
+    print "+++++++++++++++++++++++++++++++++"
+
+    results4 = myrib.get('input', None, None, {'prefix': '100.0.0.0/8'}, True)
+    pretty_print(results4)
+
+    print "+++++++++++++++++++++++++++++++++"
+
+    myrib.delete('input', {'participant': 4, 'prefix': '100.0.0.0/8'})
+    results4 = myrib.get('input', None, None, {'prefix': '100.0.0.0/8'}, True)
+    pretty_print(results4)
+
+    print "+++++++++++++++++++++++++++++++++"
+
+    results4 = myrib.get('input', None, None, {'participant': 1}, True)
+    pretty_print(results4)
+
+    print 'delete'
+
+    myrib.delete('input', {'participant': 1})
+
+
+    results4 = myrib.get('input', None, None, {'participant': 1}, True)
+    pretty_print(results4)
+
+    print "+++++++++++++++++++++++++++++++++"

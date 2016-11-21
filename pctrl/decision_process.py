@@ -5,54 +5,7 @@
 
 import socket, struct
 
-def decision_process(route):
-    best_routes = []
 
-    #Need to loop through all participants
-    if ('announce' in route):
-        announce_route = route['announce']
-
-        for participant_name in participants:
-            routes = []
-            #Need to loop through participants to build up routes, don't include current participant
-            for input_participant_name in participants:
-                if participant_name != input_participant_name:
-                    routes.extend(participants[input_participant_name].get_routes('input',announce_route['prefix']))
-
-            if routes:
-                best_route = best_path_selection(routes)
-                best_routes.append({'announce':best_route})
-
-                # TODO: can be optimized? check to see if current route == best_route?
-                participants[participant_name].delete_route("local",announce_route['prefix'])
-                #print 'decision_process: best_route:', type(best_route), best_route
-                participants[participant_name].add_route("local",best_route['prefix'],best_route)
-
-    elif('withdraw' in route):
-        deleted_route = route['withdraw']
-
-        if (deleted_route is not None):
-            for participant_name in participants:
-
-                # delete route if being used
-                if (participants[participant_name].get_routes('local',deleted_route['prefix'])):
-                    participants[participant_name].delete_route("local",deleted_route['prefix'])
-
-                    routes = []
-                    for input_participant_name in participants:
-                        if participant_name != input_participant_name:
-                            routes.extend(participants[input_participant_name].get_routes('input',deleted_route['prefix']))
-
-                    if routes:
-                        best_route = best_path_selection(routes)
-                        best_routes.append({'withdraw':best_route})
-
-                        #print 'decision_process: best_route:', type(best_route), best_route
-                        participants[participant_name].add_route("local",best_route['prefix'],best_route)
-
-    return best_routes
-
-''' BGP decision process '''
 def best_path_selection(routes):
 
     # Priority of rules to make decision:
@@ -178,7 +131,6 @@ def get_index(seq, attr, value):
 
 ''' main '''
 if __name__ == '__main__':
-    from rib import rib
     #passed_tests = 0
     #failed_tests = 0
     # AS tests

@@ -12,22 +12,22 @@ from ryu.lib import hub
 
 import os
 import sys
-np = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-if np not in sys.path:
-    sys.path.append(np)
-from xctrl.flowmodmsg import FlowModMsgBuilder
 
 from peer import BGPPeer
 from participant_server import ParticipantServer
+
+np = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+if np not in sys.path:
+    sys.path.append(np)
 
 
 class PConfig(object):
 
     MULTISWITCH = 0
-    MULTITABLE  = 1
+    MULTITABLE = 1
 
     SUPERSETS = 0
-    MDS       = 1
+    MDS = 1
 
     def __init__(self, config_file, id):
         self.id = str(id)
@@ -57,20 +57,6 @@ class PConfig(object):
 
         self.vmac_options = vmac_cfg["Options"]
 
-
-    def get_nexthop_2_part(self):
-        config = self.config
-
-        nexthop_2_part = {}
-
-        for part in config["Participants"]:
-            for port in config["Participants"][part]["Ports"]:
-                nexthop = str(port["IP"])
-                nexthop_2_part[nexthop] = int(part)
-
-        return nexthop_2_part
-
-
     def parse_various(self):
         config = self.config
 
@@ -84,8 +70,19 @@ class PConfig(object):
 
         self.asn = participant["ASN"]
 
-
         self.VNHs = IPNetwork(config["VNHs"])
+
+    def get_nexthop_2_part(self):
+        config = self.config
+
+        nexthop_2_part = {}
+
+        for part in config["Participants"]:
+            for port in config["Participants"][part]["Ports"]:
+                nexthop = str(port["IP"])
+                nexthop_2_part[nexthop] = int(part)
+
+        return nexthop_2_part
 
     def get_macs(self):
         return [port['MAC'] for port in self.ports]
@@ -93,11 +90,8 @@ class PConfig(object):
     def get_ports(self):
         return [port['IP'] for port in self.ports]
 
-
-
     def get_bgp_instance(self):
         return BGPPeer(self.id, self.asn, self.ports, self.peers_in, self.peers_out)
-
 
     def get_xrs_client(self, logger):
         config = self.config
@@ -126,7 +120,6 @@ class PConfig(object):
             logger.warn('No PH_SOCKET for participant: ' + str(id))
             return None
         return ParticipantServer(part_info["PH_SOCKET"][0], part_info["PH_SOCKET"][1], logger)
-
 
     def get_arp_client(self, logger):
         config = self.config
@@ -170,6 +163,8 @@ class GenericClient(object):
     def send(self, msg):
         # TODO: Busy wait will do for initial startup but for dealing with server down in the middle of things
         # TODO: then busy wait is probably inappropriate.
+        conn = None
+
         while True: # keep going until we break out inside the loop
             try:
                 self.logger.debug('Attempting to connect to '+self.serverName+' server at '+str(self.address)+' port '+str(self.port))
@@ -187,9 +182,10 @@ class GenericClient(object):
                 self.logger.exception('Connect to '+self.serverName+' threw unknown exception')
                 raise
 
-        conn.send(msg)
+        if conn:
+            conn.send(msg)
+            conn.close()
 
-        conn.close()
 
 class GenericSockClient(object):
     def __init__(self, address, port, key, logger, sname):
@@ -203,6 +199,8 @@ class GenericSockClient(object):
     def send(self, msg):
         # TODO: Busy wait will do for initial startup but for dealing with server down in the middle of things
         # TODO: then busy wait is probably inappropriate.
+        conn = None
+
         while True: # keep going until we break out inside the loop
             try:
                 self.logger.debug('Attempting to connect to '+self.serverName+' server at '+str(self.address)+' port '+str(self.port))
@@ -220,9 +218,9 @@ class GenericSockClient(object):
                 self.logger.exception('Connect to '+self.serverName+' threw unknown exception')
                 raise
 
-        conn.sendall(msg)
-
-        conn.close()
+        if conn:
+            conn.sendall(msg)
+            conn.close()
 
 
 class GenericClient2(object):
