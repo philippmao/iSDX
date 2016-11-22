@@ -135,7 +135,7 @@ class Table(object):
         keys = tuple(keys)
         values = tuple(values)
 
-        results = None
+        results = list()
         if values in self.mappings[keys]:
             tmp_item = self.mappings[keys][values]
             if isinstance(tmp_item, set):

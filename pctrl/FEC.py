@@ -19,9 +19,9 @@ class FEC(object):
         "Assign VNHs for the advertised prefixes"
         if self.cfg.isSupersetsMode():
             " Superset"
-            if ('announce' in update):
+            if 'announce' in update:
                 prefix = update['announce'].prefix
-                route = self.bgp_instance.get_route('local', prefix)
+                route = self.bgp_instance.get_routes('local', False, prefix=prefix)
                 if route is not None:
                     next_hop = route.next_hop
                     next_hop_part = self.nexthop_2_part[next_hop]
@@ -46,9 +46,9 @@ class FEC(object):
                         self.FEC_list[(next_hop_part, part_set_tuple)] = new_FEC
                         return
 
-            if ('withdraw' in update):
+            if 'withdraw' in update:
                 prefix = update['withdraw'].prefix
-                route = self.bgp_instance.get_route('local', prefix)
+                route = self.bgp_instance.get_routes('local', False, prefix=prefix)
                 if route is not None:
                     next_hop = route.next_hop
                     next_hop_part = self.nexthop_2_part[next_hop]
@@ -83,27 +83,27 @@ class FEC(object):
         "Assign VNHs for the advertised prefixes"
         if self.cfg.isSupersetsMode():
             " Superset"
-            #self.bgp_instance.rib["local"].dump()
-            prefixes = self.bgp_instance.rib["local"].get_prefixes()
-            for prefix in prefixes:
-                    route = self.bgp_instance.get_route('local', prefix)
-                    if route is not None:
-                        next_hop = route.next_hop
-                        next_hop_part = self.nexthop_2_part[next_hop]
-                        part_set = get_all_participants_advertising(self, prefix)
-                        part_set_tuple = tuple(part_set)
-                        if (next_hop_part, part_set_tuple) in self.FEC_list:
-                            self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
-                        else:
-                            self.num_VNHs_in_use += 1
-                            vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
-                            new_FEC = {}
-                            new_FEC['id'] = len(self.FEC_list) + 1
-                            new_FEC['vnh'] = vnh
-                            new_FEC['next_hop_part'] = next_hop_part
-                            new_FEC['part_advertising'] = part_set
-                            self.prefix_2_FEC[prefix] = new_FEC
-                            self.FEC_list[(next_hop_part, part_set_tuple)] = new_FEC
+            bgp_routes = self.bgp_instance.get_routes('local', True)
+            for bgp_route in bgp_routes:
+                prefix = bgp_route.prefix
+                route = self.bgp_instance.get_routes('local', False, prefix=prefix)
+                if route is not None:
+                    next_hop = route.next_hop
+                    next_hop_part = self.nexthop_2_part[next_hop]
+                    part_set = get_all_participants_advertising(self, prefix)
+                    part_set_tuple = tuple(part_set)
+                    if (next_hop_part, part_set_tuple) in self.FEC_list:
+                        self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
+                    else:
+                        self.num_VNHs_in_use += 1
+                        vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
+                        new_FEC = {}
+                        new_FEC['id'] = len(self.FEC_list) + 1
+                        new_FEC['vnh'] = vnh
+                        new_FEC['next_hop_part'] = next_hop_part
+                        new_FEC['part_advertising'] = part_set
+                        self.prefix_2_FEC[prefix] = new_FEC
+                        self.FEC_list[(next_hop_part, part_set_tuple)] = new_FEC
 
 
 def get_all_participants_advertising(pctrl, prefix):

@@ -28,9 +28,9 @@ class BGPPeer(object):
         self.logger = util.log.getLogger('P'+str(self.id)+'-peer')
 
         tables = [
-            {'name': 'input', 'primary_keys': ('prefix', 'neighbor'), 'mappings': [('prefix',)]},
-            {'name': 'local', 'primary_keys': ('prefix',), 'mappings': []},
-            {'name': 'output', 'primary_keys': ('prefix',), 'mappings': []}
+            {'name': 'input', 'primary_keys': ('prefix', 'neighbor'), 'mappings': [(), ('prefix',)]},
+            {'name': 'local', 'primary_keys': ('prefix',), 'mappings': [()]},
+            {'name': 'output', 'primary_keys': ('prefix',), 'mappings': [()]}
         ]
 
         self.rib = LocalRIB(self.asn, tables)
@@ -95,7 +95,7 @@ class BGPPeer(object):
                                                        atomic_aggregate)
                             self.add_route('input', announced_route)
 
-                            route_list.append({'announce': announce_route})
+                            route_list.append({'announce': announced_route})
 
             elif 'withdraw' in route['neighbor']['message']['update']:
                 withdraw = route['neighbor']['message']['update']['withdraw']
@@ -127,29 +127,29 @@ class BGPPeer(object):
 
             new_best_route = None
 
-            announce_route = update['announce']
-            prefix = announce_route.prefix
+            announced_route = update['announce']
+            prefix = announced_route.prefix
 
             current_best_route = self.get_routes('local', False, prefix=prefix)
 
             # decision process if there is an existing best route
             if current_best_route:
                 # new route is better than existing
-                if announce_route > current_best_route:
-                    new_best_route = announce_route
+                if announced_route > current_best_route:
+                    new_best_route = announced_route
                 # if the new route is an update of the current best route and makes it worse, we have to rerun the
                 # entire decision process
-                elif announce_route < current_best_route \
-                        and announce_route.neighbor == current_best_route.neighbor:
-                    routes = self.get_routes('input', True, prefix=announce_route.prefix)
+                elif announced_route < current_best_route \
+                        and announced_route.neighbor == current_best_route.neighbor:
+                    routes = self.get_routes('input', True, prefix=announced_route.prefix)
                     # TODO check if it is necessary to append the route as we it should already be in the RIB
-                    routes.append(announce_route)
+                    routes.append(announced_route)
                     routes.sort(reverse=True)
 
                     new_best_route = routes[0]
             else:
                 # This is the first time for this prefix
-                new_best_route = announce_route
+                new_best_route = announced_route
 
             if new_best_route:
                 self.update_route('local', new_best_route)
@@ -206,7 +206,10 @@ class BGPPeer(object):
                     # announce the route to each router of the participant
                     for port in ports:
                         # TODO: Create a sender queue and import the announce_route function
-                        announcements.append(announce_route(port["IP"], prefix, vnh, best_route.as_path))
+                        announcements.append(announce_route(port["IP"],
+                                                            prefix,
+                                                            vnh,
+                                                            best_route.as_path))
                 else:
                     self.logger.error("Race condition problem for prefix: "+str(prefix))
                     continue
@@ -288,6 +291,126 @@ def withdraw_route(neighbor, prefix, next_hop):
     return msg
 
 
+def fake_exabgp_routes(msg_type, neighbor, next_hop, prefix, as_path):
+    route = {
+        'neighbor': {
+            'ip': neighbor,
+            'state': 'up or down',
+            'message': {
+                'update': {
+                    'attribute': {
+                        'origin': 'igp',
+                        'as-path': as_path,
+                        'med': 0,
+                        'community': [],
+                    },
+                }
+            }
+        }
+    }
+
+    if msg_type == 'announce':
+        route['neighbor']['message']['update']['announce'] = {
+            'ipv4 unicast': {
+                next_hop: {prefix: ''},
+            },
+        }
+
+    elif msg_type == 'withdraw':
+        route['neighbor']['message']['update']['withdraw'] = {
+            'ipv4 unicast': {
+                prefix: [],
+            }
+        }
+
+    return route
+
+
+def pretty_print(rib_entry):
+    print "|prefix\t\t|neighbor\t|next hop\t|as path\t|"
+    if isinstance(rib_entry, list):
+        for entry in rib_entry:
+            print str(entry)
+    else:
+        print str(rib_entry)
+
+
 ''' main '''
 if __name__ == '__main__':
-    pass
+    bgp_peer = BGPPeer(1, 111, None, None, None)
+
+    routes = [
+        {
+            'msg_type': 'announce',
+            'neighbor': '100.0.0.1',
+            'next_hop': '100.0.0.1',
+            'prefix': '10.0.0.0/8',
+            'as_path': [300, 400, 500]
+        },
+        {
+            'msg_type': 'announce',
+            'neighbor': '100.0.0.2',
+            'next_hop': '100.0.0.2',
+            'prefix': '10.0.0.0/8',
+            'as_path': [100, 500]
+        },
+    ]
+
+    for route in routes:
+        update = bgp_peer.update(fake_exabgp_routes(route['msg_type'], route['neighbor'], route['next_hop'], route['prefix'], route['as_path']))
+        bgp_peer.decision_process(update[0])
+
+    print 'Test 1 - Best Path with AS Path [100, 500]'
+    bgp_route = bgp_peer.get_routes('local', True, prefix='10.0.0.0/8')
+    pretty_print(bgp_route)
+
+    routes = [
+        {
+            'msg_type': 'announce',
+            'neighbor': '100.0.0.1',
+            'next_hop': '100.0.0.1',
+            'prefix': '20.0.0.0/8',
+            'as_path': [300, 500]
+        },
+        {
+            'msg_type': 'announce',
+            'neighbor': '100.0.0.2',
+            'next_hop': '100.0.0.2',
+            'prefix': '20.0.0.0/8',
+            'as_path': [100, 500]
+        },
+    ]
+
+    for route in routes:
+        update = bgp_peer.update(fake_exabgp_routes(route['msg_type'], route['neighbor'], route['next_hop'], route['prefix'], route['as_path']))
+        bgp_peer.decision_process(update[0])
+
+    print 'Test 2 - Best Path with Neighbor 100.0.0.1'
+    bgp_route = bgp_peer.get_routes('local', False, prefix='20.0.0.0/8')
+    pretty_print(bgp_route)
+
+    print 'Test 3 - All entries input - 4 entries'
+    bgp_route = bgp_peer.get_routes('input', True)
+    pretty_print(bgp_route)
+
+    routes = [
+        {
+            'msg_type': 'withdraw',
+            'neighbor': '100.0.0.1',
+            'next_hop': '100.0.0.1',
+            'prefix': '20.0.0.0/8',
+            'as_path': [300, 500]
+        },
+    ]
+
+    for route in routes:
+        update = bgp_peer.update(fake_exabgp_routes(route['msg_type'], route['neighbor'], route['next_hop'], route['prefix'], route['as_path']))
+        bgp_peer.decision_process(update[0])
+
+    print 'Test 4 - All entries after withdraw of 20/8 from 100.0.0.1 in input - 3 entries'
+    bgp_route = bgp_peer.get_routes('input', True)
+    pretty_print(bgp_route)
+
+    print 'Test 5 - All entries local - 5 entries'
+    bgp_route = bgp_peer.get_routes('local', True)
+    pretty_print(bgp_route)
