@@ -202,6 +202,8 @@ class BGPListener(object):
             try:
                 advertise_ip = route['neighbor']['ip']
             except KeyError:
+                print "KEYERROR", route
+                logger.debug("KEYERROR" + str(route))
                 continue
 
             found = []
