@@ -6,7 +6,6 @@
 import argparse
 import atexit
 import json
-from multiprocessing.connection import Listener, Client
 import os
 from signal import signal, SIGTERM
 from sys import exit
@@ -21,14 +20,10 @@ import util.log
 from xctrl.flowmodmsg import FlowModMsgBuilder
 
 from lib import PConfig
-from peer import BGPPeer
 from ss_lib import vmac_part_port_match
 from ss_rule_scheme import update_outbound_rules, init_inbound_rules, init_outbound_rules, msg_clear_all_outbound, ss_process_policy_change
-from supersets import SuperSets, get_all_participants_advertising
+from supersets import SuperSets
 from FEC import FEC
-
-import pprint
-
 
 TIMING = True
 
@@ -46,12 +41,8 @@ class ParticipantController(object):
 
         # Initialize participant params
         self.cfg = PConfig(config_file, self.id)
-        # Vmac encoding mode
-        # self.cfg.vmac_mode = config_file["vmac_mode"]
-        # Dataplane mode---multi table or multi switch
-        # self.cfg.dp_mode = config_file["dp_mode"]
 
-
+        # load policies
         self.policies = self.load_policies(policy_file)
 
         # The port 0 MAC is used for tagging outbound rules as belonging to us
@@ -71,15 +62,11 @@ class ParticipantController(object):
         # Superset related params
         if self.cfg.isSupersetsMode():
             self.supersets = SuperSets(self, self.cfg.vmac_options)
-        else:
-            # TODO: create similar class and variables for MDS
-            self.mds = None
 
         # Keep track of flow rules pushed
         self.dp_pushed = []
         # Keep track of flow rules which are scheduled to be pushed
         self.dp_queued = []
-
 
     def xstart(self):
         # Start all clients/listeners/whatevs
@@ -91,7 +78,7 @@ class ParticipantController(object):
 
         # Route server client, Reference monitor client, Arp Proxy client
         self.xrs_client = self.cfg.get_xrs_client(self.logger)
-	self.xrs_client.send({'msgType': 'hello', 'id': self.cfg.id, 'peers_in': self.cfg.peers_in, 'peers_out': self.cfg.peers_out, 'ports': self.cfg.get_ports()})
+        self.xrs_client.send({'msgType': 'hello', 'id': self.cfg.id, 'peers_in': self.cfg.peers_in, 'peers_out': self.cfg.peers_out, 'ports': self.cfg.get_ports()})
 
         self.arp_client = self.cfg.get_arp_client(self.logger)
         self.arp_client.send({'msgType': 'hello', 'macs': self.cfg.get_macs()})
@@ -137,13 +124,12 @@ class ParticipantController(object):
         if 'outbound' in policies:
             for policy in policies['outbound']:
                 # If no cookie field, give it cookie 0. (Should be OK for multiple flows with same cookie,
-                # though they can't be individually removed.  TODO: THIS SHOULD BE VERIFIED)
+                # though they can't be individually removed.)
                 if 'cookie' not in policy:
                     policy['cookie'] = 0
                     self.logger.warn('Cookie not specified in new policy.  Defaulting to 0.')
 
         return policies
-
 
     def load_policies(self, policy_file):
         # Load policies from file
@@ -152,7 +138,6 @@ class ParticipantController(object):
             policies = json.load(f)
 
         return self.sanitize_policies(policies)
-
 
     def initialize_dataplane(self):
         "Read the config file and update the queued policy variable"
@@ -183,7 +168,6 @@ class ParticipantController(object):
         if 'changes' in rule_msgs:
             self.dp_queued.extend(rule_msgs["changes"])
 
-
     def push_dp(self):
         '''
         (1) Check if there are any policies queued to be pushed
@@ -208,7 +192,6 @@ class ParticipantController(object):
         self.dp_queued = []
         self.refmon_client.send(json.dumps(fm_builder.get_msg()))
 
-
     def stop(self):
         "Stop the Participants' SDN Controller"
 
@@ -216,10 +199,6 @@ class ParticipantController(object):
 
         # Signal Termination and close blocking listener
         self.run = False
-
-        # TODO: confirm that this isn't silly
-        #self.refmon_client = None
-
 
     def start_eh_arp(self):
         self.logger.info("ARP Event Handler started.")
@@ -245,7 +224,6 @@ class ParticipantController(object):
         self.arp_client.close()
         self.logger.debug("Exiting start_eh_arp")
 
-
     def start_eh_xrs(self):
         self.logger.info("XRS Event Handler started.")
 
@@ -267,10 +245,8 @@ class ParticipantController(object):
         self.xrs_client.close()
         self.logger.debug("Exiting start_eh_xrs")
 
-
     def process_event(self, data):
         "Locally process each incoming network event"
-
 
         if 'bgp' in data:
             self.logger.debug("Event Received: BGP Update.")
@@ -292,7 +268,6 @@ class ParticipantController(object):
 
         else:
             self.logger.warn("UNKNOWN EVENT TYPE RECEIVED: "+str(data))
-
 
     def update_policies(self, new_policies, in_out):
         if in_out != 'inbound' and in_out != 'outbound':
@@ -330,7 +305,6 @@ class ParticipantController(object):
             removal_msgs.append(mod)
         self.logger.debug('queue_flow_removals: ' + str(removal_msgs))
         self.dp_queued.extend(removal_msgs)
-            
 
     def process_policy_changes(self, change_info):
         if not self.cfg.isSupersetsMode():
@@ -497,8 +471,8 @@ class ParticipantController(object):
         # TODO: The decision process for these prefixes is going to be same, we
         # should think about getting rid of such redundant computations.
         for update in updates:
-            self.bgp_instance.decision_process_local(update)
-            self.FEC.FEC_assignment(update)
+            self.bgp_instance.decision_process(update)
+            self.FEC.assignment(update)
 
         if TIMING:
             elapsed = time.time() - tstart
@@ -593,26 +567,25 @@ class ParticipantController(object):
             self.logger.debug("Time taken to send garps/announcements: "+str(elapsed))
             tstart = time.time()
 
-
     def send_announcement(self, announcement):
         "Send the announcements to XRS"
-	#self.logger.debug("Sending announcements to XRS: %s", announcement)
-	self.xrs_client.send({'msgType': 'bgp', 'announcement': announcement})
+        #self.logger.debug("Sending announcements to XRS: %s", announcement)
+        self.xrs_client.send({'msgType': 'bgp', 'announcement': announcement})
 
 
 def get_prefixes_from_announcements(route):
     prefixes = []
-    if ('update' in route['neighbor']['message']):
-        if ('announce' in route['neighbor']['message']['update']):
+    if 'update' in route['neighbor']['message']:
+        if 'announce' in route['neighbor']['message']['update']:
             announce = route['neighbor']['message']['update']['announce']
-            if ('ipv4 unicast' in announce):
+            if 'ipv4 unicast' in announce:
                 for next_hop in announce['ipv4 unicast'].keys():
                     for prefix in announce['ipv4 unicast'][next_hop].keys():
                         prefixes.append(prefix)
 
-        elif ('withdraw' in route['neighbor']['message']['update']):
+        elif 'withdraw' in route['neighbor']['message']['update']:
             withdraw = route['neighbor']['message']['update']['withdraw']
-            if ('ipv4 unicast' in withdraw):
+            if 'ipv4 unicast' in withdraw:
                 for prefix in withdraw['ipv4 unicast'].keys():
                     prefixes.append(prefix)
     return prefixes

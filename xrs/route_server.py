@@ -193,6 +193,7 @@ class BGPListener(object):
                 continue
 
             waiting = 0
+
             route = json.loads(route)
 
             logger.debug("Got route from ExaBGP: %s", route)

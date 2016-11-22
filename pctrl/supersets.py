@@ -30,7 +30,6 @@ class SuperSets(object):
         self.id_size = 0
         self.supersets = []
 
-
     def initial_computation(self, pctrl):
         self.logger.debug("Superset intial computation running..")
 
@@ -214,7 +213,7 @@ class SuperSets(object):
 
 
         # first part of the returned tuple is next hop
-        #route = bgp_instance.get_route('local', prefix)
+        #route = bgp_instance.get_route('local', prefix=prefix)
         #route = FEC['next_hop']
         #if route is None:
             #self.logger.debug("prefix "+str(prefix)+" not found in local")
@@ -313,7 +312,7 @@ def get_all_participants_advertising(pctrl, prefix):
     bgp_instance = pctrl.bgp_instance
     nexthop_2_part = pctrl.nexthop_2_part
 
-    routes = bgp_instance.get_routes('input',prefix)
+    routes = bgp_instance.get_routes('input', True, prefix=prefix)
     #pctrl.logger.debug("Supersets all routes:: "+ str(routes))
 
     parts = set([])
