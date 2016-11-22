@@ -60,6 +60,6 @@ case $2 in
         sleep 1
 
         cd $RUN_DIR
-        exabgp examples/$TEST_DIR/config/bgp.conf
+        exabgp examples/$TEST_DIR/config/bgp.conf --env /home/vagrant/iSDX/examples/$TEST_DIR/config/exabgp.env
         ;;
 esac
