@@ -471,7 +471,7 @@ class ParticipantController(object):
         # TODO: The decision process for these prefixes is going to be same, we
         # should think about getting rid of such redundant computations.
         for update in updates:
-            self.bgp_instance.decision_process_local(update)
+            self.bgp_instance.decision_process(update)
             self.FEC.assignment(update)
 
         if TIMING:
