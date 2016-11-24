@@ -187,12 +187,6 @@ class BGPPeer(object):
             prev_route = self.get_routes('output', False, prefix=prefix)
 
             best_route = self.get_routes('local', False, prefix=prefix)
-            # there is a race condition: sometimes the get_route happens, before the best route is updated
-            if not best_route:
-                time.sleep(.1)
-                best_route = self.get_routes('local', False, prefix=prefix)
-            if not best_route:
-                assert(best_route is None)
 
             if 'announce' in update:
                 # Check if best path has changed for this prefix
