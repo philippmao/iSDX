@@ -282,8 +282,6 @@ class SuperSets(object):
         vmac_addr = '{num:0{width}x}'.format(num=int(vmac_bitstring,2), width=self.VMAC_size/4)
         vmac_addr = ':'.join([vmac_addr[i]+vmac_addr[i+1] for i in range(0,self.VMAC_size/4,2)])
 
-        print "vmac:", vmac_addr
-
         return vmac_addr
 
 
