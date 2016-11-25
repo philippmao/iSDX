@@ -32,7 +32,6 @@ class ParticipantController(object):
     def __init__(self, id, config_file, policy_file, logger):
         # participant id
         self.id = id
-        # print ID for logging
         self.logger = logger
 
         # used to signal termination
@@ -426,10 +425,7 @@ class ParticipantController(object):
             gratuitous = False
             # dig up the IP of the target participant
             vnh = FEC
-            #print "Arp for vnh:", vnh
             vmac = self.VNH_2_vmac[vnh]
-            #print "Vmac:", vmac
-           # print "self.prefix_2_FEC:", self.prefix_2_FEC
             for port in self.cfg.ports:
                 if part_mac == port["MAC"]:
                     part_ip = port["IP"]
@@ -476,7 +472,7 @@ class ParticipantController(object):
 
         if TIMING:
             elapsed = time.time() - tstart
-            self.logger.debug("Time taken for decision process: "+str(elapsed),self.FEC_list)
+            self.logger.debug("Time taken for decision process: " + str(elapsed) + str(self.FEC_list))
             tstart = time.time()
 
         if self.cfg.isSupersetsMode():
@@ -538,7 +534,7 @@ class ParticipantController(object):
             self.logger.debug("Time taken to push dp msgs: "+str(elapsed))
             tstart = time.time()
 
-        new_FECs, announcements = self.bgp_instance.bgp_update_peers(updates,self.prefix_2_VNH_nrfp,
+        new_FECs, announcements = self.bgp_instance.bgp_update_peer(updates,self.prefix_2_VNH_nrfp,
                 self.prefix_2_FEC, self.VNH_2_vmac, self.cfg.ports)
 
 

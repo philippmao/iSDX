@@ -4,7 +4,7 @@
 
 class FEC(object):
     def __init__(self, pctrl):
-        self.FEC_list  = pctrl.FEC_list
+        self.FEC_list = pctrl.FEC_list
         self.prefix_2_FEC = pctrl.prefix_2_FEC
         self.cfg = pctrl.cfg
         self.num_VNHs_in_use = pctrl.num_VNHs_in_use
@@ -22,7 +22,7 @@ class FEC(object):
             if 'announce' in update:
                 prefix = update['announce'].prefix
                 route = self.bgp_instance.get_routes('local', False, prefix=prefix)
-                if route is not None:
+                if route:
                     next_hop = route.next_hop
                     next_hop_part = self.nexthop_2_part[next_hop]
                     part_set = get_all_participants_advertising(self.pctrl, prefix)
@@ -49,7 +49,7 @@ class FEC(object):
             if 'withdraw' in update:
                 prefix = update['withdraw'].prefix
                 route = self.bgp_instance.get_routes('local', False, prefix=prefix)
-                if route is not None:
+                if route:
                     next_hop = route.next_hop
                     next_hop_part = self.nexthop_2_part[next_hop]
                     part_set = get_all_participants_advertising(self, prefix)
@@ -111,7 +111,6 @@ def get_all_participants_advertising(pctrl, prefix):
     nexthop_2_part = pctrl.nexthop_2_part
 
     routes = bgp_instance.get_routes('input', True, prefix=prefix)
-    #pctrl.logger.debug("Supersets all routes:: "+ str(routes))
 
     parts = set([])
 

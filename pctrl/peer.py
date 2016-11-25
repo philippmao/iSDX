@@ -6,7 +6,6 @@
 
 
 from threading import RLock
-import time
 
 import os
 import sys
@@ -28,7 +27,7 @@ class BGPPeer(object):
         self.logger = util.log.getLogger('P'+str(self.id)+'-peer')
 
         tables = [
-            {'name': 'input', 'primary_keys': ('prefix', 'neighbor'), 'mappings': [(), ('prefix',)]},
+            {'name': 'input', 'primary_keys': ('prefix', 'neighbor'), 'mappings': [(), ('prefix',), ('neighbor',)]},
             {'name': 'local', 'primary_keys': ('prefix',), 'mappings': [()]},
             {'name': 'output', 'primary_keys': ('prefix',), 'mappings': [()]}
         ]
@@ -52,59 +51,60 @@ class BGPPeer(object):
         neighbor = route["neighbor"]["ip"]
 
         if 'state' in route['neighbor'] and route['neighbor']['state'] == 'down':
-            self.logger.debug("PEER DOWN - ASN " + str(self.asn))
+            print "neighbor down - " + str(neighbor) + " - I am " + str(self.asn)
+
+            self.logger.debug("neighbor down - " + str(neighbor))
 
             routes = self.get_routes('input', True, neighbor=neighbor)
 
             for route_item in routes:
                 route_list.append({'withdraw': route_item})
 
-            self.delete_all_routes('input')
-            self.delete_all_routes('local')
-            self.delete_all_routes('output')
+            self.delete_all_routes('input', neighbor=neighbor)
 
-        if 'update' in route['neighbor']['message']:
-            if 'attribute' in route['neighbor']['message']['update']:
-                attribute = route['neighbor']['message']['update']['attribute']
+        if 'message' in route['neighbor']:
+            if 'update' in route['neighbor']['message']:
+                if 'attribute' in route['neighbor']['message']['update']:
+                    attribute = route['neighbor']['message']['update']['attribute']
 
-                origin = attribute['origin'] if 'origin' in attribute else ''
+                    origin = attribute['origin'] if 'origin' in attribute else ''
 
-                as_path = attribute['as-path'] if 'as-path' in attribute else []
+                    as_path = attribute['as-path'] if 'as-path' in attribute else []
 
-                med = attribute['med'] if 'med' in attribute else ''
+                    med = attribute['med'] if 'med' in attribute else ''
 
-                community = attribute['community'] if 'community' in attribute else ''
-                communities = ''
-                for c in community:
-                    communities += ':'.join(map(str,c)) + " "
+                    community = attribute['community'] if 'community' in attribute else ''
+                    communities = ''
+                    for c in community:
+                        communities += ':'.join(map(str,c)) + " "
 
-                atomic_aggregate = attribute['atomic-aggregate'] if 'atomic-aggregate' in attribute else ''
+                    atomic_aggregate = attribute['atomic-aggregate'] if 'atomic-aggregate' in attribute else ''
 
-            if 'announce' in route['neighbor']['message']['update']:
-                announce = route['neighbor']['message']['update']['announce']
-                if 'ipv4 unicast' in announce:
-                    for next_hop in announce['ipv4 unicast'].keys():
-                        for prefix in announce['ipv4 unicast'][next_hop].keys():
-                            announced_route = BGPRoute(prefix,
-                                                       neighbor,
-                                                       next_hop,
-                                                       origin,
-                                                       as_path,
-                                                       communities,
-                                                       med,
-                                                       atomic_aggregate)
-                            self.add_route('input', announced_route)
+                if 'announce' in route['neighbor']['message']['update']:
+                    announce = route['neighbor']['message']['update']['announce']
+                    if 'ipv4 unicast' in announce:
+                        for next_hop in announce['ipv4 unicast'].keys():
+                            for prefix in announce['ipv4 unicast'][next_hop].keys():
+                                announced_route = BGPRoute(prefix,
+                                                           neighbor,
+                                                           next_hop,
+                                                           origin,
+                                                           as_path,
+                                                           communities,
+                                                           med,
+                                                           atomic_aggregate)
+                                self.add_route('input', announced_route)
 
-                            route_list.append({'announce': announced_route})
+                                route_list.append({'announce': announced_route})
 
-            elif 'withdraw' in route['neighbor']['message']['update']:
-                withdraw = route['neighbor']['message']['update']['withdraw']
-                if 'ipv4 unicast' in withdraw:
-                    for prefix in withdraw['ipv4 unicast'].keys():
-                        deleted_route = self.get_routes('input', False, prefix=prefix, neighbor=neighbor)
-                        if deleted_route:
-                            self.delete_route('input', prefix=prefix, neighbor=neighbor)
-                            route_list.append({'withdraw': deleted_route})
+                elif 'withdraw' in route['neighbor']['message']['update']:
+                    withdraw = route['neighbor']['message']['update']['withdraw']
+                    if 'ipv4 unicast' in withdraw:
+                        for prefix in withdraw['ipv4 unicast'].keys():
+                            deleted_route = self.get_routes('input', False, prefix=prefix, neighbor=neighbor)
+                            if deleted_route:
+                                self.delete_route('input', prefix=prefix, neighbor=neighbor)
+                                route_list.append({'withdraw': deleted_route})
 
         return route_list
 
@@ -174,7 +174,7 @@ class BGPPeer(object):
                 else:
                     self.logger.error("Withdraw received for a prefix which wasn't even in the local table")
 
-    def bgp_update_peers(self, updates, prefix_2_VNH_nrfp, prefix_2_FEC , VNH_2_vmac, ports):
+    def bgp_update_peer(self, updates, prefix_2_VNH_nrfp, prefix_2_FEC , VNH_2_vmac, ports):
         announcements = []
         new_FECs = []
 
