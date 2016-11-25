@@ -119,7 +119,7 @@ def get_all_participants_advertising(pctrl, prefix):
 
         if next_hop in nexthop_2_part:
             parts.add(nexthop_2_part[next_hop])
-        else:
-            pctrl.logger.debug("In subcall of prefix2part: Next hop "+str(next_hop)+" NOT in nexthop_2_part")
+        #else:
+            #pctrl.logger.debug("In subcall of prefix2part: Next hop "+str(next_hop)+" NOT in nexthop_2_part")
 
     return parts

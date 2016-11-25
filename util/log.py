@@ -3,7 +3,7 @@ import pprint
 import json
 
 # Use a global LogLevel to get uniform behavior across all python processes.
-LogLevel = logging.DEBUG
+LogLevel = logging.WARNING
 
 # where logging info goes / where logServer.py is running.
 HOST = 'localhost'
