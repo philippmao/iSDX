@@ -196,6 +196,7 @@ class BGPListener(object):
 
             route = json.loads(route)
 
+            logger.info("Got route from ExaBGP: %s", route)
             logger.debug("Got route from ExaBGP: %s", route)
 
             # Received BGP route advertisement from ExaBGP

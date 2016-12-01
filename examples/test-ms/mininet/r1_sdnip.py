@@ -175,7 +175,7 @@ class BgpRouter(Router):
         if(self.name == 'a1'):
             writeLine(1, 'bgp router-id 172.0.0.01')
 
-        writeLine(1, 'timers bgp %s' % '30 90')
+        writeLine(1, 'timers bgp %s' % '60 180')
         writeLine(1, '!')
         
         for neighbor in self.neighbors:
