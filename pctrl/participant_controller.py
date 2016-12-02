@@ -414,6 +414,7 @@ class ParticipantController(object):
             vnh = FEC['vnh']
             self.VNH_2_vmac[vnh] = vmac
             self.vmac_2_VNH[vmac] = vnh
+            print "VNH_2_vmac", self.VNH_2_vmac
             for port in self.cfg.ports:
                 eth_dst = vmac_part_port_match(self.id, i, self.supersets, False)
                 arp_responses.append({'SPA': vnh, 'TPA': vnh,
@@ -425,6 +426,8 @@ class ParticipantController(object):
             gratuitous = False
             # dig up the IP of the target participant
             vnh = FEC
+            if vnh not in self.VNH_2_vmac:
+                return
             vmac = self.VNH_2_vmac[vnh]
             for port in self.cfg.ports:
                 if part_mac == port["MAC"]:

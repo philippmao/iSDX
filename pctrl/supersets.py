@@ -13,11 +13,13 @@ lock = RLock()
 
 class SuperSets(object):
     def __init__(self, pctrl, config):
-        self.best_path_size =   int(config["Next Hop Bits"])
+        #self.best_path_size =   int(config["iSDX VMAC Next Hop Bits"])
         self.VMAC_size =        int(config["VMAC Size"])
         self.port_size =        int(config["Port Bits"])
+        self.iSDXVMAC_size = 24
+        self.best_path_size = 8
 
-        self.max_bits = self.VMAC_size - self.best_path_size - 1
+        self.max_bits = self.iSDXVMAC_size - self.best_path_size - 1
         self.max_initial_bits = self.max_bits - 4
 
         self.logger = pctrl.logger
@@ -275,12 +277,22 @@ class SuperSets(object):
 
         vmac_bitstring = '1' + id_bitstring + set_bitstring + nexthop_bitstring
 
+        #padding for testing purposes
+        #TODO : HERE THE ENCODING OF SWIFT WOULD TAKE PLACE.
+        vmac_lenght = len(vmac_bitstring)
+        if vmac_lenght < 48:
+            pad_len = 48 - vmac_lenght
+            vmac_bitstring = vmac_bitstring + '0' * pad_len
+
+
         if len(vmac_bitstring) != 48:
             self.logger.error("BAD VMAC SIZE!! FIELDS ADD UP TO "+str(len(vmac_bitstring)))
 
         # convert bitstring to hexstring and then to a mac address
         vmac_addr = '{num:0{width}x}'.format(num=int(vmac_bitstring,2), width=self.VMAC_size/4)
         vmac_addr = ':'.join([vmac_addr[i]+vmac_addr[i+1] for i in range(0,self.VMAC_size/4,2)])
+
+        print "VMAC:", vmac_addr
 
         return vmac_addr
 
