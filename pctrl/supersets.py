@@ -18,6 +18,7 @@ class SuperSets(object):
         self.port_size =        int(config["Port Bits"])
         self.iSDXVMAC_size = 24
         self.best_path_size = 8
+        self.SWIFT_backupnexthop_lenght = 4
 
         self.max_bits = self.iSDXVMAC_size - self.best_path_size - 1
         self.max_initial_bits = self.max_bits - 4
@@ -105,7 +106,9 @@ class SuperSets(object):
                 prefix = update['announce'].prefix
 
                 # check if for this vnh a garp was already sent
-                vnh = prefix_2_FEC[prefix]['vnh']
+                BEC_id = pctrl.prefix_2_BEC[prefix]['id']
+                FEC_id = pctrl.prefix_2_FEC[prefix]['id']
+                vnh = pctrl.BECid_FECid_2_VNH[(BEC_id, FEC_id)]
                 if vnh in VNH_2_vmac:
                     continue
 
@@ -197,7 +200,7 @@ class SuperSets(object):
 
 
 
-    def get_vmac(self, pctrl, FEC):
+    def get_vmac(self, pctrl, vnh):
         """ Returns a VMAC for advertisements.
         """
         bgp_instance = pctrl.bgp_instance
@@ -221,7 +224,7 @@ class SuperSets(object):
             #self.logger.debug("prefix "+str(prefix)+" not found in local")
             #self.logger.debug("rib_dump")
             #return vmac_addr
-
+        FEC = pctrl.vnh_2_BFEC[vnh][1]
 
         next_hop = FEC['next_hop_part']
         #if next_hop not in nexthop_2_part:
@@ -276,6 +279,34 @@ class SuperSets(object):
         nexthop_bitstring = '{num:0{width}b}'.format(num=next_hop, width=self.best_path_size)
 
         vmac_bitstring = '1' + id_bitstring + set_bitstring + nexthop_bitstring
+
+        #build swift mac
+        BEC = pctrl.vnh_2_BFEC[vnh][0]
+        print "BEC:", BEC
+        as_path_vmac = BEC['as_path_vmac']
+        backup_nbs = BEC['backup_nbs']
+        backup_vmac = ''
+        for d in range(0, len(backup_nbs)):
+            backup_nb = backup_nbs[d]
+            if backup_nb == -1:
+                backup_nh = '0' * self.SWIFT_backupnexthop_lenght
+                backup_vmac = backup_nh + backup_vmac
+                continue
+            if backup_nb not in pctrl.tag_dict:
+                tag = len(pctrl.tag_dict)+1
+                pctrl.tag_dict[backup_nb] = tag
+            backup_nh = bin(pctrl.tag_dict[backup_nb])[2:]
+            backup_nh = backup_nh.zfill(self.SWIFT_backupnexthop_lenght)
+            backup_vmac =  backup_vmac + backup_nh
+
+        if len(backup_vmac)< 3*self.SWIFT_backupnexthop_lenght:
+            padding_length = 3*self.SWIFT_backupnexthop_lenght - len(backup_vmac)
+            backup_vmac = backup_vmac + '0' * padding_length
+
+        print "tag dict", pctrl.id, pctrl.tag_dict
+
+        vmac_bitstring = vmac_bitstring + backup_vmac + as_path_vmac
+
 
         #padding for testing purposes
         #TODO : HERE THE ENCODING OF SWIFT WOULD TAKE PLACE.

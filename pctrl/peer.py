@@ -174,9 +174,9 @@ class BGPPeer(object):
                 else:
                     self.logger.error("Withdraw received for a prefix which wasn't even in the local table")
 
-    def bgp_update_peer(self, updates, prefix_2_VNH_nrfp, prefix_2_FEC , VNH_2_vmac, ports):
+    def bgp_update_peer(self, updates, prefix_2_VNH_nrfp, prefix_2_FEC, prefix_2_BEC ,BECid_FECid_2_VNH , VNH_2_vmac, ports):
         announcements = []
-        new_FECs = []
+        new_VNHs = []
 
         for update in updates:
             if 'announce' in update:
@@ -193,9 +193,13 @@ class BGPPeer(object):
                 # store announcement in output rib
 
                 self.update_route("output", best_route)
-                vnh = prefix_2_FEC[prefix]['vnh']
+                BEC_id = prefix_2_BEC[prefix]['id']
+                FEC_id = prefix_2_FEC[prefix]['id']
+                print "BEC_id", BEC_id
+                print "FEC_id", FEC_id
+                vnh = BECid_FECid_2_VNH[(BEC_id, FEC_id)]
                 if vnh not in VNH_2_vmac:
-                    new_FECs.append(prefix_2_FEC[prefix])
+                    new_VNHs.append(vnh)
                 if best_route:
                     # announce the route to each router of the participant
                     for port in ports:
@@ -213,9 +217,11 @@ class BGPPeer(object):
                 if best_route:
                     # store announcement in output rib
                     self.update_route("output", best_route)
-                    vnh = prefix_2_FEC[prefix]['vnh']
+                    BEC_id = prefix_2_BEC[prefix]['id']
+                    FEC_id = prefix_2_FEC[prefix]['id']
+                    vnh = BECid_FECid_2_VNH[(BEC_id, FEC_id)]
                     if vnh not in VNH_2_vmac:
-                        new_FECs.append(prefix_2_FEC[prefix])
+                        new_VNHs.append(vnh)
                     for port in ports:
                         announcements.append(announce_route(port["IP"],
                                                             prefix,
@@ -233,7 +239,7 @@ class BGPPeer(object):
                                                                 prefix,
                                                                 prefix_2_VNH_nrfp[prefix]))
 
-        return new_FECs, announcements
+        return new_VNHs, announcements
 
     def get_lock(self, lock):
         if lock not in self.lock_items:

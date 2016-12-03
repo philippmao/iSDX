@@ -24,6 +24,7 @@ from ss_lib import vmac_part_port_match
 from ss_rule_scheme import update_outbound_rules, init_inbound_rules, init_outbound_rules, msg_clear_all_outbound, ss_process_policy_change
 from supersets import SuperSets
 from FEC import FEC
+from BEC import BEC
 
 TIMING = True
 
@@ -56,7 +57,15 @@ class ParticipantController(object):
         self.FEC_list = {}
         self.prefix_2_FEC = {}
         self.prefix_2_VNH_nrfp = {}
-
+        #SWIFT Backup equivalence class
+        self.BEC_list = {}
+        self.prefix_2_BEC = {}
+        self.BECid_FECid_2_VNH = {}
+        self.prefix_2_BEC_nrfp = {}
+        self.max_depth = 3
+        self.vnh_2_BFEC = {}
+        #swift tag dic mapping ip to mac
+        self.tag_dict = {}
 
         # Superset related params
         if self.cfg.isSupersetsMode():
@@ -74,6 +83,7 @@ class ParticipantController(object):
         # ExaBGP Peering Instance
         self.bgp_instance = self.cfg.get_bgp_instance()
         self.FEC = FEC(self)
+        self.BEC = BEC(self)
 
         # Route server client, Reference monitor client, Arp Proxy client
         self.xrs_client = self.cfg.get_xrs_client(self.logger)
@@ -147,7 +157,9 @@ class ParticipantController(object):
         if self.cfg.isMultiTableMode():
             final_switch = "main-out"
 
-        self.FEC.init_vnh_assignment()
+        self.FEC.init_FEC_assignment()
+        self.BEC.init_BEC_assignment()
+        self.init_vnh_assignment()
 
         rule_msgs = init_inbound_rules(self.id, self.policies,
                                         self.supersets, final_switch)
@@ -398,7 +410,7 @@ class ParticipantController(object):
 
 
 
-    def process_arp_request(self, part_mac, FEC):
+    def process_arp_request(self, part_mac, vnh):
         vmac = ""
         #if self.cfg.isSupersetsMode():
             #vmac = self.supersets.get_vmac(self, FEC)
@@ -409,12 +421,11 @@ class ParticipantController(object):
         if part_mac is None:
             gratuitous = True
             # set fields appropriately for gratuitous arps
-            vmac = self.supersets.get_vmac(self, FEC)
+            vmac = self.supersets.get_vmac(self, vnh)
             i = 0
-            vnh = FEC['vnh']
             self.VNH_2_vmac[vnh] = vmac
             self.vmac_2_VNH[vmac] = vnh
-            print "VNH_2_vmac", self.VNH_2_vmac
+            print self.id, "VNH_2_vmac",self.VNH_2_vmac
             for port in self.cfg.ports:
                 eth_dst = vmac_part_port_match(self.id, i, self.supersets, False)
                 arp_responses.append({'SPA': vnh, 'TPA': vnh,
@@ -425,7 +436,6 @@ class ParticipantController(object):
         else: # if it wasn't gratuitous
             gratuitous = False
             # dig up the IP of the target participant
-            vnh = FEC
             if vnh not in self.VNH_2_vmac:
                 return
             vmac = self.VNH_2_vmac[vnh]
@@ -471,7 +481,12 @@ class ParticipantController(object):
         # should think about getting rid of such redundant computations.
         for update in updates:
             self.bgp_instance.decision_process(update)
+            #assign FEC to prefix
             self.FEC.assignment(update)
+            #assign BEC to prefix
+            self.BEC.assignment(update)
+            #assign VNH to FEC, BEC pair of prefix
+            self.vnh_assignment(update)
 
         if TIMING:
             elapsed = time.time() - tstart
@@ -493,7 +508,11 @@ class ParticipantController(object):
 
             # ss_changed_prefs are prefixes for which the VMAC bits have changed
             # these prefixes must have gratuitous arps sent
-            garp_required_FECs = [self.prefix_2_FEC[prefix] for prefix in ss_changed_prefs]
+            garp_required_VNHs = []
+            for prefix in ss_changed_prefs:
+                BEC_id = self.prefix_2_BEC[prefix]['id']
+                FEC_id = self.prefix_2_FEC[prefix]['id']
+                garp_required_VNHs.append(self.BECid_FECid_2_VNH[(BEC_id,FEC_id)])
 
             "If a recomputation event was needed, wipe out the flow rules."
             if ss_changes["type"] == "new":
@@ -504,9 +523,9 @@ class ParticipantController(object):
                 #if a recomputation was needed, all VMACs must be reARPed
                 # TODO: confirm reARPed is a word
                 #garp_required_vnhs = self.VNH_2_prefix.keys()
-                garp_required_FECs =[]
-                for FEC in self.FEC_list.values():
-                    garp_required_FECs.append(FEC)
+                garp_required_VNHs =[]
+                for VNH in self.BECid_FECid_2_VNH.values():
+                    garp_required_VNHs.append(VNH)
                 #garp_required_vnhs = self.prefix_2_FEC.values()['vnh']
 
             if len(ss_changes['changes']) > 0:
@@ -539,8 +558,8 @@ class ParticipantController(object):
             self.logger.debug("Time taken to push dp msgs: "+str(elapsed))
             tstart = time.time()
 
-        new_FECs, announcements = self.bgp_instance.bgp_update_peer(updates,self.prefix_2_VNH_nrfp,
-                self.prefix_2_FEC, self.VNH_2_vmac, self.cfg.ports)
+        new_VNHs, announcements = self.bgp_instance.bgp_update_peer(updates,self.prefix_2_VNH_nrfp,
+                self.prefix_2_FEC, self.prefix_2_BEC, self.BECid_FECid_2_VNH, self.VNH_2_vmac, self.cfg.ports)
 
 
         """ Combine the VNHs which have changed BGP default routes with the
@@ -549,14 +568,16 @@ class ParticipantController(object):
 
         #new_FECs = set(new_FECs)
 
-        new_FECs = new_FECs + garp_required_FECs
+        new_VNHs = new_VNHs + garp_required_VNHs
+
+        print "new_VNHs", new_VNHs
 
         #remove duplicates
-        new_FECs = {v['id']: v for v in new_FECs}.values()
+        new_VNHs = list(set(new_VNHs))
 
         # Send gratuitous ARP responses for all them
-        for FEC in new_FECs:
-            self.process_arp_request(None, FEC)
+        for VNH in new_VNHs:
+            self.process_arp_request(None, VNH)
 
         # Tell Route Server that it needs to announce these routes
         for announcement in announcements:
@@ -574,6 +595,33 @@ class ParticipantController(object):
         #self.logger.debug("Sending announcements to XRS: %s", announcement)
         self.xrs_client.send({'msgType': 'bgp', 'announcement': announcement})
 
+    def vnh_assignment(self,update):
+        if self.cfg.isSupersetsMode():
+            if 'announce' in update:
+                prefix = update['announce'].prefix
+            if 'withdraw' in update:
+                prefix = update['withdraw'].prefix
+            if prefix:
+                FEC_id = self.prefix_2_FEC[prefix]['id']
+                BEC_id = self.prefix_2_BEC[prefix]['id']
+                if (BEC_id, FEC_id) not in self.BECid_FECid_2_VNH:
+                    self.num_VNHs_in_use += 1
+                    vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
+                    self.BECid_FECid_2_VNH[(BEC_id, FEC_id)] = vnh
+                    self.vnh_2_BFEC[vnh] = [self.prefix_2_BEC[prefix], self.prefix_2_FEC[prefix]]
+
+    def init_vnh_assignment(self):
+        if self.cfg.isSupersetsMode():
+            bgp_routes = self.bgp_instance.get_routes('local', True)
+            for bgp_route in bgp_routes:
+                prefix = bgp_route.prefix
+                FEC_id = self.prefix_2_FEC[prefix]['id']
+                BEC_id = self.prefix_2_BEC[prefix]['id']
+                if (BEC_id, FEC_id) not in self.BECid_FECid_2_VNH:
+                    self.num_VNHs_in_use += 1
+                    vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
+                    self.BECid_FECid_2_VNH[(BEC_id, FEC_id)] = vnh
+                    self.vnh_2_BFEC[vnh] = [self.prefix_2_BEC[prefix], self.prefix_2_FEC[prefix]]
 
 def get_prefixes_from_announcements(route):
     prefixes = []

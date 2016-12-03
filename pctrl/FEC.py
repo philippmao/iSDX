@@ -7,7 +7,6 @@ class FEC(object):
         self.FEC_list = pctrl.FEC_list
         self.prefix_2_FEC = pctrl.prefix_2_FEC
         self.cfg = pctrl.cfg
-        self.num_VNHs_in_use = pctrl.num_VNHs_in_use
         self.nexthop_2_part = self.cfg.get_nexthop_2_part()
         self.bgp_instance = pctrl.bgp_instance
         self.id = pctrl.id
@@ -32,14 +31,8 @@ class FEC(object):
                         self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
                         return
                     else:
-                        self.num_VNHs_in_use += 1
-                        vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
-                        if vnh in self.nexthop_2_part:
-                            self.num_VNHs_in_use += 1
-                            vnh = vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
                         new_FEC = {}
                         new_FEC['id'] = len(self.FEC_list) + 1
-                        new_FEC['vnh'] = vnh
                         new_FEC['next_hop_part'] = next_hop_part
                         new_FEC['part_advertising'] = part_set
                         self.prefix_2_FEC[prefix] = new_FEC
@@ -59,11 +52,8 @@ class FEC(object):
                         self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
                         return
                     else:
-                        self.num_VNHs_in_use += 1
-                        vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
                         new_FEC = {}
                         new_FEC['id'] = len(self.FEC_list) + 1
-                        new_FEC['vnh'] = vnh
                         new_FEC['next_hop_part'] = next_hop_part
                         new_FEC['part_advertising'] = part_set
                         self.prefix_2_FEC[prefix] = new_FEC
@@ -71,7 +61,7 @@ class FEC(object):
                         return
                 else :
                     if prefix in self.prefix_2_FEC:
-                        self.prefix_2_VNH_nrfp[prefix] = self.prefix_2_FEC[prefix]['vnh']
+                        self.prefix_2_FEC_nrfp[prefix] = self.prefix_2_FEC[prefix]
                         self.prefix_2_FEC.pop(prefix)
                     return
         else:
@@ -79,7 +69,7 @@ class FEC(object):
             # TODO: @Robert: Place your logic here for VNH assignment for MDS scheme
             #self.logger.debug("VNH assignment called for disjoint vmac_mode")
 
-    def init_vnh_assignment(self):
+    def init_FEC_assignment(self):
         "Assign VNHs for the advertised prefixes"
         if self.cfg.isSupersetsMode():
             " Superset"
@@ -95,11 +85,8 @@ class FEC(object):
                     if (next_hop_part, part_set_tuple) in self.FEC_list:
                         self.prefix_2_FEC[prefix] = self.FEC_list[(next_hop_part, part_set_tuple)]
                     else:
-                        self.num_VNHs_in_use += 1
-                        vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
                         new_FEC = {}
                         new_FEC['id'] = len(self.FEC_list) + 1
-                        new_FEC['vnh'] = vnh
                         new_FEC['next_hop_part'] = next_hop_part
                         new_FEC['part_advertising'] = part_set
                         self.prefix_2_FEC[prefix] = new_FEC
