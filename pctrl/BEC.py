@@ -55,12 +55,12 @@ class BEC(object):
             if 'withdraw' in update:
                 prefix = update['withdraw'].prefix
                 route = self.bgp_instance.get_routes('local', False, prefix=prefix)
-                as_path = route.as_path
                 if route:
+                    as_path = route.as_path
                     backup_nbs = []
                     for d in range(0, min(len(as_path)-1, self.max_depth-1)):
                         backup_nb = self.get_backup_avoiding_as_link(self.prefix_2_FEC[prefix]['next_hop_part'], prefix,
-                                                                as_path[d], as_path[d + 1])
+                                                                     (as_path[d], as_path[d + 1]))
                         if backup_nb is not None:
                             backup_nbs.append(backup_nb)
                         else:
@@ -83,11 +83,11 @@ class BEC(object):
                         self.prefix_2_BEC[prefix] = new_BEC
                         self.FEC_list[(backup_nbs, as_path)] = new_BEC
                         return
-                else :
+
+                else:
                     if prefix in self.prefix_2_BEC:
                         self.prefix_2_BEC_nrfp[prefix] = self.prefix_2_BEC[prefix]
                         self.prefix_2_BEC.pop(prefix)
-                    return
         else:
             "Disjoint"
             # TODO: @Robert: Place your logic here for VNH assignment for MDS scheme
@@ -106,7 +106,7 @@ class BEC(object):
                     backup_nbs = []
                     for d in range(0, min(len(as_path), self.max_depth)):
                         backup_nb = self.get_backup_avoiding_as_link(self.prefix_2_FEC[prefix]['next_hop_part'], prefix,
-                                                                as_path[d], as_path[d + 1])
+                                                                     (as_path[d], as_path[d + 1]))
                         if backup_nb is not None:
                             backup_nbs.append(backup_nb)
                         else:
@@ -140,7 +140,8 @@ class BEC(object):
         for i in range(0, len(bgp_routes)):
 
             bgproute = bgp_routes[i]
-            if bgproute.next_hop != best_next_hop:
+            next_hop_part = self.nexthop_2_part[bgproute.next_hop]
+            if next_hop_part != best_next_hop:
                 if best_aspath_backup is None:
                     best_aspath_backup = bgproute.next_hop
 

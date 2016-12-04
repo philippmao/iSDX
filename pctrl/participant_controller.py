@@ -20,7 +20,7 @@ import util.log
 from xctrl.flowmodmsg import FlowModMsgBuilder
 
 from lib import PConfig
-from ss_lib import vmac_part_port_match
+from ss_lib import vmac_part_port_match,  vmac_next_hop_match_iSDXmac
 from ss_rule_scheme import update_outbound_rules, init_inbound_rules, init_outbound_rules, msg_clear_all_outbound, ss_process_policy_change
 from supersets import SuperSets
 from FEC import FEC
@@ -63,9 +63,12 @@ class ParticipantController(object):
         self.BECid_FECid_2_VNH = {}
         self.prefix_2_BEC_nrfp = {}
         self.max_depth = 3
+        self.nexthops_nb_bits = 4
         self.vnh_2_BFEC = {}
         #swift tag dic mapping ip to mac
         self.tag_dict = {}
+        self.prefix_2_FEC_nrfp = {}
+        self.prefix_2_BEC_nrfp = {}
 
         # Superset related params
         if self.cfg.isSupersetsMode():
@@ -259,6 +262,12 @@ class ParticipantController(object):
     def process_event(self, data):
         "Locally process each incoming network event"
 
+        #@TODO: when receiving swift FR push backup rules
+        if 'FR' in data:
+            self.logger.debug("Event Received: FR request")
+            FR_parameters = data['FR']
+            self.process_FR(FR_parameters)
+
         if 'bgp' in data:
             self.logger.debug("Event Received: BGP Update.")
             route = data['bgp']
@@ -279,6 +288,45 @@ class ParticipantController(object):
 
         else:
             self.logger.warn("UNKNOWN EVENT TYPE RECEIVED: "+str(data))
+
+    #@TODO: Make sure the message type sent from route-server matches
+    def process_FR(self, FR_parameters):
+        peer_ip = FR_parameters['peer_ip']
+        as_path_vmac = FR_parameters['as_path_vmac']
+        as_path_bitmask = FR_parameters['as_path_bitmask']
+        depth = FR_parameters['depth']
+        for backup_ip in self.tag_dict:
+            backup_part = self.cfg.get_nexthop_2_part(backup_ip)
+            if backup_part != self.id:
+                backup_vmac = ''
+                backup_bitmask = ''
+                for i in range(1, self.max_depth+1):
+                    if i == depth:
+                        backup_tag = self.tag_dict[backup_ip]
+                        backup_vmac += bin(backup_tag)[2:].zfill(self.nexthops_nb_bits)
+
+                        backup_bitmask += '1' * self.nexthops_nb_bits
+
+                    else:
+                        backup_vmac += '0' * self.nexthops_nb_bits
+                        backup_bitmask += '0' * self.nexthops_nb_bits
+
+                vmac = backup_vmac + as_path_vmac
+                vmac_bitmask = backup_bitmask + as_path_bitmask
+                vmac = '{num:0{width}x}'.format(num=int(vmac, 2), width=48 / 4)
+                vmac= ':'.join([vmac[i] + vmac[i + 1] for i in range(0, 48 / 4, 2)])
+                vmac_bitmask = '{num:0{width}x}'.format(num=int(vmac_bitmask, 2), width=48 / 4)
+                vmac_bitmask = ':'.join([vmac_bitmask[i] + vmac_bitmask[i + 1] for i in range(0, 48 / 4, 2)])
+
+                match_args = {}
+                match_args["eth_dst"] = (vmac, vmac_bitmask)
+                #set dst mac to mac with best next hop
+                dst_mac = vmac_next_hop_match_iSDXmac(backup_part, self.supersets)
+                actions = {"set_eth_dst": dst_mac, "fwd": 'main-in'}
+
+
+
+
 
     def update_policies(self, new_policies, in_out):
         if in_out != 'inbound' and in_out != 'outbound':
@@ -570,10 +618,11 @@ class ParticipantController(object):
 
         new_VNHs = new_VNHs + garp_required_VNHs
 
-        print "new_VNHs", new_VNHs
-
         #remove duplicates
         new_VNHs = list(set(new_VNHs))
+
+        print self.id, "tag_dict", self.tag_dict
+        print self.id, "VNH_2_vmac", self.VNH_2_vmac
 
         # Send gratuitous ARP responses for all them
         for VNH in new_VNHs:
@@ -602,13 +651,23 @@ class ParticipantController(object):
             if 'withdraw' in update:
                 prefix = update['withdraw'].prefix
             if prefix:
-                FEC_id = self.prefix_2_FEC[prefix]['id']
-                BEC_id = self.prefix_2_BEC[prefix]['id']
-                if (BEC_id, FEC_id) not in self.BECid_FECid_2_VNH:
-                    self.num_VNHs_in_use += 1
-                    vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
-                    self.BECid_FECid_2_VNH[(BEC_id, FEC_id)] = vnh
-                    self.vnh_2_BFEC[vnh] = [self.prefix_2_BEC[prefix], self.prefix_2_FEC[prefix]]
+                route = self.bgp_instance.get_routes('local', False, prefix = prefix)
+                if route:
+                    FEC_id = self.prefix_2_FEC[prefix]['id']
+                    BEC_id = self.prefix_2_BEC[prefix]['id']
+                    if (BEC_id, FEC_id) not in self.BECid_FECid_2_VNH:
+                        self.num_VNHs_in_use += 1
+                        vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
+                        self.BECid_FECid_2_VNH[(BEC_id, FEC_id)] = vnh
+                        self.vnh_2_BFEC[vnh] = [self.prefix_2_BEC[prefix], self.prefix_2_FEC[prefix]]
+                else:
+                    BEC_id = self.prefix_2_BEC_nrfp[prefix]['id']
+                    FEC_id = self.prefix_2_FEC_nrfp[prefix]['id']
+                    self.prefix_2_VNH_nrfp[prefix] = self.BECid_FECid_2_VNH[(BEC_id,FEC_id)]
+
+
+
+
 
     def init_vnh_assignment(self):
         if self.cfg.isSupersetsMode():

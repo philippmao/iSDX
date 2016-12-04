@@ -96,8 +96,10 @@ class SuperSets(object):
                     prefix = update['withdraw'].prefix
                     # withdraws always change the bits of a VMAC
                     # check if for this vnh a garp was already sent
-                    if prefix in prefix_2_FEC:
-                        vnh = prefix_2_FEC[prefix]['vnh']
+                    if prefix in pctrl.prefix_2_BEC:
+                        BEC_id = pctrl.prefix_2_BEC[prefix]['id']
+                        FEC_id = pctrl.prefix_2_FEC[prefix]['id']
+                        vnh = pctrl.BECid_FECid_2_VNH[(BEC_id, FEC_id)]
                         if vnh in VNH_2_vmac:
                             continue
                     #impacted_prefixes.append(prefix)
@@ -282,7 +284,6 @@ class SuperSets(object):
 
         #build swift mac
         BEC = pctrl.vnh_2_BFEC[vnh][0]
-        print "BEC:", BEC
         as_path_vmac = BEC['as_path_vmac']
         backup_nbs = BEC['backup_nbs']
         backup_vmac = ''
@@ -303,7 +304,6 @@ class SuperSets(object):
             padding_length = 3*self.SWIFT_backupnexthop_lenght - len(backup_vmac)
             backup_vmac = backup_vmac + '0' * padding_length
 
-        print "tag dict", pctrl.id, pctrl.tag_dict
 
         vmac_bitstring = vmac_bitstring + backup_vmac + as_path_vmac
 

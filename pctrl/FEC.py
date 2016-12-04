@@ -13,6 +13,7 @@ class FEC(object):
         self.pctrl = pctrl
         self.prefix_2_VNH_nrfp = pctrl.prefix_2_VNH_nrfp
         self.logger = pctrl.logger
+        self.prefix_2_FEC_nrfp = pctrl.prefix_2_FEC_nrfp
 
     def assignment(self, update):
         "Assign VNHs for the advertised prefixes"
