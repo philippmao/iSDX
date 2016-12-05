@@ -295,6 +295,7 @@ class ParticipantController(object):
         as_path_vmac = FR_parameters['as_path_vmac']
         as_path_bitmask = FR_parameters['as_path_bitmask']
         depth = FR_parameters['depth']
+        rules = []
         for backup_ip in self.tag_dict:
             backup_part = self.cfg.get_nexthop_2_part(backup_ip)
             if backup_part != self.id:
@@ -323,6 +324,16 @@ class ParticipantController(object):
                 #set dst mac to mac with best next hop
                 dst_mac = vmac_next_hop_match_iSDXmac(backup_part, self.supersets)
                 actions = {"set_eth_dst": dst_mac, "fwd": 'main-in'}
+                rule = {"rule_type": "swift", "priority": SWIFT_HIT_PRIORITY,
+                        "match": match_args, "action": actions, "mod_type": "insert",
+                        }
+                rules.append(rule)
+
+        self.dp_queued.extend(rules)
+
+        self.push_dp()
+
+
 
 
 
