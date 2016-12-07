@@ -20,7 +20,7 @@ import util.log
 from xctrl.flowmodmsg import FlowModMsgBuilder
 
 from lib import PConfig
-from ss_lib import vmac_part_port_match,  vmac_next_hop_match_iSDXmac
+from ss_lib import vmac_part_port_match,  vmac_next_hop_match_iSDXmac, vmac_next_hop_mask_iSDXmac
 from ss_rule_scheme import update_outbound_rules, init_inbound_rules, init_outbound_rules, msg_clear_all_outbound, ss_process_policy_change
 from supersets import SuperSets
 from FEC import FEC
@@ -262,6 +262,8 @@ class ParticipantController(object):
     def process_event(self, data):
         "Locally process each incoming network event"
 
+        print "DATA:", data
+
         #@TODO: when receiving swift FR push backup rules
         if 'FR' in data:
             self.logger.debug("Event Received: FR request")
@@ -291,52 +293,48 @@ class ParticipantController(object):
 
     #@TODO: Make sure the message type sent from route-server matches
     def process_FR(self, FR_parameters):
-        peer_ip = FR_parameters['peer_ip']
         as_path_vmac = FR_parameters['as_path_vmac']
         as_path_bitmask = FR_parameters['as_path_bitmask']
         depth = FR_parameters['depth']
         rules = []
-        for backup_ip in self.tag_dict:
-            backup_part = self.cfg.get_nexthop_2_part(backup_ip)
-            if backup_part != self.id:
-                backup_vmac = ''
-                backup_bitmask = ''
-                for i in range(1, self.max_depth+1):
-                    if i == depth:
-                        backup_tag = self.tag_dict[backup_ip]
-                        backup_vmac += bin(backup_tag)[2:].zfill(self.nexthops_nb_bits)
+        for port in self.cfg.ports:
+            for backup_ip in self.tag_dict:
+                backup_part = self.cfg.get_nexthop_2_part(backup_ip)
+                if backup_part != self.id:
+                    backup_vmac = ''
+                    backup_bitmask = ''
+                    for i in range(1, self.max_depth+1):
+                        if i == depth:
+                            backup_tag = self.tag_dict[backup_ip]
+                            backup_vmac += bin(backup_tag)[2:].zfill(self.nexthops_nb_bits)
 
-                        backup_bitmask += '1' * self.nexthops_nb_bits
+                            backup_bitmask += '1' * self.nexthops_nb_bits
 
-                    else:
-                        backup_vmac += '0' * self.nexthops_nb_bits
-                        backup_bitmask += '0' * self.nexthops_nb_bits
+                        else:
+                            backup_vmac += '0' * self.nexthops_nb_bits
+                            backup_bitmask += '0' * self.nexthops_nb_bits
 
-                vmac = backup_vmac + as_path_vmac
-                vmac_bitmask = backup_bitmask + as_path_bitmask
-                vmac = '{num:0{width}x}'.format(num=int(vmac, 2), width=48 / 4)
-                vmac= ':'.join([vmac[i] + vmac[i + 1] for i in range(0, 48 / 4, 2)])
-                vmac_bitmask = '{num:0{width}x}'.format(num=int(vmac_bitmask, 2), width=48 / 4)
-                vmac_bitmask = ':'.join([vmac_bitmask[i] + vmac_bitmask[i + 1] for i in range(0, 48 / 4, 2)])
+                    vmac = backup_vmac + as_path_vmac
+                    vmac_bitmask = backup_bitmask + as_path_bitmask
+                    vmac = '{num:0{width}x}'.format(num=int(vmac, 2), width=48 / 4)
+                    vmac= ':'.join([vmac[i] + vmac[i + 1] for i in range(0, 48 / 4, 2)])
+                    vmac_bitmask = '{num:0{width}x}'.format(num=int(vmac_bitmask, 2), width=48 / 4)
+                    vmac_bitmask = ':'.join([vmac_bitmask[i] + vmac_bitmask[i + 1] for i in range(0, 48 / 4, 2)])
 
-                match_args = {}
-                match_args["eth_dst"] = (vmac, vmac_bitmask)
-                #set dst mac to mac with best next hop
-                dst_mac = vmac_next_hop_match_iSDXmac(backup_part, self.supersets)
-                actions = {"set_eth_dst": dst_mac, "fwd": 'main-in'}
-                rule = {"rule_type": "swift", "priority": SWIFT_HIT_PRIORITY,
-                        "match": match_args, "action": actions, "mod_type": "insert",
-                        }
-                rules.append(rule)
+                    match_args = {}
+                    match_args["in_port"] = port.id
+                    match_args["eth_dst"] = (vmac, vmac_bitmask)
+                    #set dst mac to mac with best next hop
+                    dst_mac = vmac_next_hop_match_iSDXmac(backup_part, self.supersets)
+                    actions = {"set_eth_dst": dst_mac, "fwd": 'main-in'}
+                    rule = {"rule_type": "swift", "priority": SWIFT_HIT_PRIORITY,
+                            "match": match_args, "action": actions, "mod_type": "insert",
+                            }
+                    rules.append(rule)
 
         self.dp_queued.extend(rules)
 
         self.push_dp()
-
-
-
-
-
 
 
     def update_policies(self, new_policies, in_out):
@@ -532,6 +530,9 @@ class ParticipantController(object):
         "Process each incoming BGP advertisement"
         tstart = time.time()
 
+        #Check for local failure, push fast reroute rules if local failure
+        self.deal_with_local_failure(route)
+
         # Map to update for each prefix in the route advertisement.
         updates = self.bgp_instance.update(route)
         self.logger.debug("process_bgp_route:: "+str(updates))
@@ -692,6 +693,53 @@ class ParticipantController(object):
                     vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
                     self.BECid_FECid_2_VNH[(BEC_id, FEC_id)] = vnh
                     self.vnh_2_BFEC[vnh] = [self.prefix_2_BEC[prefix], self.prefix_2_FEC[prefix]]
+
+    def deal_with_local_failure(self,route):
+        if 'state' in route['neighbor'] and route['neighbor']['state'] == 'down':
+            neighbor = route["neighbor"]["ip"]
+            rules = []
+            for backup_ip in self.tag_dict:
+                backup_part = self.cfg.get_nexthop_2_part(backup_ip)
+                if backup_part != self.id:
+                    backup_vmac = ''
+                    backup_bitmask = ''
+                    for i in range(1, self.max_depth + 1):
+                        if i == 1:
+                            backup_tag = self.tag_dict[backup_ip]
+                            backup_vmac += bin(backup_tag)[2:].zfill(self.nexthops_nb_bits)
+
+                            backup_bitmask += '1' * self.nexthops_nb_bits
+
+                        else:
+                            backup_vmac += '0' * self.nexthops_nb_bits
+                            backup_bitmask += '0' * self.nexthops_nb_bits
+
+                    best_next_hop_vmac = vmac_next_hop_match_iSDXmac(self.cfg.get_nexthop_2_part(neighbor), self.supersets)
+                    best_next_hop_mask = vmac_next_hop_mask_iSDXmac(self.cfg.get_nexthop_2_part(neighbor), self.supersets)
+
+
+
+                    vmac = backup_vmac + best_next_hop_vmac
+                    vmac_bitmask = backup_bitmask +best_next_hop_mask
+                    vmac = '{num:0{width}x}'.format(num=int(vmac, 2), width=48 / 4)
+                    vmac = ':'.join([vmac[i] + vmac[i + 1] for i in range(0, 48 / 4, 2)])
+                    vmac_bitmask = '{num:0{width}x}'.format(num=int(vmac_bitmask, 2), width=48 / 4)
+                    vmac_bitmask = ':'.join([vmac_bitmask[i] + vmac_bitmask[i + 1] for i in range(0, 48 / 4, 2)])
+
+                    match_args = {}
+                    match_args["eth_dst"] = (vmac, vmac_bitmask)
+                    # set dst mac to mac with best next hop
+                    dst_mac = vmac_next_hop_match_iSDXmac(backup_part, self.supersets)
+                    actions = {"set_eth_dst": dst_mac, "fwd": 'main-in'}
+                    rule = {"rule_type": "swift", "priority": SWIFT_HIT_PRIORITY,
+                            "match": match_args, "action": actions, "mod_type": "insert",
+                            }
+                    rules.append(rule)
+
+            self.dp_queued.extend(rules)
+
+            self.push_dp()
+
 
 def get_prefixes_from_announcements(route):
     prefixes = []

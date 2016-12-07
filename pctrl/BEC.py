@@ -26,17 +26,15 @@ class BEC(object):
                 as_path = route.as_path
                 if route:
                     backup_nbs = []
-                    for d in range(0 ,min(len(as_path)-1, self.max_depth-1)):
-                        print "length as_path:", len(as_path)
-                        print "as path:", as_path
+                    for d in range(0 ,min(len(as_path)-1, self.max_depth)):
                         backup_nb = self.get_backup_avoiding_as_link(self.prefix_2_FEC[prefix]['next_hop_part'], prefix, (as_path[d], as_path[d+1]))
+                        print self.id, "backup_neighbor:", backup_nb
                         if backup_nb is not None:
                             backup_nbs.append(backup_nb)
                         else:
                             backup_nbs.append(-1)
                     as_path = tuple(as_path)
                     backup_nbs = tuple(backup_nbs)
-                    print "backup_nbs", backup_nbs
                     if (backup_nbs, as_path) in self.BEC_list:
                         self.logger.debug(str(prefix) + "integrated in existing BEC:" + str(self.BEC_list[(backup_nbs, as_path)]))
                         self.prefix_2_BEC[prefix] = self.BEC_list[(backup_nbs, as_path)]
@@ -58,7 +56,7 @@ class BEC(object):
                 if route:
                     as_path = route.as_path
                     backup_nbs = []
-                    for d in range(0, min(len(as_path)-1, self.max_depth-1)):
+                    for d in range(0, min(len(as_path)-1, self.max_depth)):
                         backup_nb = self.get_backup_avoiding_as_link(self.prefix_2_FEC[prefix]['next_hop_part'], prefix,
                                                                      (as_path[d], as_path[d + 1]))
                         if backup_nb is not None:
@@ -104,7 +102,7 @@ class BEC(object):
                 as_path = route.as_path
                 if route :
                     backup_nbs = []
-                    for d in range(0, min(len(as_path), self.max_depth)):
+                    for d in range(0, min(len(as_path)-1, self.max_depth)):
                         backup_nb = self.get_backup_avoiding_as_link(self.prefix_2_FEC[prefix]['next_hop_part'], prefix,
                                                                      (as_path[d], as_path[d + 1]))
                         if backup_nb is not None:
@@ -133,8 +131,6 @@ class BEC(object):
         best_aspath_backup = None
         bgp_routes = self.bgp_instance.get_routes('input', True, prefix= prefix)
 
-        print"bgp_routes:", bgp_routes
-
 
         i = 0
         for i in range(0, len(bgp_routes)):
@@ -157,6 +153,7 @@ class BEC(object):
                     selected_backup = bgproute.next_hop
                     break
 
+        #if all routes traverse affected link return as_path with shortest as-path
         if selected_backup is None:
             return best_aspath_backup
         else:

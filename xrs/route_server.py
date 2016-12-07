@@ -14,6 +14,7 @@ import Queue
 import sys
 from threading import Thread, Lock
 import time
+from swift import Swift
 
 np = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 if np not in sys.path:
@@ -179,6 +180,8 @@ class BGPListener(object):
         logger.info("Starting the Server to handle incoming BGP Updates.")
         self.server.start()
 
+        swift = Swift()#swift parameters
+
         waiting = 0
         while self.run:
             # get BGP messages from ExaBGP via stdin in client.py,
@@ -199,30 +202,32 @@ class BGPListener(object):
             logger.info("Got route from ExaBGP: %s", route)
             logger.debug("Got route from ExaBGP: %s", route)
 
-            # Received BGP route advertisement from ExaBGP
-            try:
-                advertise_ip = route['neighbor']['ip']
-            except KeyError:
-                print "KEYERROR", route
-                logger.debug("KEYERROR" + str(route))
-                continue
+            #SWIFT ENCODING BURST PREDICTION !
+            FR_messages, routes = swift.process_updates(route)
 
-            found = []
-            with participantsLock:
+            for route in routes:
                 try:
-                    advertise_id = portip2participant[advertise_ip]
-                    peers_out = participants[advertise_id].peers_out
+                    advertise_ip = route['neighbor']['ip']
                 except KeyError:
+                    print "KEYERROR", route
+                    logger.debug("KEYERROR" + str(route))
                     continue
+                found = []
+                with participantsLock:
+                    try:
+                        advertise_id = portip2participant[advertise_ip]
+                        peers_out = participants[advertise_id].peers_out
+                    except KeyError:
+                        continue
 
-                for id, peer in participants.iteritems():
-                    # Apply the filtering logic
-                    if id in peers_out and advertise_id in peer.peers_in:
-                        found.append(peer)
+                    for id, peer in participants.iteritems():
+                        # Apply the filtering logic
+                        if id in peers_out and advertise_id in peer.peers_in:
+                            found.append(peer)
 
-            for peer in found:
+                for peer in found:
                 # Now send this route to participant `id`'s controller'
-                peer.send(route)
+                    peer.send(route)
 
 
     def send(self, announcement):
