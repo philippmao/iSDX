@@ -14,7 +14,8 @@ import Queue
 import sys
 from threading import Thread, Lock
 import time
-from swift import Swift
+from participant_swift import  run_peer
+
 
 np = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 if np not in sys.path:
@@ -180,20 +181,38 @@ class BGPListener(object):
         logger.info("Starting the Server to handle incoming BGP Updates.")
         self.server.start()
 
-        waiting = 0
+        self.peer_swift_dict = {}
+
+        self.peer_queue_dict = {}
+
+        self.peer_queue = Queue()
+
+        route_server_listener_thread = Thread(target= self.Route_server_listener)
+
+        route_server_sender_thread = Thread(target= self.Route_server_sender)
+
+        route_server_sender_thread.start()
+        route_server_listener_thread.start()
+
+    def send(self, announcement):
+        self.server.sender_queue.put(announcement)
+
+
+    def stop(self):
+        logger.info("Stopping BGPListener.")
+        self.run = False
+
+    def Route_server_listener(self):
         while self.run:
-            # get BGP messages from ExaBGP via stdin in client.py,
-            # which is routed to server.py via port 6000,
-            # which is routed to here via receiver_queue.
             try:
                 route = self.server.receiver_queue.get(True, 1)
             except Queue.Empty:
-                if waiting == 0:
+                if self.waiting == 0:
                     logger.debug("Waiting for BGP update...")
-                waiting = (waiting+1) % 30
+                self.waiting = (self.waiting+1) % 30
                 continue
 
-            waiting = 0
+            self.waiting = 0
 
             route = json.loads(route)
 
@@ -208,32 +227,79 @@ class BGPListener(object):
                 logger.debug("KEYERROR" + str(route))
                 continue
 
-            found = []
             with participantsLock:
                 try:
                     advertise_id = portip2participant[advertise_ip]
-                    peers_out = participants[advertise_id].peers_out
                 except KeyError:
                     continue
 
-                for id, peer in participants.iteritems():
-                    # Apply the filtering logic
-                    if id in peers_out and advertise_id in peer.peers_in:
-                        found.append(peer)
+            if advertise_id not in self.peer_queue_dict:
+                self.peer_queue_dict[advertise_id] = Queue()
+                self.peer_swift_dict[advertise_id] = Thread(target=run_peer, \
+                                    args=(self.peer_queue_dict[advertise_id], self.peer_queue, win_size, nb_withdrawals_burst_start, \
+                                    nb_withdrawals_burst_end, min_bpa_burst_size, "bursts", fm_freq, p_w, \
+                                    r_w, bpa_algo, nb_bits_aspath, run_encoding_threshold, \
+                                    False, silent))
 
-            for peer in found:
-                # Now send this route to participant `id`'s controller'
-                peer.send(route)
+                self.peer_swift_dict[advertise_id].start()
 
+            self.peer_queue_dict[advertise_id].put(route)
 
-    def send(self, announcement):
-        self.server.sender_queue.put(announcement)
+        for thread in self.peer_swift_dict.items():
+            thread.stop()
 
+    def Route_server_sender(self):
+        while self.run:
+            try:
+                route = self.peer_queue.get()
+            except Queue.Empty:
+                if self.waiting == 0:
+                    logger.debug("Waiting for FR message or modified Bgp update...")
+                self.waiting = (self.waiting+1) % 30
+                continue
 
-    def stop(self):
-        logger.info("Stopping BGPListener.")
-        self.run = False
+            if 'FR' in route:
+                peer_id = route['FR']['peer_id']
+                found = []
+                with participantsLock:
+                    try:
+                        peers_out = participants[peer_id].peers_out
+                    except KeyError:
+                        continue
 
+                    for id, peer in participants.iteritems():
+                        # Apply the filtering logic
+                        if id in peers_out and peer_id in peer.peers_in:
+                            found.append(peer)
+
+                for peer in found:
+                    # Now send this route to participant `id`'s controller'
+                    peer.send(route)
+
+            else:
+                try:
+                    advertise_ip = route['neighbor']['ip']
+                except KeyError:
+                    print "KEYERROR", route
+                    logger.debug("KEYERROR" + str(route))
+                    continue
+
+                found = []
+                with participantsLock:
+                    try:
+                        advertise_id = portip2participant[advertise_ip]
+                        peers_out = participants[advertise_id].peers_out
+                    except KeyError:
+                        continue
+
+                    for id, peer in participants.iteritems():
+                        # Apply the filtering logic
+                        if id in peers_out and advertise_id in peer.peers_in:
+                            found.append(peer)
+
+                for peer in found:
+                    # Now send this route to participant `id`'s controller'
+                    peer.send(route)
 
 def parse_config(config_file):
     "Parse the config file"

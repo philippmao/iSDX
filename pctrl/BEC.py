@@ -24,6 +24,7 @@ class BEC(object):
                 prefix = update['announce'].prefix
                 route = self.bgp_instance.get_routes('local', False, prefix=prefix)
                 as_path = route.as_path
+                as_path_vmac = route.as_path_vmac
                 if route:
                     backup_nbs = []
                     for d in range(0 ,min(len(as_path)-1, self.max_depth)):
@@ -44,7 +45,7 @@ class BEC(object):
                         new_BEC['id'] = len(self.BEC_list) + 1
                         new_BEC['as-path'] = as_path
                         new_BEC['backup_nbs'] = backup_nbs
-                        new_BEC['as_path_vmac'] = '000100010001'
+                        new_BEC['as_path_vmac'] = as_path_vmac
                         #new_BEC['as_path_vmac '] = route.partial_vmac
                         self.prefix_2_BEC[prefix] = new_BEC
                         self.BEC_list[(backup_nbs, as_path)] = new_BEC

@@ -293,36 +293,38 @@ class ParticipantController(object):
 
     #@TODO: Make sure the message type sent from route-server matches
     def process_FR(self, FR_parameters):
+        peer_id = FR_parameters['peer_id']
         as_path_vmac = FR_parameters['as_path_vmac']
         as_path_bitmask = FR_parameters['as_path_bitmask']
         depth = FR_parameters['depth']
         rules = []
-        for port in self.cfg.ports:
-            for backup_ip in self.tag_dict:
-                backup_part = self.cfg.get_nexthop_2_part(backup_ip)
-                if backup_part != self.id:
-                    backup_vmac = ''
-                    backup_bitmask = ''
-                    for i in range(1, self.max_depth+1):
-                        if i == depth:
-                            backup_tag = self.tag_dict[backup_ip]
-                            backup_vmac += bin(backup_tag)[2:].zfill(self.nexthops_nb_bits)
+        for backup_ip in self.tag_dict:
+            backup_part = self.cfg.get_nexthop_2_part(backup_ip)
+            if backup_part != self.id:
+                backup_vmac = ''
+                backup_bitmask = ''
+                for i in range(1, self.max_depth+1):
+                    if i == depth:
+                        backup_tag = self.tag_dict[backup_ip]
+                        backup_vmac += bin(backup_tag)[2:].zfill(self.nexthops_nb_bits)
+                        backup_bitmask += '1' * self.nexthops_nb_bits
 
-                            backup_bitmask += '1' * self.nexthops_nb_bits
+                    else:
+                        backup_vmac += '0' * self.nexthops_nb_bits
+                        backup_bitmask += '0' * self.nexthops_nb_bits
 
-                        else:
-                            backup_vmac += '0' * self.nexthops_nb_bits
-                            backup_bitmask += '0' * self.nexthops_nb_bits
 
-                    vmac = backup_vmac + as_path_vmac
-                    vmac_bitmask = backup_bitmask + as_path_bitmask
+                    next_hop_match = vmac_next_hop_match_iSDXmac(peer_id, self.supersets,only_isdx_vmac=True)
+                    next_hop_mask = vmac_next_hop_mask_iSDXmac(peer_id, self.supersets, only_isdx_vmac=True)
+
+                    vmac = next_hop_match + backup_vmac + as_path_vmac
+                    vmac_bitmask = next_hop_mask + backup_bitmask + as_path_bitmask
                     vmac = '{num:0{width}x}'.format(num=int(vmac, 2), width=48 / 4)
                     vmac= ':'.join([vmac[i] + vmac[i + 1] for i in range(0, 48 / 4, 2)])
                     vmac_bitmask = '{num:0{width}x}'.format(num=int(vmac_bitmask, 2), width=48 / 4)
                     vmac_bitmask = ':'.join([vmac_bitmask[i] + vmac_bitmask[i + 1] for i in range(0, 48 / 4, 2)])
 
                     match_args = {}
-                    match_args["in_port"] = port.id
                     match_args["eth_dst"] = (vmac, vmac_bitmask)
                     #set dst mac to mac with best next hop
                     dst_mac = vmac_next_hop_match_iSDXmac(backup_part, self.supersets)

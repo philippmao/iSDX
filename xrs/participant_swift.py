@@ -98,20 +98,17 @@ def burst_add_edge(current_burst, rib, encoding, last_msg_time, best_edge_set, G
             is_encoded, depth = encoding.prefix_is_encoded(p, aspath, new_edge[0], new_edge[1])
             current_burst.add_predicted_prefix(last_msg_time, p, is_encoded, depth)
 
-def add_as_path_encoding_to_route(p, bgp_msg , rib, encoding):
+def add_as_path_encoding_to_route(bgp_msg , rib, encoding):
     # if it is an advertisement
     if rib is not None:
         # Make the second part of the v_mac (the part where the as-path is encoded)
         v_mac = ''
         deep = 1
-        aspath = ''
-        for asn in rib.rib[p]:
+        for asn in bgp_msg['neighbor']['message']['update']['attribute']['as_path']:
             if deep in encoding.mapping:
                 depth_value = encoding.mapping[deep].get_mapping_string(asn)
                 v_mac += ''+depth_value
             deep += 1
-            aspath += str(asn)+' '
-        aspath = aspath[:-1]
 
         v_mac = string.ljust(v_mac, encoding.max_bytes, '0')
 
@@ -266,7 +263,7 @@ run_encoding_threshold=1000000, global_rib_enabled=False, silent=False):
 
                     #For this update add the as path encoding to the update and send the update back to the route-server
                     if encoding is not None:
-                        bgp_msg = add_as_path_encoding_to_route(bgp_msg.prefix,bgp_msg, rib, encoding)
+                        bgp_msg = add_as_path_encoding_to_route(bgp_msg, rib, encoding)
 
                     else:
                         routes_without_as_path_encoding.append(bgp_msg)
@@ -339,7 +336,7 @@ run_encoding_threshold=1000000, global_rib_enabled=False, silent=False):
                 if len(routes_without_as_path_encoding)> 0:
                     if encoding is not None:
                         for unsent_bgp_msg in routes_without_as_path_encoding:
-                            unsent_bgp_msg = add_as_path_encoding_to_route()
+                            unsent_bgp_msg = add_as_path_encoding_to_route(unsent_bgp_msg, rib, encoding)
                             queue_peer_server.put(unsent_bgp_msg)
 
                         routes_without_as_path_encoding = []
