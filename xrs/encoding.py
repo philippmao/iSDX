@@ -203,7 +203,6 @@ class Encoding():
     available to store the most important edges. Used to initialize the encoding.
     """
     def compute_encoding(self):
-        # type: () -> object
 
         start = timeit.default_timer()
 

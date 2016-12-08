@@ -1,8 +1,8 @@
 
 class Burst:
 
-    def __init__(self, start_time, duration, outdir, encoding, ts_100th_w, silent=False):
-        self.peer_id = 1
+    def __init__(self, peer_id, start_time, duration, outdir, encoding, ts_100th_w, silent=False):
+        self.peer_id = peer_id
         self.start_time = int(start_time)
         self.duration = duration
         self.outdir = outdir
