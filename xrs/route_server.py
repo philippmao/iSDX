@@ -8,6 +8,7 @@
 import argparse
 from collections import namedtuple
 import json
+import logging.handlers
 from multiprocessing.connection import Listener, Client
 import os
 import Queue
@@ -15,6 +16,8 @@ import sys
 from threading import Thread, Lock
 import time
 from participant_swift import  run_peer
+from bgp_route import BGPRoute
+
 
 
 np = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -130,8 +133,10 @@ class PctrlClient(object):
 
     def send(self, route):
         logger.debug('Sending a route update to participant %d', self.id)
-        self.conn.send(json.dumps({'bgp': route}))
+        self.conn.send({'bgp': route})
 
+    def sendFR(self, route):
+        self.conn.send(route)
 
 class PctrlListener(object):
     def __init__(self):
@@ -185,7 +190,9 @@ class BGPListener(object):
 
         self.peer_queue_dict = {}
 
-        self.peer_queue = Queue()
+        self.peer_queue = Queue.Queue()
+
+        self.waiting = 0
 
         route_server_listener_thread = Thread(target= self.Route_server_listener)
 
@@ -203,6 +210,7 @@ class BGPListener(object):
         self.run = False
 
     def Route_server_listener(self):
+
         while self.run:
             try:
                 route = self.server.receiver_queue.get(True, 1)
@@ -233,17 +241,33 @@ class BGPListener(object):
                 except KeyError:
                     continue
 
+            route_list = self.route_2_bgp_updates(route)
+
             if advertise_id not in self.peer_queue_dict:
-                self.peer_queue_dict[advertise_id] = Queue()
-                self.peer_swift_dict[advertise_id] = Thread(target=run_peer, \
-                                    args=(self.peer_queue_dict[advertise_id], self.peer_queue, win_size, nb_withdrawals_burst_start, \
+                print "launching swift for peer_id:", advertise_id
+                self.peer_queue_dict[advertise_id] = Queue.Queue()
+                win_size = 10
+                nb_withdrawals_burst_start = 10
+                nb_withdrawals_burst_end = 5
+                min_bpa_burst_size = 20
+                fm_freq = 20
+                p_w = 1
+                r_w = 1
+                bpa_algo = 'bpa-multiple'
+                nb_bits_aspath = 12
+                run_encoding_threshold = 10
+                silent = True
+                with participantsLock:
+                    self.peer_swift_dict[advertise_id] = Thread(target=run_peer, \
+                                    args=(self.peer_queue_dict[advertise_id], self.peer_queue, win_size,advertise_id, nb_withdrawals_burst_start, \
                                     nb_withdrawals_burst_end, min_bpa_burst_size, "bursts", fm_freq, p_w, \
                                     r_w, bpa_algo, nb_bits_aspath, run_encoding_threshold, \
                                     False, silent))
 
                 self.peer_swift_dict[advertise_id].start()
 
-            self.peer_queue_dict[advertise_id].put(route)
+            for route in route_list:
+                self.peer_queue_dict[advertise_id].put(route)
 
         for thread in self.peer_swift_dict.items():
             thread.stop()
@@ -274,15 +298,23 @@ class BGPListener(object):
 
                 for peer in found:
                     # Now send this route to participant `id`'s controller'
-                    peer.send(route)
+                    peer.sendFR(route)
 
             else:
-                try:
-                    advertise_ip = route['neighbor']['ip']
-                except KeyError:
-                    print "KEYERROR", route
-                    logger.debug("KEYERROR" + str(route))
-                    continue
+                if 'announce' in route:
+                    try:
+                        advertise_ip = route['announce'].neighbor
+                    except KeyError:
+                        print "KEYERROR", route
+                        logger.debug("KEYERROR" + str(route))
+                        continue
+                if 'withdraw' in route:
+                    try:
+                        advertise_ip = route['withdraw'].neighbor
+                    except KeyError:
+                        print "KEYERROR", route
+                        logger.debug("KEYERROR" + str(route))
+                        continue
 
                 found = []
                 with participantsLock:
@@ -300,6 +332,83 @@ class BGPListener(object):
                 for peer in found:
                     # Now send this route to participant `id`'s controller'
                     peer.send(route)
+
+    def route_2_bgp_updates(self, route):
+        origin = None
+        as_path = None
+        as_path_vmac = None
+        med = None
+        atomic_aggregate = None
+        communities = None
+
+        route_list = []
+
+        if 'state' in route['neighbor'] and route['neighbor']['state'] == 'down':
+            route_list.append(route)
+            return route_list
+
+        # Extract out neighbor information in the given BGP update
+        neighbor = route["neighbor"]["ip"]
+        if 'message' in route['neighbor']:
+            if 'update' in route['neighbor']['message']:
+                time = route['time']
+                if 'attribute' in route['neighbor']['message']['update']:
+                    attribute = route['neighbor']['message']['update']['attribute']
+
+                    origin = attribute['origin'] if 'origin' in attribute else ''
+
+                    as_path = attribute['as-path'] if 'as-path' in attribute else []
+
+                    as_path_vmac = attribute['as_path_vmac'] if 'as_path_vmac' in attribute else None
+
+                    med = attribute['med'] if 'med' in attribute else ''
+
+                    community = attribute['community'] if 'community' in attribute else ''
+                    communities = ''
+                    for c in community:
+                        communities += ':'.join(map(str,c)) + " "
+
+                    atomic_aggregate = attribute['atomic-aggregate'] if 'atomic-aggregate' in attribute else ''
+
+                if 'announce' in route['neighbor']['message']['update']:
+                    announce = route['neighbor']['message']['update']['announce']
+                    if 'ipv4 unicast' in announce:
+                        for next_hop in announce['ipv4 unicast'].keys():
+                            for prefix in announce['ipv4 unicast'][next_hop].keys():
+                                announced_route = BGPRoute(prefix,
+                                                           neighbor,
+                                                           next_hop,
+                                                           origin,
+                                                           as_path,
+                                                           as_path_vmac,
+                                                           communities,
+                                                           med,
+                                                           atomic_aggregate
+                                                           )
+
+                                route_list.append({'announce': announced_route ,'time': time})
+
+                elif 'withdraw' in route['neighbor']['message']['update']:
+                    withdraw = route['neighbor']['message']['update']['withdraw']
+                    if 'ipv4 unicast' in withdraw:
+                        next_hop = None
+                        for prefix in withdraw['ipv4 unicast'].keys():
+                            withdrawn_route = BGPRoute(prefix,
+                                                           neighbor,
+                                                           next_hop,
+                                                           origin,
+                                                           as_path,
+                                                           as_path_vmac,
+                                                           communities,
+                                                           med,
+                                                           atomic_aggregate,
+                                                           )
+                            route_list.append({'withdraw': withdrawn_route, 'time': time})
+
+        return route_list
+
+
+
 
 def parse_config(config_file):
     "Parse the config file"
@@ -328,6 +437,21 @@ def main():
 
     logger.info("Reading config file %s", config_file)
     config = parse_config(config_file)
+
+    #swift log directories
+    if not os.path.exists('log'):
+        os.makedirs('log')
+
+    if not os.path.exists('bursts'):
+        os.makedirs('bursts')
+
+    LOG_DIRNAME = 'log'
+    main_logger = logging.getLogger('MainLogger')
+    main_logger.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
+    handler = logging.handlers.RotatingFileHandler(LOG_DIRNAME + '/main', maxBytes=200000000000, backupCount=5)
+    handler.setFormatter(formatter)
+    main_logger.addHandler(handler)
 
     bgpListener = BGPListener()
     bp_thread = Thread(target=bgpListener.start)

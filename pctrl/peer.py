@@ -42,71 +42,37 @@ class BGPPeer(object):
     def update(self, route):
         origin = None
         as_path = None
+        as_path_vmac = None
         med = None
         atomic_aggregate = None
         communities = None
 
         route_list = []
         # Extract out neighbor information in the given BGP update
-        neighbor = route["neighbor"]["ip"]
+        if 'neighbor' in route:
+            if 'state' in route['neighbor'] and route['neighbor']['state'] == 'down':
+                neighbor = route["neighbor"]["ip"]
+                print "neighbor down - " + str(neighbor) + " - I am " + str(self.asn)
 
-        if 'state' in route['neighbor'] and route['neighbor']['state'] == 'down':
-            print "neighbor down - " + str(neighbor) + " - I am " + str(self.asn)
+                self.logger.debug("neighbor down - " + str(neighbor))
 
-            self.logger.debug("neighbor down - " + str(neighbor))
+                routes = self.get_routes('input', True, neighbor=neighbor)
 
-            routes = self.get_routes('input', True, neighbor=neighbor)
+                for route_item in routes:
+                    route_list.append({'withdraw': route_item})
 
-            for route_item in routes:
-                route_list.append({'withdraw': route_item})
+                self.delete_all_routes('input', neighbor=neighbor)
 
-            self.delete_all_routes('input', neighbor=neighbor)
+        if 'announce' in route:
+            announce = route['announce']
+            self.add_route('input', announce)
 
-        if 'message' in route['neighbor']:
-            if 'update' in route['neighbor']['message']:
-                if 'attribute' in route['neighbor']['message']['update']:
-                    attribute = route['neighbor']['message']['update']['attribute']
-
-                    origin = attribute['origin'] if 'origin' in attribute else ''
-
-                    as_path = attribute['as-path'] if 'as-path' in attribute else []
-
-                    med = attribute['med'] if 'med' in attribute else ''
-
-                    community = attribute['community'] if 'community' in attribute else ''
-                    communities = ''
-                    for c in community:
-                        communities += ':'.join(map(str,c)) + " "
-
-                    atomic_aggregate = attribute['atomic-aggregate'] if 'atomic-aggregate' in attribute else ''
-
-                if 'announce' in route['neighbor']['message']['update']:
-                    announce = route['neighbor']['message']['update']['announce']
-                    if 'ipv4 unicast' in announce:
-                        for next_hop in announce['ipv4 unicast'].keys():
-                            for prefix in announce['ipv4 unicast'][next_hop].keys():
-                                announced_route = BGPRoute(prefix,
-                                                           neighbor,
-                                                           next_hop,
-                                                           origin,
-                                                           as_path,
-                                                           communities,
-                                                           med,
-                                                           atomic_aggregate)
-                                self.add_route('input', announced_route)
-
-                                route_list.append({'announce': announced_route})
-
-                elif 'withdraw' in route['neighbor']['message']['update']:
-                    withdraw = route['neighbor']['message']['update']['withdraw']
-                    if 'ipv4 unicast' in withdraw:
-                        for prefix in withdraw['ipv4 unicast'].keys():
-                            deleted_route = self.get_routes('input', False, prefix=prefix, neighbor=neighbor)
-                            if deleted_route:
-                                self.delete_route('input', prefix=prefix, neighbor=neighbor)
-                                route_list.append({'withdraw': deleted_route})
-
-        return route_list
+        if 'withdraw' in route:
+            withdraw = route['withdraw']
+            neighbor = withdraw.neighbor
+            deleted_route = self.get_routes('input', False, prefix=withdraw.prefix, neighbor=neighbor)
+            if deleted_route:
+                self.delete_route('input', prefix=withdraw.prefix, neighbor=neighbor)
 
     def decision_process(self, update):
         'Update the local rib with new best path'
@@ -137,6 +103,11 @@ class BGPPeer(object):
                 # new route is better than existing
                 if announced_route > current_best_route:
                     new_best_route = announced_route
+                #Replace routes without as-path with
+                if current_best_route.as_path_vmac is None:
+                    if announced_route.as_path_vmac is not None:
+                        print "PREFER ROUTES WITH ASPATHENCODING"
+                        new_best_route = announced_route
                 # if the new route is an update of the current best route and makes it worse, we have to rerun the
                 # entire decision process
                 elif announced_route < current_best_route \
@@ -152,6 +123,7 @@ class BGPPeer(object):
                 new_best_route = announced_route
 
             if new_best_route:
+                print "Decision process route:", new_best_route.prefix, new_best_route.as_path_vmac
                 self.update_route('local', new_best_route)
 
         elif 'withdraw' in update:
@@ -174,68 +146,73 @@ class BGPPeer(object):
                 else:
                     self.logger.error("Withdraw received for a prefix which wasn't even in the local table")
 
-    def bgp_update_peer(self, updates, prefix_2_VNH_nrfp, prefix_2_FEC, prefix_2_BEC ,BECid_FECid_2_VNH , VNH_2_vmac, ports):
+    def bgp_update_peer(self, update, prefix_2_VNH_nrfp, prefix_2_FEC, prefix_2_BEC ,BECid_FECid_2_VNH , VNH_2_vmac, ports):
         announcements = []
         new_VNHs = []
 
-        for update in updates:
-            if 'announce' in update:
-                prefix = update['announce'].prefix
+        if 'announce' in update:
+            prefix = update['announce'].prefix
+        else:
+            prefix = update['withdraw'].prefix
+
+        prev_route = self.get_routes('output', False, prefix=prefix)
+
+        best_route = self.get_routes('local', False, prefix=prefix)
+
+        if 'announce' in update:
+            # Check if best path has changed for this prefix
+            # store announcement in output rib
+            BEC_id = prefix_2_BEC[prefix]['id']
+            FEC_id = prefix_2_FEC[prefix]['id']
+            vnh = BECid_FECid_2_VNH[(BEC_id, FEC_id)]
+
+            if prev_route:
+                if prev_route.as_path_vmac is None:
+                    self.delete_route("output", prefix = prefix)
+                    new_VNHs.append(vnh)
+
+            self.update_route("output", best_route)
+            BEC_id = prefix_2_BEC[prefix]['id']
+            FEC_id = prefix_2_FEC[prefix]['id']
+            vnh = BECid_FECid_2_VNH[(BEC_id, FEC_id)]
+            if vnh not in VNH_2_vmac:
+                new_VNHs.append(vnh)
+            if best_route:
+                # announce the route to each router of the participant
+                for port in ports:
+                    # TODO: Create a sender queue and import the announce_route function
+                    announcements.append(announce_route(port["IP"],
+                                                            prefix,
+                                                            vnh,
+                                                            best_route.as_path))
             else:
-                prefix = update['withdraw'].prefix
+                self.logger.error("Race condition problem for prefix: "+str(prefix))
+                return new_VNHs, announcements
 
-            prev_route = self.get_routes('output', False, prefix=prefix)
-
-            best_route = self.get_routes('local', False, prefix=prefix)
-
-            if 'announce' in update:
-                # Check if best path has changed for this prefix
+        elif 'withdraw' in update:
+            # A new announcement is only needed if the best path has changed
+            if best_route:
                 # store announcement in output rib
-
                 self.update_route("output", best_route)
                 BEC_id = prefix_2_BEC[prefix]['id']
                 FEC_id = prefix_2_FEC[prefix]['id']
-                print "BEC_id", BEC_id
-                print "FEC_id", FEC_id
                 vnh = BECid_FECid_2_VNH[(BEC_id, FEC_id)]
                 if vnh not in VNH_2_vmac:
                     new_VNHs.append(vnh)
-                if best_route:
-                    # announce the route to each router of the participant
-                    for port in ports:
+                for port in ports:
+                    announcements.append(announce_route(port["IP"],
+                                                            prefix,
+                                                            vnh,
+                                                            best_route.as_path))
+
+            else:
+                "Currently there is no best route to this prefix"
+                if prev_route:
+                    # Clear this entry from the output rib
+                    self.delete_route("output", prefix=prefix)
+                    for port in self.ports:
                         # TODO: Create a sender queue and import the announce_route function
-                        announcements.append(announce_route(port["IP"],
-                                                            prefix,
-                                                            vnh,
-                                                            best_route.as_path))
-                else:
-                    self.logger.error("Race condition problem for prefix: "+str(prefix))
-                    continue
-
-            elif 'withdraw' in update:
-                # A new announcement is only needed if the best path has changed
-                if best_route:
-                    # store announcement in output rib
-                    self.update_route("output", best_route)
-                    BEC_id = prefix_2_BEC[prefix]['id']
-                    FEC_id = prefix_2_FEC[prefix]['id']
-                    vnh = BECid_FECid_2_VNH[(BEC_id, FEC_id)]
-                    if vnh not in VNH_2_vmac:
-                        new_VNHs.append(vnh)
-                    for port in ports:
-                        announcements.append(announce_route(port["IP"],
-                                                            prefix,
-                                                            vnh,
-                                                            best_route.as_path))
-
-                else:
-                    "Currently there is no best route to this prefix"
-                    if prev_route:
-                        # Clear this entry from the output rib
-                        self.delete_route("output", prefix=prefix)
-                        for port in self.ports:
-                            # TODO: Create a sender queue and import the announce_route function
-                            announcements.append(withdraw_route(port["IP"],
+                        announcements.append(withdraw_route(port["IP"],
                                                                 prefix,
                                                                 prefix_2_VNH_nrfp[prefix]))
 

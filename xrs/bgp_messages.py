@@ -11,7 +11,7 @@ class BGPMessagesQueue(deque):
     Remove all the bgp messages in the queue that have expired
     """
     def refresh(self, ts):
-        while len(self) > 0 and ts - self[0]['time'] > self.time:
+        while len(self) > 0 and ts - self[0].time > self.time:
             self.popleft()
 
     """
@@ -19,7 +19,7 @@ class BGPMessagesQueue(deque):
     And yields the expired messages.
     """
     def refresh_iter(self, ts):
-        while len(self) > 0 and ts - self[0]['time'] > self.time:
+        while len(self) > 0 and ts - self[0].time > self.time:
             yield self.popleft()
 
 """

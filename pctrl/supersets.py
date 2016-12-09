@@ -71,7 +71,7 @@ class SuperSets(object):
         return rulecounts
 
 
-    def update_supersets(self, pctrl, updates):
+    def update_supersets(self, pctrl, update):
         with lock:
             policies = pctrl.policies
             prefix_2_FEC = pctrl.prefix_2_FEC
@@ -91,75 +91,74 @@ class SuperSets(object):
                 sdx_msgs = self.initial_computation(pctrl)
                 return (sdx_msgs, impacted_prefixes)
 
-            for update in updates:
-                if ('withdraw' in update):
-                    prefix = update['withdraw'].prefix
-                    # withdraws always change the bits of a VMAC
-                    # check if for this vnh a garp was already sent
-                    if prefix in pctrl.prefix_2_BEC:
-                        BEC_id = pctrl.prefix_2_BEC[prefix]['id']
-                        FEC_id = pctrl.prefix_2_FEC[prefix]['id']
-                        vnh = pctrl.BECid_FECid_2_VNH[(BEC_id, FEC_id)]
-                        if vnh in VNH_2_vmac:
-                            continue
-                    #impacted_prefixes.append(prefix)
-                if ('announce' not in update):
-                    continue
-                prefix = update['announce'].prefix
-
+            if ('withdraw' in update):
+                prefix = update['withdraw'].prefix
+                # withdraws always change the bits of a VMAC
                 # check if for this vnh a garp was already sent
-                BEC_id = pctrl.prefix_2_BEC[prefix]['id']
-                FEC_id = pctrl.prefix_2_FEC[prefix]['id']
-                vnh = pctrl.BECid_FECid_2_VNH[(BEC_id, FEC_id)]
-                if vnh in VNH_2_vmac:
-                    continue
+                if prefix in pctrl.prefix_2_BEC:
+                    BEC_id = pctrl.prefix_2_BEC[prefix]['id']
+                    FEC_id = pctrl.prefix_2_FEC[prefix]['id']
+                    vnh = pctrl.BECid_FECid_2_VNH[(BEC_id, FEC_id)]
+                    if vnh in VNH_2_vmac:
+                        return(sdx_msgs, impacted_prefixes)
+                #impacted_prefixes.append(prefix)
+            if ('announce' not in update):
+                return(sdx_msgs, impacted_prefixes)
+            prefix = update['announce'].prefix
 
-                # get set of all participants advertising that prefix
-                new_set = get_all_participants_advertising(pctrl, prefix)
+            # check if for this vnh a garp was already sent
+            BEC_id = pctrl.prefix_2_BEC[prefix]['id']
+            FEC_id = pctrl.prefix_2_FEC[prefix]['id']
+            vnh = pctrl.BECid_FECid_2_VNH[(BEC_id, FEC_id)]
+            if vnh in VNH_2_vmac:
+                return(sdx_msgs, impacted_prefixes)
 
-                # clean out the inactive participants
-                new_set = set(new_set)
-                new_set.intersection_update(self.rulecounts.keys())
+            # get set of all participants advertising that prefix
+            new_set = get_all_participants_advertising(pctrl, prefix)
 
-                # if the prefix group is still a subset, no update needed
-                if is_subset_of_superset(new_set, self.supersets):
-                    continue
+            # clean out the inactive participants
+            new_set = set(new_set)
+            new_set.intersection_update(self.rulecounts.keys())
 
-                expansion_index = best_ss_to_expand_greedy(new_set, self.supersets,
-                        self.rulecounts, self.mask_size)
+            # if the prefix group is still a subset, no update needed
+            if is_subset_of_superset(new_set, self.supersets):
+                return(sdx_msgs, impacted_prefixes)
 
-                # if no merge is possible, recompute from scratch
-                if expansion_index == -1:
-                    # Maybe can replace this with call to initial_computation()
-                    self.logger.debug("No SS merge was possible. Recomputing.")
-                    self.logger.debug('pre-recompute:  ' + str(self.supersets))
-                    self.recompute_all_supersets(pctrl)
-                    self.logger.debug('post-recompute: ' + str(self.supersets))
+            expansion_index = best_ss_to_expand_greedy(new_set, self.supersets,
+                    self.rulecounts, self.mask_size)
 
-                    sdx_msgs = {"type": "new", "changes": []}
+            # if no merge is possible, recompute from scratch
+            if expansion_index == -1:
+                # Maybe can replace this with call to initial_computation()
+                self.logger.debug("No SS merge was possible. Recomputing.")
+                self.logger.debug('pre-recompute:  ' + str(self.supersets))
+                self.recompute_all_supersets(pctrl)
+                self.logger.debug('post-recompute: ' + str(self.supersets))
 
-                    for superset_index, superset in enumerate(self.supersets):
-                        for participant in superset:
-                            sdx_msgs["changes"].append({"participant_id": participant,
+                sdx_msgs = {"type": "new", "changes": []}
+
+                for superset_index, superset in enumerate(self.supersets):
+                    for participant in superset:
+                        sdx_msgs["changes"].append({"participant_id": participant,
                                 "superset": superset_index,
                                 "position": self.supersets[superset_index].index(participant)})
-                    break
+                    return(sdx_msgs, impacted_prefixes)
 
-                # if merge is possible, do the merge and add the new rules required
-                else:
-                    # an expansion means the VMAC for this prefix changed
-                    impacted_prefixes.append(prefix)
+            # if merge is possible, do the merge and add the new rules required
+            else:
+                # an expansion means the VMAC for this prefix changed
+                impacted_prefixes.append(prefix)
 
-                    bestSuperset = self.supersets[expansion_index]
+                bestSuperset = self.supersets[expansion_index]
 
-                    new_members = list(new_set.difference(bestSuperset))
-                    bestSuperset.extend(new_members)
+                new_members = list(new_set.difference(bestSuperset))
+                bestSuperset.extend(new_members)
 
-                    self.logger.debug("Merge possible. Merging "+str(new_set)+" into superset "+str(bestSuperset))
-                    self.logger.debug("with new members "+str(new_members))
+                self.logger.debug("Merge possible. Merging "+str(new_set)+" into superset "+str(bestSuperset))
+                self.logger.debug("with new members "+str(new_members))
 
-                    for participant in new_members:
-                        sdx_msgs["changes"].append({"participant_id": participant,
+                for participant in new_members:
+                    sdx_msgs["changes"].append({"participant_id": participant,
                             "superset": expansion_index,
                             "position": bestSuperset.index(participant)})
 
@@ -285,24 +284,29 @@ class SuperSets(object):
         #build swift mac
         BEC = pctrl.vnh_2_BFEC[vnh][0]
         as_path_vmac = BEC['as_path_vmac']
+        if as_path_vmac == None:
+            as_path_vmac = '000000000000'
         backup_nbs = BEC['backup_nbs']
         backup_vmac = ''
-        for d in range(0, len(backup_nbs)):
-            backup_nb = backup_nbs[d]
-            if backup_nb == -1:
-                backup_nh = '0' * self.SWIFT_backupnexthop_lenght
-                backup_vmac = backup_nh + backup_vmac
-                continue
-            if backup_nb not in pctrl.tag_dict:
-                tag = len(pctrl.tag_dict)+1
-                pctrl.tag_dict[backup_nb] = tag
-            backup_nh = bin(pctrl.tag_dict[backup_nb])[2:]
-            backup_nh = backup_nh.zfill(self.SWIFT_backupnexthop_lenght)
-            backup_vmac =  backup_vmac + backup_nh
+        if backup_nbs == None:
+            backup_vmac = '000000000000'
+        else:
+            for d in range(0, len(backup_nbs)):
+                backup_nb = backup_nbs[d]
+                if backup_nb == -1:
+                    backup_nh = '0' * self.SWIFT_backupnexthop_lenght
+                    backup_vmac = backup_nh + backup_vmac
+                    continue
+                if backup_nb not in pctrl.tag_dict:
+                    tag = len(pctrl.tag_dict)+1
+                    pctrl.tag_dict[backup_nb] = tag
+                backup_nh = bin(pctrl.tag_dict[backup_nb])[2:]
+                backup_nh = backup_nh.zfill(self.SWIFT_backupnexthop_lenght)
+                backup_vmac =  backup_vmac + backup_nh
 
-        if len(backup_vmac)< 3*self.SWIFT_backupnexthop_lenght:
-            padding_length = 3*self.SWIFT_backupnexthop_lenght - len(backup_vmac)
-            backup_vmac = backup_vmac + '0' * padding_length
+            if len(backup_vmac)< 3*self.SWIFT_backupnexthop_lenght:
+                padding_length = 3*self.SWIFT_backupnexthop_lenght - len(backup_vmac)
+                backup_vmac = backup_vmac + '0' * padding_length
 
 
         vmac_bitstring = vmac_bitstring + backup_vmac + as_path_vmac

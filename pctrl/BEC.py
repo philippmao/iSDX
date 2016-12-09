@@ -26,38 +26,42 @@ class BEC(object):
                 as_path = route.as_path
                 as_path_vmac = route.as_path_vmac
                 if route:
-                    backup_nbs = []
-                    for d in range(0 ,min(len(as_path)-1, self.max_depth)):
-                        backup_nb = self.get_backup_avoiding_as_link(self.prefix_2_FEC[prefix]['next_hop_part'], prefix, (as_path[d], as_path[d+1]))
-                        print self.id, "backup_neighbor:", backup_nb
-                        if backup_nb is not None:
-                            backup_nbs.append(backup_nb)
-                        else:
-                            backup_nbs.append(-1)
-                    as_path = tuple(as_path)
-                    backup_nbs = tuple(backup_nbs)
-                    if (backup_nbs, as_path) in self.BEC_list:
-                        self.logger.debug(str(prefix) + "integrated in existing BEC:" + str(self.BEC_list[(backup_nbs, as_path)]))
-                        self.prefix_2_BEC[prefix] = self.BEC_list[(backup_nbs, as_path)]
-                        return
+                    #If no encoding yet, use default BEC
+                    if route.as_path_vmac is None:
+                        self.prefix_2_BEC[prefix] = self.BEC_list[((-1, -1, -1), (-1, -1, -1))]
                     else:
-                        new_BEC = {}
-                        new_BEC['id'] = len(self.BEC_list) + 1
-                        new_BEC['as-path'] = as_path
-                        new_BEC['backup_nbs'] = backup_nbs
-                        new_BEC['as_path_vmac'] = as_path_vmac
-                        #new_BEC['as_path_vmac '] = route.partial_vmac
-                        self.prefix_2_BEC[prefix] = new_BEC
-                        self.BEC_list[(backup_nbs, as_path)] = new_BEC
-                        return
+                        backup_nbs = []
+                        for d in range(0 ,min(len(as_path)-1, self.max_depth)):
+                            backup_nb = self.get_backup_avoiding_as_link(self.prefix_2_FEC[prefix]['next_hop_part'], prefix, (as_path[d], as_path[d+1]))
+                            if backup_nb is not None:
+                                backup_nbs.append(backup_nb)
+                            else:
+                                backup_nbs.append(-1)
+                        as_path = tuple(as_path)
+                        backup_nbs = tuple(backup_nbs)
+                        if (backup_nbs, as_path) in self.BEC_list:
+                            self.logger.debug(str(prefix) + "integrated in existing BEC:" + str(self.BEC_list[(backup_nbs, as_path)]))
+                            self.prefix_2_BEC[prefix] = self.BEC_list[(backup_nbs, as_path)]
+                            return
+                        else:
+                            new_BEC = {}
+                            new_BEC['id'] = len(self.BEC_list) + 1
+                            new_BEC['as-path'] = as_path
+                            new_BEC['backup_nbs'] = backup_nbs
+                            new_BEC['as_path_vmac'] = as_path_vmac
+                            self.prefix_2_BEC[prefix] = new_BEC
+                            self.BEC_list[(backup_nbs, as_path)] = new_BEC
+                            return
 
             if 'withdraw' in update:
                 prefix = update['withdraw'].prefix
                 route = self.bgp_instance.get_routes('local', False, prefix=prefix)
                 if route:
                     as_path = route.as_path
+                    as_path_vmac = route.as_path_vmac
                     backup_nbs = []
                     for d in range(0, min(len(as_path)-1, self.max_depth)):
+
                         backup_nb = self.get_backup_avoiding_as_link(self.prefix_2_FEC[prefix]['next_hop_part'], prefix,
                                                                      (as_path[d], as_path[d + 1]))
                         if backup_nb is not None:
@@ -68,6 +72,8 @@ class BEC(object):
                     as_path = tuple(as_path)
                     backup_nbs = tuple(backup_nbs)
                     if (backup_nbs, as_path) in self.BEC_list:
+                        if self.BEC_list[(backup_nbs, as_path)]['as_path_vmac'] is None:
+                            self.BEC_list[(backup_nbs, as_path)]['as_path_vmac'] = route.as_path_vmac
                         self.logger.debug(
                             str(prefix) + "integrated in existing BEC:" + str(self.BEC_list[(backup_nbs, as_path)]))
                         self.prefix_2_BEC[prefix] = self.BEC_list[(backup_nbs, as_path)]
@@ -77,7 +83,7 @@ class BEC(object):
                         new_BEC['id'] = len(self.BEC_list) + 1
                         new_BEC['as-path'] = as_path
                         new_BEC['backup_nbs'] = backup_nbs
-                        new_BEC['as_path_vmac'] = '000100010001'
+                        new_BEC['as_path_vmac'] = as_path_vmac
                         #new_BEC['as_path_vmac '] = route.partial_vmac
                         self.prefix_2_BEC[prefix] = new_BEC
                         self.FEC_list[(backup_nbs, as_path)] = new_BEC
@@ -113,6 +119,8 @@ class BEC(object):
                     as_path = tuple(as_path)
                     backup_nbs = tuple(backup_nbs)
                     if (backup_nbs, as_path) in self.BEC_list:
+                        if self.BEC_list[(backup_nbs, as_path)]['as_path_vmac'] is None:
+                            self.BEC_list[(backup_nbs, as_path)]['as_path_vmac'] = route.as_path_vmac
                         self.logger.debug(
                             str(prefix) + "integrated in existing BEC:" + str(self.BEC_list[(backup_nbs, as_path)]))
                         self.prefix_2_BEC[prefix] = self.BEC_list[(backup_nbs, as_path)]
@@ -122,7 +130,7 @@ class BEC(object):
                         new_BEC['id'] = len(self.BEC_list) + 1
                         new_BEC['as-path'] = as_path
                         new_BEC['backup_nbs'] = backup_nbs
-                        new_BEC['as_path_vmac '] = '000100010001'
+                        new_BEC['as_path_vmac '] = route.as_path_vmac
                         #new_BEC['as_path_vmac '] = route.partial_vmac
                         self.prefix_2_BEC[prefix] = new_BEC
                         self.FEC_list[(backup_nbs, as_path)] = new_BEC

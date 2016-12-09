@@ -4,12 +4,14 @@ import time
 import argparse
 import select
 import cPickle as pickle
-import signal
 import atexit
 from copy import deepcopy
 import logging.handlers
 import multiprocessing
 import string
+import Queue
+
+
 
 from bgp_messages import BGPMessagesQueue
 from rib import RIBPeer
@@ -18,7 +20,13 @@ from bpa import find_best_fmscore_forward, find_best_fmscore_backward, find_best
 from burst import Burst
 from encoding import Encoding
 
-# Define the logger
+if not os.path.exists('log'):
+    os.makedirs('log')
+
+if not os.path.exists('bursts'):
+    os.makedirs('bursts')
+
+ #Define the logger
 LOG_DIRNAME = 'log'
 peer_logger = logging.getLogger('PeerLogger')
 peer_logger.setLevel(logging.INFO)
@@ -86,7 +94,8 @@ def burst_prediction(current_burst, G, G_W, W_queue, p_w, r_w, bpa_algo, peer_as
                 best_FN += best_FN_tmp
 
     except:
-        peer_logger.critical('BPA has failed.')
+        #peer_logger.critical('BPA has failed.')
+        print "Failed"
 
     return best_edge_set, best_fm_score, int(best_TP), int(best_FP), int(best_FN)
 
@@ -104,7 +113,7 @@ def add_as_path_encoding_to_route(bgp_msg , rib, encoding):
         # Make the second part of the v_mac (the part where the as-path is encoded)
         v_mac = ''
         deep = 1
-        for asn in bgp_msg['neighbor']['message']['update']['attribute']['as_path']:
+        for asn in bgp_msg.as_path:
             if deep in encoding.mapping:
                 depth_value = encoding.mapping[deep].get_mapping_string(asn)
                 v_mac += ''+depth_value
@@ -112,7 +121,7 @@ def add_as_path_encoding_to_route(bgp_msg , rib, encoding):
 
         v_mac = string.ljust(v_mac, encoding.max_bytes, '0')
 
-        bgp_msg['neighbor']['message']['update']['attribute']['as_path_vmac'] = v_mac
+        bgp_msg.as_path_vmac = v_mac
 
     return bgp_msg
 
@@ -131,7 +140,7 @@ nb_withdraws_per_cycle After how many new withdrawals BPA needs to run_peer
 silent          print output in files to get information. To speed-up the algo, set to True.
 naive           Use the naive approach if True
 """
-def run_peer(queue_server_peer, queue_peer_server, portip2participant, win_size, nb_withdrawals_burst_start, \
+def run_peer(queue_server_peer, queue_peer_server, peer_id, win_size, nb_withdrawals_burst_start, \
 nb_withdrawals_burst_end, min_bpa_burst_size, burst_outdir, \
 nb_withdraws_per_cycle=100, p_w=1, r_w=1, bpa_algo=False, nb_bits_aspath=33, \
 run_encoding_threshold=1000000, global_rib_enabled=False, silent=False):
@@ -141,7 +150,8 @@ run_encoding_threshold=1000000, global_rib_enabled=False, silent=False):
     try:
         os.nice(-20)
     except OSError:
-        peer_logger.info('Cannot change the nice.')
+        #peer_logger.info('Cannot change the nice.')
+        print "nochangenice"
 
     # Create the topologies for this peer
     G = ASTopology(1, silent) # Main topology
@@ -154,23 +164,24 @@ run_encoding_threshold=1000000, global_rib_enabled=False, silent=False):
     last_log_write = 0
 
     # Socket connected to the global RIB
-    socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    #socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 
     # Exit properly when receiving SIGINT
-    def signal_handler(signal, frame):
-        if current_burst is not None:
-            current_burst.stop(bgp_msg.time)
+    #def signal_handler(signal, frame):
+        #if current_burst is not None:
+            #current_burst.stop(bgp_msg.time)
 
-        socket.close()
+        #socket.close()
 
-        peer_logger.info('Received SIGTERM. Exiting.')
+        #peer_logger.info('Received SIGTERM. Exiting.')
 
-        sys.exit(0)
+        #sys.exit(0)
 
-    signal.signal(signal.SIGTERM, signal_handler)
+    #signal.signal(signal.SIGTERM, signal_handler)
 
-    peer_id = None
+    peer_id = peer_id
     peer_as = None
+    peer_as_set = None
 
     # Create the RIB for this peer
     rib = RIBPeer()
@@ -180,7 +191,7 @@ run_encoding_threshold=1000000, global_rib_enabled=False, silent=False):
     def init_encoding():
         encoding = Encoding(peer_id, G, 'encoding', nb_bits_aspath, 5, output=True)
         encoding.compute_encoding()
-        peer_logger.info(str(int(bgp_msg.time))+'\t'+str(len(rib))+'\t'+str(len(W_queue))+'\t'+'Encoding computed!')
+        peer_logger.info(str(int(bgp_msg['time']))+'\t'+str(len(rib))+'\t'+str(len(W_queue))+'\t'+'Encoding computed!')
 
         return encoding
 
@@ -198,79 +209,54 @@ run_encoding_threshold=1000000, global_rib_enabled=False, silent=False):
 
             if bgp_msg is not None:
 
-                announce = None
-                withdraw = None
-
-                #Parse bgp message, if bgp message is not update or withradawal, send ignore and send back to route-server
-                if 'message' in bgp_msg['neighbor']:
-                    if 'update' in bgp_msg['neighbor']['message']:
-                        if 'attribute' in bgp_msg['neighbor']['message']['update']:
-                            attribute = bgp_msg['neighbor']['message']['update']['attribute']
-                            as_path = attribute['as-path'] if 'as-path' in attribute else []
-
-                        if 'announce' in bgp_msg['neighbor']['message']['update']:
-                            announce = bgp_msg['neighbor']['message']['update']['announce']
-
-                        elif 'withdraw' in bgp_msg['neighbor']['message']['update']:
-                            withdraw = bgp_msg['neighbor']['message']['update']['withdraw']
-
-                        else:
-                            queue_peer_server.put(bgp_msg)
-                            continue
+                print "bgp_message:", bgp_msg
 
 
-                if peer_id is None:
-                    peer_id = portip2participant[bgp_msg['neighbor']['ip']]
-                    peer_as = bgp_msg['asn']['peer']
-                    peer_as_set = set()
-                    last_ts = bgp_msg['time']
-                    peer_ip = bgp_msg['neighbor']['ip']
+                peer_handler = logging.handlers.RotatingFileHandler(LOG_DIRNAME+'/peer_'+str(peer_id), maxBytes=200000000000000, backupCount=5)
+                peer_handler.setFormatter(formatter)
+                peer_logger.removeHandler(handler)
+                peer_logger.addHandler(peer_handler)
 
-                    peer_handler = logging.handlers.RotatingFileHandler(LOG_DIRNAME+'/peer_'+str(peer_id), maxBytes=200000000000000, backupCount=5)
-                    peer_handler.setFormatter(formatter)
-                    peer_logger.removeHandler(handler)
-                    peer_logger.addHandler(peer_handler)
+                peer_logger.info('Peer_'+str(peer_id)+'_(AS'+str(str(peer_as))+')_started.')
 
-                    peer_logger.info('Peer_'+str(peer_id)+'_(AS'+str(str(peer_as))+')_started.')
-
-                if peer_id != portip2participant[bgp_msg['neighbor']['ip']]:
-                    peer_logger.critical('Received a bgp_message with peer_id: '+str(bgp_msg.peer_id))
+                #if peer_id != portip2participant[bgp_msg['neighbor']['ip']]:
+                    #peer_logger.critical('Received a bgp_message with peer_id: '+str(bgp_msg.peer_id))
 
 
 
-                if announce is not None:
+                if 'announce' in bgp_msg:
+
+                    prefix = bgp_msg['announce'].prefix
+                    as_path = bgp_msg['announce'].as_path
+
                     # Update the set set of peer_as (useful when doing the naive solution)
-                    if len(as_path) > 0:
-                        peer_as_set.add(as_path[0])
+                    #if len(as_path) > 0:
+                        #peer_as_set.add(as_path[0])
 
-                    if 'ipv4 unicast' in announce:
-                        for next_hop in announce['ipv4 unicast'].keys():
-                            for prefix in announce['ipv4 unicast'][next_hop].keys():
+                    # Update the RIB for this peer
+                    old_as_path = rib.update(prefix, as_path)
 
-                                # Update the RIB for this peer
-                                old_as_path = rib.update(prefix, as_path)
+                    # Remove the old as-path in the main graph for this prefix
+                    G.remove(old_as_path, prefix)
 
-                                # Remove the old as-path in the main graph for this prefix
-                                G.remove(old_as_path, prefix)
+                    # Add the new as-path in both the main graph and the graph of advertisments
+                    G.add(as_path, prefix)
 
-                                # Add the new as-path in both the main graph and the graph of advertisments
-                                G.add(as_path, prefix)
-
-                                if encoding is not None:
-                                    encoding.advertisement(old_as_path, bgp_msg.as_path)
-                                elif len(rib.rib) > run_encoding_threshold:
-                                    encoding = init_encoding()
-
-                    #For this update add the as path encoding to the update and send the update back to the route-server
                     if encoding is not None:
-                        bgp_msg = add_as_path_encoding_to_route(bgp_msg, rib, encoding)
-
+                        encoding.advertisement(old_as_path, as_path)
+                        bgp_msg['announce'] = add_as_path_encoding_to_route(bgp_msg['announce'], rib, encoding)
+                    elif len(rib.rib) > run_encoding_threshold:
+                        encoding = init_encoding()
+                        bgp_msg['announce'] = add_as_path_encoding_to_route(bgp_msg['announce'], rib, encoding)
                     else:
+                        print "adding route to routes without as path encoding", bgp_msg['announce'].prefix
                         routes_without_as_path_encoding.append(bgp_msg)
 
                     queue_peer_server.put(bgp_msg)
 
-                if withdraw is not None:
+                if 'withdraw' in bgp_msg:
+
+                    prefix = bgp_msg['withdraw'].prefix
 
                     #Withdraws get sent directly to the route server
                     queue_peer_server.put(bgp_msg)
@@ -279,64 +265,62 @@ run_encoding_threshold=1000000, global_rib_enabled=False, silent=False):
                     if encoding is None:
                         encoding = init_encoding()
 
-                    if 'ipv4 unicast' in withdraw:
-                        for prefix in withdraw['ipv4 unicast'].keys():
+                    # Update the RIB for this peer
+                    as_path = rib.withdraw(prefix)
 
-                            # Update the RIB for this peer
-                            as_path = rib.withdraw(prefix)
+                    # Remove the old as-path in the main graph for this prefix
+                    G.remove(as_path, prefix)
 
-                            # Remove the old as-path in the main graph for this prefix
-                            G.remove(as_path, prefix)
+                    # Add the withdrawn as-path in the graph of withdraws
+                    G_W.add(as_path)
 
-                            # Add the withdrawn as-path in the graph of withdraws
-                            G_W.add(as_path)
+                    # Update the queue of withdraws
+                    if as_path != []:
+                        #add the withdrawn as_path to the bgp_msg
+                        bgp_msg['withdraw'].as_path = as_path
+                        W_queue.append(bgp_msg)
 
-                            # Update the queue of withdraws
-                            if as_path != []:
-                                #add the withdrawn as_path to the bgp_msg
-                                bgp_msg['neighbor']['message']['update']['attribute']['as_path'] = as_path
-                                W_queue.append(bgp_msg)
-
-                            # Update the encoding
-                            encoding.withdraw(as_path)
+                    # Update the encoding
+                    encoding.withdraw(as_path)
 
 
-                elif'state' in bgp_msg['neighbor'] and bgp_msg['neighbor']['state'] == 'down':
+                #elif'state' in bgp_msg['neighbor'] and bgp_msg['neighbor']['state'] == 'down':
 
-                    queue_peer_server.put(bgp_msg)
+                    #queue_peer_server.put(bgp_msg)
 
                     # CLOSE this peer. Clear all the topologies, ribs, queues, bursts, etc
-                    if current_burst is not None:
-                        best_edge_set, best_fm_score, best_TP, best_FP, best_FN = burst_prediction(current_burst, G, G_W, W_queue, p_w, r_w, bpa_algo, peer_as_set)
-                        current_burst.fd_predicted.write('PREDICTION_END_CLOSE|'+bpa_algo+'|'+str(len(current_burst))+'|'+str(best_fm_score)+'|'+str(best_TP)+'|'+str(best_FN)+'|'+str(best_FP)+'\n')
-                        current_burst.fd_predicted.write('PREDICTION_END_EDGE|')
-                        res = ''
-                        depth = 9999999999
-                        for e in best_edge_set:
-                            depth = min(G_W.get_depth(e[0], e[1]), depth)
-                            res += str(e[0])+'-'+str(e[1])+','
+                    #if current_burst is not None:
+                       # best_edge_set, best_fm_score, best_TP, best_FP, best_FN = burst_prediction(current_burst, G, G_W, W_queue, p_w, r_w, bpa_algo, peer_as_set)
+                        #current_burst.fd_predicted.write('PREDICTION_END_CLOSE|'+bpa_algo+'|'+str(len(current_burst))+'|'+str(best_fm_score)+'|'+str(best_TP)+'|'+str(best_FN)+'|'+str(best_FP)+'\n')
+                        #current_burst.fd_predicted.write('PREDICTION_END_EDGE|')
+                        #res = ''
+                        #depth = 9999999999
+                        #for e in best_edge_set:
+                            #depth = min(G_W.get_depth(e[0], e[1]), depth)
+                            #res += str(e[0])+'-'+str(e[1])+','
 
-                        current_burst.fd_predicted.write(res[:len(res)-1]+'|'+str(depth)+'\n')
+                        #current_burst.fd_predicted.write(res[:len(res)-1]+'|'+str(depth)+'\n')
 
                         #G_W.draw_graph(peer_as)
 
-                        current_burst.stop(bgp_msg['time'])
-                        current_burst = None
+                        #current_burst.stop(bgp_msg['time'])
+                        #current_burst = None
 
                     # Withdraw all the routes advertised by this peer
 
-                    peer_logger.info('Received CLOSE. CLEANING the peer.')
+                    #peer_logger.info('Received CLOSE. CLEANING the peer.')
 
                     # Stop this peer
-                    os.kill(os.getpid(), signal.SIGTERM)
-                else:
-                    peer_logger.info(bgp_msg)
+                    #os.kill(os.getpid(), signal.SIGTERM)
+                #else:
+                    #peer_logger.info(bgp_msg)
 
                 #Ceck for routes without encoding, check for encdoding, send modified routes to route_server
                 if len(routes_without_as_path_encoding)> 0:
                     if encoding is not None:
                         for unsent_bgp_msg in routes_without_as_path_encoding:
-                            unsent_bgp_msg = add_as_path_encoding_to_route(unsent_bgp_msg, rib, encoding)
+                            print "adding as_path_encoding_to_route", unsent_bgp_msg['announce'].prefix
+                            unsent_bgp_msg['announce'] = add_as_path_encoding_to_route(unsent_bgp_msg['announce'], rib, encoding)
                             queue_peer_server.put(unsent_bgp_msg)
 
                         routes_without_as_path_encoding = []
@@ -380,16 +364,15 @@ run_encoding_threshold=1000000, global_rib_enabled=False, silent=False):
                 # Update the graph of withdraws.
                 if current_burst is None:
                     for w in W_queue.refresh_iter(bgp_msg['time']):
-                        G_W.remove(w['neighbor']['message']['update']['attribute']['as_path'])
+                        G_W.remove(w.as_path)
 
                 # Update the last timestamp seen
                 last_ts = bgp_msg['time']
 
                 # Add the updates in the real prefixes set of the burst, if any
-                #if current_burst is not None: #and not silent:
-                    #if bgp_msg.as_path != []:
-                        #old_as_path = bgp_msg.as_path if bgp_msg.mtype == 'W' else old_as_path
-                        #current_burst.add_real_prefix(bgp_msg.time, bgp_msg.prefix, bgp_msg.mtype, old_as_path)
+                if current_burst is not None: #and not silent:
+                    if 'announce' in bgp_msg:
+                        current_burst.add_real_prefix(bgp_msg['time'], bgp_msg.prefix, 'A', bgp_msg['announce'].as_path)
 
                 # If we are not in the burst yet, we create the burst
                 if current_burst is None and len(W_queue) >= nb_withdrawals_burst_start:

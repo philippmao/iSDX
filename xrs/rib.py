@@ -1,15 +1,5 @@
-import sys
-import os
-import select
-import logging
+
 import logging.handlers
-import signal
-import cPickle as pickle
-from bgproute import BGPRoute
-from rib_global import RIBGlobal
-import atexit
-import time
-from vnh import VirtualNextHops, FlowsQueue
 
 class RIBPeer:
     def __init__(self):
@@ -48,14 +38,14 @@ class RIBPeer:
         return res
 
 # Define the logger
-LOG_DIRNAME = 'log'
-rib_logger = logging.getLogger('RibLogger')
-rib_logger.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
-handler = logging.handlers.RotatingFileHandler(LOG_DIRNAME+'/rib', maxBytes=200000000000000, backupCount=5)
-handler.setFormatter(formatter)
-rib_logger.addHandler(handler)
+#LOG_DIRNAME = 'log'
+#rib_logger = logging.getLogger('RibLogger')
+#rib_logger.setLevel(logging.INFO)
+#formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
+#handler = logging.handlers.RotatingFileHandler(LOG_DIRNAME+'/rib', maxBytes=200000000000000, backupCount=5)
+#handler.setFormatter(formatter)
+#rib_logger.addHandler(handler)
 
-rib_logger.info('RIB launched!')
+#rib_logger.info('RIB launched!')
 
 

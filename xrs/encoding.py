@@ -177,7 +177,7 @@ class Encoding():
         if not os.path.exists('encoding'):
             os.makedirs('encoding')
         if output:
-            self.fd_peer = open(self.outdir+'/'+peer_id, 'w', 10)
+            self.fd_peer = open(self.outdir+'/'+str(peer_id), 'w', 10)
 
         self.max_depth = 4
 

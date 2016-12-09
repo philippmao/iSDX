@@ -58,7 +58,7 @@ class ParticipantController(object):
         self.prefix_2_FEC = {}
         self.prefix_2_VNH_nrfp = {}
         #SWIFT Backup equivalence class
-        self.BEC_list = {}
+        self.BEC_list = {((-1, -1, -1), (-1, -1, -1)): {'id': 1, 'as_path': None, 'backup_nbs': None, 'as_path_vmac': None}}
         self.prefix_2_BEC = {}
         self.BECid_FECid_2_VNH = {}
         self.prefix_2_BEC_nrfp = {}
@@ -251,8 +251,8 @@ class ParticipantController(object):
             except EOFError:
                 break
 
-            data = json.loads(tmp)
-            self.logger.debug("XRS Event received: %s", json.dumps(data))
+            data = tmp
+            self.logger.debug("XRS Event received: %s", data)
 
             self.process_event(data)
 
@@ -262,20 +262,18 @@ class ParticipantController(object):
     def process_event(self, data):
         "Locally process each incoming network event"
 
-        print "DATA:", data
-
         #@TODO: when receiving swift FR push backup rules
         if 'FR' in data:
             self.logger.debug("Event Received: FR request")
             FR_parameters = data['FR']
             self.process_FR(FR_parameters)
 
-        if 'bgp' in data:
+        if 'bgp' in data :
             self.logger.debug("Event Received: BGP Update.")
-            route = data['bgp']
+            update = data['bgp']
             # Process the incoming BGP updates from XRS
             #self.logger.debug("BGP Route received: "+str(route)+" "+str(type(route)))
-            self.process_bgp_route(route)
+            self.process_bgp_route(update)
 
         elif 'policy' in data:
             # Process the event requesting change of participants' policies
@@ -484,7 +482,6 @@ class ParticipantController(object):
             i = 0
             self.VNH_2_vmac[vnh] = vmac
             self.vmac_2_VNH[vmac] = vnh
-            print self.id, "VNH_2_vmac",self.VNH_2_vmac
             for port in self.cfg.ports:
                 eth_dst = vmac_part_port_match(self.id, i, self.supersets, False)
                 arp_responses.append({'SPA': vnh, 'TPA': vnh,
@@ -528,27 +525,26 @@ class ParticipantController(object):
             #self.logger.debug("Repeat :: "+str(hsh))
         return self.prefix_lock[hsh]
 
-    def process_bgp_route(self, route):
+    def process_bgp_route(self, update):
         "Process each incoming BGP advertisement"
         tstart = time.time()
 
         #Check for local failure, push fast reroute rules if local failure
-        self.deal_with_local_failure(route)
+        #self.deal_with_local_failure(routes)
 
         # Map to update for each prefix in the route advertisement.
-        updates = self.bgp_instance.update(route)
-        self.logger.debug("process_bgp_route:: "+str(updates))
+        self.bgp_instance.update(update)
+        self.logger.debug("process_bgp_route:: "+str(update))
         # TODO: This step should be parallelized
         # TODO: The decision process for these prefixes is going to be same, we
         # should think about getting rid of such redundant computations.
-        for update in updates:
-            self.bgp_instance.decision_process(update)
-            #assign FEC to prefix
-            self.FEC.assignment(update)
-            #assign BEC to prefix
-            self.BEC.assignment(update)
-            #assign VNH to FEC, BEC pair of prefix
-            self.vnh_assignment(update)
+        self.bgp_instance.decision_process(update)
+        #assign FEC to prefix
+        self.FEC.assignment(update)
+        #assign BEC to prefix
+        self.BEC.assignment(update)
+        #assign VNH to FEC, BEC pair of prefix
+        self.vnh_assignment(update)
 
         if TIMING:
             elapsed = time.time() - tstart
@@ -561,7 +557,7 @@ class ParticipantController(object):
             ################## SUPERSET RESPONSE TO BGP ##################
             # update supersets
             "Map the set of BGP updates to a list of superset expansions."
-            ss_changes, ss_changed_prefs = self.supersets.update_supersets(self, updates)
+            ss_changes, ss_changed_prefs = self.supersets.update_supersets(self, update)
 
             if TIMING:
                 elapsed = time.time() - tstart
@@ -620,8 +616,10 @@ class ParticipantController(object):
             self.logger.debug("Time taken to push dp msgs: "+str(elapsed))
             tstart = time.time()
 
-        new_VNHs, announcements = self.bgp_instance.bgp_update_peer(updates,self.prefix_2_VNH_nrfp,
+        new_VNHs, announcements = self.bgp_instance.bgp_update_peer(update,self.prefix_2_VNH_nrfp,
                 self.prefix_2_FEC, self.prefix_2_BEC, self.BECid_FECid_2_VNH, self.VNH_2_vmac, self.cfg.ports)
+
+        print "new VNHs", new_VNHs
 
 
         """ Combine the VNHs which have changed BGP default routes with the
@@ -637,6 +635,7 @@ class ParticipantController(object):
 
         print self.id, "tag_dict", self.tag_dict
         print self.id, "VNH_2_vmac", self.VNH_2_vmac
+        print "new_vnh_next_hops", new_VNHs
 
         # Send gratuitous ARP responses for all them
         for VNH in new_VNHs:
@@ -673,6 +672,9 @@ class ParticipantController(object):
                         self.num_VNHs_in_use += 1
                         vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
                         self.BECid_FECid_2_VNH[(BEC_id, FEC_id)] = vnh
+                        self.vnh_2_BFEC[vnh] = [self.prefix_2_BEC[prefix], self.prefix_2_FEC[prefix]]
+                    else:
+                        vnh = self.BECid_FECid_2_VNH[(BEC_id, FEC_id)]
                         self.vnh_2_BFEC[vnh] = [self.prefix_2_BEC[prefix], self.prefix_2_FEC[prefix]]
                 else:
                     BEC_id = self.prefix_2_BEC_nrfp[prefix]['id']
