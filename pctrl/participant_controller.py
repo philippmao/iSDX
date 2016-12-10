@@ -62,8 +62,8 @@ class ParticipantController(object):
         self.prefix_2_BEC = {}
         self.BECid_FECid_2_VNH = {}
         self.prefix_2_BEC_nrfp = {}
-        self.max_depth = 3
-        self.nexthops_nb_bits = 4
+        self.max_depth = self.cfg.Swift_vmac["max_depth"]
+        self.nexthops_nb_bits = self.cfg.Swift_vmac["nexthops_nb_bits"]
         self.vnh_2_BFEC = {}
         #swift tag dic mapping ip to mac
         self.tag_dict = {}

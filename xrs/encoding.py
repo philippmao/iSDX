@@ -152,7 +152,7 @@ class Mapping:
 
 class Encoding():
 
-    def __init__(self, peer_id, topo, outdir, max_bytes, min_percentile, traffic_w=0.6, output=True):
+    def __init__(self, peer_id, topo, outdir, max_bytes, min_percentile, max_depth, traffic_w=0.6, output=True):
         self.peer_id = peer_id
         self.mapping = {}   # One mapping for each depth
         self.outdir = outdir
@@ -179,7 +179,7 @@ class Encoding():
         if output:
             self.fd_peer = open(self.outdir+'/'+str(peer_id), 'w', 10)
 
-        self.max_depth = 4
+        self.max_depth = max_depth
 
     def compute_sortedlist(self, depth_wanted=None):
 

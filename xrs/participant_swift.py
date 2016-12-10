@@ -141,9 +141,9 @@ silent          print output in files to get information. To speed-up the algo, 
 naive           Use the naive approach if True
 """
 def run_peer(queue_server_peer, queue_peer_server, peer_id, win_size, nb_withdrawals_burst_start, \
-nb_withdrawals_burst_end, min_bpa_burst_size, burst_outdir, \
+nb_withdrawals_burst_end, min_bpa_burst_size, burst_outdir, max_depth, \
 nb_withdraws_per_cycle=100, p_w=1, r_w=1, bpa_algo=False, nb_bits_aspath=33, \
-run_encoding_threshold=1000000, global_rib_enabled=False, silent=False):
+run_encoding_threshold=1000000, silent=False):
 
     import socket
 
@@ -189,7 +189,7 @@ run_encoding_threshold=1000000, global_rib_enabled=False, silent=False):
     encoding = None
     # This function create and initialize the encoding
     def init_encoding():
-        encoding = Encoding(peer_id, G, 'encoding', nb_bits_aspath, 5, output=True)
+        encoding = Encoding(peer_id, G, 'encoding', nb_bits_aspath, 5, max_depth, output=True)
         encoding.compute_encoding()
         peer_logger.info(str(int(bgp_msg['time']))+'\t'+str(len(rib))+'\t'+str(len(W_queue))+'\t'+'Encoding computed!')
 

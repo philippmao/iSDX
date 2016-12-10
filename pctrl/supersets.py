@@ -16,9 +16,10 @@ class SuperSets(object):
         #self.best_path_size =   int(config["iSDX VMAC Next Hop Bits"])
         self.VMAC_size =        int(config["VMAC Size"])
         self.port_size =        int(config["Port Bits"])
-        self.iSDXVMAC_size = 24
-        self.best_path_size = 8
-        self.SWIFT_backupnexthop_lenght = 4
+        self.iSDXVMAC_size =        int(config["iSDXVMAC Size"])
+        self.best_path_size =       int(config["Next Hop Bits"])
+        self.SWIFT_backupnexthop_lenght = pctrl.nexthops_nb_bits
+        self.SWIFT_max_depth = pctrl.max_depth
 
         self.max_bits = self.iSDXVMAC_size - self.best_path_size - 1
         self.max_initial_bits = self.max_bits - 4
@@ -304,8 +305,8 @@ class SuperSets(object):
                 backup_nh = backup_nh.zfill(self.SWIFT_backupnexthop_lenght)
                 backup_vmac =  backup_vmac + backup_nh
 
-            if len(backup_vmac)< 3*self.SWIFT_backupnexthop_lenght:
-                padding_length = 3*self.SWIFT_backupnexthop_lenght - len(backup_vmac)
+            if len(backup_vmac)< self.SWIFT_max_depth*self.SWIFT_backupnexthop_lenght:
+                padding_length = self.SWIFT_max_depth*self.SWIFT_backupnexthop_lenght - len(backup_vmac)
                 backup_vmac = backup_vmac + '0' * padding_length
 
 

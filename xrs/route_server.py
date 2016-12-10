@@ -174,12 +174,26 @@ class PctrlListener(object):
 
 
 class BGPListener(object):
-    def __init__(self):
+    def __init__(self, swift_config):
         logger.info('Initializing the BGPListener')
 
         # Initialize XRS Server
         self.server = Server(logger)
         self.run = True
+
+        #Get Bpa parameters from sdg_global config file
+        self.win_size = swift_config["win_size"]
+        self.nb_withdrawals_burst_start = swift_config["nb_withdrawals_burst_start"]
+        self.nb_withdrawals_burst_end = swift_config["nb_withdrawals_burst_end"]
+        self.min_bpa_burst_size = swift_config["min_bpa_burst_size"]
+        self.fm_freq = swift_config["fm_freq"]
+        self.p_w = swift_config["p_w"]
+        self.r_w = swift_config["r_w"]
+        self.bpa_algo = swift_config["max_depth"]
+        self.max_depth = swift_config["max_depth"]
+        self.nb_bits_aspath = swift_config["nb_bits_aspath"]
+        self.run_encoding_threshold = swift_config["run_encoding_threshold"]
+        self.silent = swift_config["Bpa Algorithm"]
 
 
     def start(self):
@@ -246,23 +260,12 @@ class BGPListener(object):
             if advertise_id not in self.peer_queue_dict:
                 print "launching swift for peer_id:", advertise_id
                 self.peer_queue_dict[advertise_id] = Queue.Queue()
-                win_size = 10
-                nb_withdrawals_burst_start = 10
-                nb_withdrawals_burst_end = 5
-                min_bpa_burst_size = 20
-                fm_freq = 20
-                p_w = 1
-                r_w = 1
-                bpa_algo = 'bpa-multiple'
-                nb_bits_aspath = 12
-                run_encoding_threshold = 10
-                silent = True
                 with participantsLock:
                     self.peer_swift_dict[advertise_id] = Thread(target=run_peer, \
-                                    args=(self.peer_queue_dict[advertise_id], self.peer_queue, win_size,advertise_id, nb_withdrawals_burst_start, \
-                                    nb_withdrawals_burst_end, min_bpa_burst_size, "bursts", fm_freq, p_w, \
-                                    r_w, bpa_algo, nb_bits_aspath, run_encoding_threshold, \
-                                    False, silent))
+                                    args=(self.peer_queue_dict[advertise_id], self.peer_queue, self.win_size,advertise_id, self.nb_withdrawals_burst_start, \
+                                    self.nb_withdrawals_burst_end, self.min_bpa_burst_size, "bursts", self.max_depth, self.fm_freq, self.p_w, \
+                                    self.r_w, self.bpa_algo, self.nb_bits_aspath, self.run_encoding_threshold, \
+                                    self.silent))
 
                 self.peer_swift_dict[advertise_id].start()
 
@@ -424,6 +427,12 @@ def parse_config(config_file):
     logger.debug("Done parsing config")
     return Config(ah_socket)
 
+def parse_swift_config(config_file):
+
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+
+    return config["SWIFT"]["BPA Parameters"]
 
 def main():
     global bgpListener, pctrlListener, config
@@ -437,6 +446,8 @@ def main():
 
     logger.info("Reading config file %s", config_file)
     config = parse_config(config_file)
+
+    swift_config = parse_swift_config(config_file)
 
     #swift log directories
     if not os.path.exists('log'):
@@ -453,7 +464,7 @@ def main():
     handler.setFormatter(formatter)
     main_logger.addHandler(handler)
 
-    bgpListener = BGPListener()
+    bgpListener = BGPListener(swift_config)
     bp_thread = Thread(target=bgpListener.start)
     bp_thread.start()
 
