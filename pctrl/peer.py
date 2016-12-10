@@ -106,7 +106,6 @@ class BGPPeer(object):
                 #Replace routes without as-path with
                 if current_best_route.as_path_vmac is None:
                     if announced_route.as_path_vmac is not None:
-                        print "PREFER ROUTES WITH ASPATHENCODING"
                         new_best_route = announced_route
                 # if the new route is an update of the current best route and makes it worse, we have to rerun the
                 # entire decision process
@@ -123,7 +122,6 @@ class BGPPeer(object):
                 new_best_route = announced_route
 
             if new_best_route:
-                print "Decision process route:", new_best_route.prefix, new_best_route.as_path_vmac
                 self.update_route('local', new_best_route)
 
         elif 'withdraw' in update:

@@ -140,7 +140,7 @@ nb_withdraws_per_cycle After how many new withdrawals BPA needs to run_peer
 silent          print output in files to get information. To speed-up the algo, set to True.
 naive           Use the naive approach if True
 """
-def run_peer(queue_server_peer, queue_peer_server, peer_id, win_size, nb_withdrawals_burst_start, \
+def run_peer(queue_server_peer, queue_peer_server, win_size, peer_id, nb_withdrawals_burst_start, \
 nb_withdrawals_burst_end, min_bpa_burst_size, burst_outdir, max_depth, \
 nb_withdraws_per_cycle=100, p_w=1, r_w=1, bpa_algo=False, nb_bits_aspath=33, \
 run_encoding_threshold=1000000, silent=False):
@@ -202,6 +202,14 @@ run_encoding_threshold=1000000, silent=False):
 
     routes_without_as_path_encoding = []
 
+    peer_handler = logging.handlers.RotatingFileHandler(LOG_DIRNAME + '/peer_' + str(peer_id), maxBytes=200000000000000,
+                                                        backupCount=5)
+    peer_handler.setFormatter(formatter)
+    peer_logger.removeHandler(handler)
+    peer_logger.addHandler(peer_handler)
+
+    peer_logger.info('Peer_' + str(peer_id) + '_(AS' + str(str(peer_as)) + ')_started.')
+
     while True:
 
         while True:
@@ -209,20 +217,7 @@ run_encoding_threshold=1000000, silent=False):
 
             if bgp_msg is not None:
 
-                print "bgp_message:", bgp_msg
-
-
-                peer_handler = logging.handlers.RotatingFileHandler(LOG_DIRNAME+'/peer_'+str(peer_id), maxBytes=200000000000000, backupCount=5)
-                peer_handler.setFormatter(formatter)
-                peer_logger.removeHandler(handler)
-                peer_logger.addHandler(peer_handler)
-
-                peer_logger.info('Peer_'+str(peer_id)+'_(AS'+str(str(peer_as))+')_started.')
-
-                #if peer_id != portip2participant[bgp_msg['neighbor']['ip']]:
-                    #peer_logger.critical('Received a bgp_message with peer_id: '+str(bgp_msg.peer_id))
-
-
+                print "bgp_message received", list(bgp_msg.keys())[0]
 
                 if 'announce' in bgp_msg:
 
@@ -249,7 +244,6 @@ run_encoding_threshold=1000000, silent=False):
                         encoding = init_encoding()
                         bgp_msg['announce'] = add_as_path_encoding_to_route(bgp_msg['announce'], rib, encoding)
                     else:
-                        print "adding route to routes without as path encoding", bgp_msg['announce'].prefix
                         routes_without_as_path_encoding.append(bgp_msg)
 
                     queue_peer_server.put(bgp_msg)
@@ -276,8 +270,6 @@ run_encoding_threshold=1000000, silent=False):
 
                     # Update the queue of withdraws
                     if as_path != []:
-                        #add the withdrawn as_path to the bgp_msg
-                        bgp_msg['withdraw'].as_path = as_path
                         W_queue.append(bgp_msg)
 
                     # Update the encoding
@@ -319,7 +311,6 @@ run_encoding_threshold=1000000, silent=False):
                 if len(routes_without_as_path_encoding)> 0:
                     if encoding is not None:
                         for unsent_bgp_msg in routes_without_as_path_encoding:
-                            print "adding as_path_encoding_to_route", unsent_bgp_msg['announce'].prefix
                             unsent_bgp_msg['announce'] = add_as_path_encoding_to_route(unsent_bgp_msg['announce'], rib, encoding)
                             queue_peer_server.put(unsent_bgp_msg)
 
@@ -361,7 +352,7 @@ run_encoding_threshold=1000000, silent=False):
                         else:
                             current_burst.last_ts = last_ts
 
-                # Update the graph of withdraws.
+                # Update the graph of withdraws.)
                 if current_burst is None:
                     for w in W_queue.refresh_iter(bgp_msg['time']):
                         G_W.remove(w.as_path)
@@ -376,6 +367,7 @@ run_encoding_threshold=1000000, silent=False):
 
                 # If we are not in the burst yet, we create the burst
                 if current_burst is None and len(W_queue) >= nb_withdrawals_burst_start:
+                    print "SWIFT STARTING BURST!!!"
                     burst_start_time = W_queue[100]['time'] if len(W_queue) > 100 else W_queue[0]['time']
                     current_burst = Burst(peer_id, bgp_msg['time'], win_size, burst_outdir, encoding, burst_start_time, silent)
                     next_bpa_execution = min_bpa_burst_size
@@ -434,6 +426,8 @@ run_encoding_threshold=1000000, silent=False):
 
                             FR_message = {'FR': {'peer_id': peer_id, 'as_path_vmac': vmac_partial, 'as_path_bitmask': bitmask_partial, 'depth': d}}
                             queue_peer_server.put(FR_message)
+
+                            print "FR_message:", FR_message, "best_edge_set:", best_edge_set
 
             # Print information about the perdiction in the predicted file
             current_burst.fd_predicted.write('PREDICTION|'+bpa_algo+'|'+str(len(current_burst))+'|'+str(best_fm_score)+'|'+str(best_TP)+'|'+str(best_FP)+'|'+str(best_FN)+'\n')

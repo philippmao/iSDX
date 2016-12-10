@@ -135,7 +135,8 @@ class PctrlClient(object):
         logger.debug('Sending a route update to participant %d', self.id)
         self.conn.send({'bgp': route})
 
-    def sendFR(self, route):
+    def send_FR(self, route):
+        print "sending FR !"
         self.conn.send(route)
 
 class PctrlListener(object):
@@ -189,12 +190,11 @@ class BGPListener(object):
         self.fm_freq = swift_config["fm_freq"]
         self.p_w = swift_config["p_w"]
         self.r_w = swift_config["r_w"]
-        self.bpa_algo = swift_config["max_depth"]
+        self.bpa_algo = swift_config["Bpa Algorithm"]
         self.max_depth = swift_config["max_depth"]
         self.nb_bits_aspath = swift_config["nb_bits_aspath"]
         self.run_encoding_threshold = swift_config["run_encoding_threshold"]
-        self.silent = swift_config["Bpa Algorithm"]
-
+        self.silent = swift_config["silent"]
 
     def start(self):
         logger.info("Starting the Server to handle incoming BGP Updates.")
@@ -286,11 +286,14 @@ class BGPListener(object):
                 continue
 
             if 'FR' in route:
+                print "FR message received in Route-server"
                 peer_id = route['FR']['peer_id']
                 found = []
                 with participantsLock:
                     try:
+                        print "participants_peersout", participants
                         peers_out = participants[peer_id].peers_out
+                        print "route_server peer_out", peers_out
                     except KeyError:
                         continue
 
@@ -299,9 +302,11 @@ class BGPListener(object):
                         if id in peers_out and peer_id in peer.peers_in:
                             found.append(peer)
 
+                print "route_server found", found
+
                 for peer in found:
                     # Now send this route to participant `id`'s controller'
-                    peer.sendFR(route)
+                    peer.send_FR(route)
 
             else:
                 if 'announce' in route:

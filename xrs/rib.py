@@ -8,12 +8,12 @@ class RIBPeer:
     """
     Update (or create) the AS path for a prefix and returns the previous AS path used
     """
-    def update(self, prefix, as_path):
+    def update(self, prefix, bgp_msg_as_path):
         if prefix in self.rib:
             as_path = self.rib[prefix]
         else:
             as_path = []
-        self.rib[prefix] = as_path
+        self.rib[prefix] = bgp_msg_as_path
 
         return as_path
 
