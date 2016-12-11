@@ -257,6 +257,14 @@ class BGPListener(object):
 
             route_list = self.route_2_bgp_updates(route)
 
+            if len(route_list) == 1:
+                if 'down' in route_list[0]:
+                    print "down route received", route_list[0]
+                    self.peer_queue.put(route_list[0])
+                    continue
+            #@TODO: when no more links to participant are active stop its siwft process
+
+
             if advertise_id not in self.peer_queue_dict:
                 print "launching swift for peer_id:", advertise_id
                 self.peer_queue_dict[advertise_id] = Queue.Queue()
@@ -271,6 +279,7 @@ class BGPListener(object):
 
             for route in route_list:
                 self.peer_queue_dict[advertise_id].put(route)
+
 
         for thread in self.peer_swift_dict.items():
             thread.stop()
@@ -308,7 +317,32 @@ class BGPListener(object):
                     # Now send this route to participant `id`'s controller'
                     peer.send_FR(route)
 
+            elif 'down' in route:
+                try:
+                    advertise_ip = route['down']
+                except KeyError:
+                    print "KEYERROR", route
+                    logger.debug("KEYERROR" + str(route))
+                    continue
+                found = []
+                with participantsLock:
+                    try:
+                        advertise_id = portip2participant[advertise_ip]
+                        peers_out = participants[advertise_id].peers_out
+                    except KeyError:
+                        continue
+
+                    for id, peer in participants.iteritems():
+                        # Apply the filtering logic
+                        if id in peers_out and advertise_id in peer.peers_in:
+                            found.append(peer)
+
+                for peer in found:
+                    # Now send this route to participant `id`'s controller'
+                    peer.send_FR(route)
+
             else:
+
                 if 'announce' in route:
                     try:
                         advertise_ip = route['announce'].neighbor
@@ -352,7 +386,9 @@ class BGPListener(object):
         route_list = []
 
         if 'state' in route['neighbor'] and route['neighbor']['state'] == 'down':
-            route_list.append(route)
+            print "state down update received from:", route['neighbor']['ip']
+            down_ip = route['neighbor']['ip']
+            route_list.append({'down': down_ip})
             return route_list
 
         # Extract out neighbor information in the given BGP update
