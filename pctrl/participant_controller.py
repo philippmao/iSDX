@@ -20,7 +20,7 @@ import util.log
 from xctrl.flowmodmsg import FlowModMsgBuilder
 
 from lib import PConfig
-from ss_lib import vmac_part_port_match,  vmac_next_hop_match_iSDXmac, vmac_next_hop_mask_iSDXmac
+from ss_lib import vmac_part_port_match,  vmac_next_hop_match_iSDXmac, vmac_next_hop_mask_iSDXmac ,vmac_next_hop_match_iSDXmac_bitsring, vmac_next_hop_mask_iSDXmac_bitstring
 from ss_rule_scheme import update_outbound_rules, init_inbound_rules, init_outbound_rules, msg_clear_all_outbound, ss_process_policy_change
 from supersets import SuperSets
 from FEC import FEC
@@ -298,8 +298,13 @@ class ParticipantController(object):
         as_path_bitmask = FR_parameters['as_path_bitmask']
         depth = FR_parameters['depth']
         rules = []
-        for backup_ip in self.tag_dict:
-            backup_part = self.cfg.get_nexthop_2_part(backup_ip)
+        print "FR with parameters as_path_vmac", as_path_vmac, as_path_bitmask ,depth
+        if depth > self.max_depth:
+            return
+        for backup_ip in self.tag_dict.keys():
+            print "backup_ip", backup_ip
+            print "self.tag_dict:", self.tag_dict
+            backup_part = self.nexthop_2_part[backup_ip]
             if backup_part != self.id:
                 backup_vmac = ''
                 backup_bitmask = ''
@@ -314,27 +319,29 @@ class ParticipantController(object):
                         backup_bitmask += '0' * self.nexthops_nb_bits
 
 
-                    next_hop_match = vmac_next_hop_match_iSDXmac(peer_id, self.supersets,only_isdx_vmac=True)
-                    next_hop_mask = vmac_next_hop_mask_iSDXmac(peer_id, self.supersets, only_isdx_vmac=True)
+                next_hop_match = vmac_next_hop_match_iSDXmac_bitsring(peer_id, self.supersets,only_isdx_vmac=True)
+                next_hop_mask = vmac_next_hop_mask_iSDXmac_bitstring(self.supersets, only_isdx_vmac=True)
 
-                    vmac = next_hop_match + backup_vmac + as_path_vmac
-                    vmac_bitmask = next_hop_mask + backup_bitmask + as_path_bitmask
-                    vmac = '{num:0{width}x}'.format(num=int(vmac, 2), width=48 / 4)
-                    vmac= ':'.join([vmac[i] + vmac[i + 1] for i in range(0, 48 / 4, 2)])
-                    vmac_bitmask = '{num:0{width}x}'.format(num=int(vmac_bitmask, 2), width=48 / 4)
-                    vmac_bitmask = ':'.join([vmac_bitmask[i] + vmac_bitmask[i + 1] for i in range(0, 48 / 4, 2)])
+                vmac = next_hop_match + backup_vmac + as_path_vmac
+                print "vmac", vmac, "next_hop_match:", next_hop_match, "backup_vamc", backup_vmac, "as_path_vmac", as_path_vmac
+                vmac_bitmask = next_hop_mask + backup_bitmask + as_path_bitmask
+                vmac = '{num:0{width}x}'.format(num=int(vmac, 2), width=48 / 4)
+                vmac= ':'.join([vmac[i] + vmac[i + 1] for i in range(0, 48 / 4, 2)])
+                vmac_bitmask = '{num:0{width}x}'.format(num=int(vmac_bitmask, 2), width=48 / 4)
+                vmac_bitmask = ':'.join([vmac_bitmask[i] + vmac_bitmask[i + 1] for i in range(0, 48 / 4, 2)])
 
-                    match_args = {}
-                    match_args["eth_dst"] = (vmac, vmac_bitmask)
+                match_args = {}
+                match_args["eth_dst"] = (vmac, vmac_bitmask)
 
-                    print "FR match vmac:", vmac, vmac_bitmask
-                    #set dst mac to mac with best next hop
-                    dst_mac = vmac_next_hop_match_iSDXmac(backup_part, self.supersets)
-                    actions = {"set_eth_dst": dst_mac, "fwd": 'main-in'}
-                    rule = {"rule_type": "swift", "priority": self.Swift_hit_priority,
+                print "FR match vmac:", vmac, vmac_bitmask
+                #set dst mac to mac with best next hop
+                dst_mac = vmac_next_hop_match_iSDXmac(backup_part, self.supersets)
+                print "FR set dst_mac", dst_mac
+                actions = {"set_eth_dst": dst_mac, "fwd": 'main-in'}
+                rule = {"rule_type": "main-in", "priority": self.Swift_hit_priority,
                             "match": match_args, "action": actions, "mod_type": "insert",
                             }
-                    rules.append(rule)
+                rules.append(rule)
 
         self.dp_queued.extend(rules)
 

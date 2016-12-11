@@ -16,12 +16,13 @@ class SuperSets(object):
         #self.best_path_size =   int(config["iSDX VMAC Next Hop Bits"])
         self.VMAC_size =        int(config["VMAC Size"])
         self.port_size =        int(config["Port Bits"])
-        self.iSDXVMAC_size =        int(config["iSDXVMAC Size"])
+        self.iSDX_VMAC_size =        int(config["iSDXVMAC Size"])
         self.best_path_size =       int(config["Next Hop Bits"])
+        self.iSDX_best_path_size = self.best_path_size
         self.SWIFT_backupnexthop_lenght = pctrl.nexthops_nb_bits
         self.SWIFT_max_depth = pctrl.max_depth
 
-        self.max_bits = self.iSDXVMAC_size - self.best_path_size - 1
+        self.max_bits = self.iSDX_VMAC_size - self.best_path_size - 1
         self.max_initial_bits = self.max_bits - 4
 
         self.logger = pctrl.logger

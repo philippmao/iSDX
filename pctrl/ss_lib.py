@@ -255,6 +255,21 @@ def vmac_next_hop_match_iSDXmac(participant_name, ss_instance, inbound_bit = Fal
 
     return bitstring_2_mac(vmac_bitstring, ss_instance)
 
+#Same as above function but returns bitstring
+def vmac_next_hop_match_iSDXmac_bitsring(participant_name, ss_instance, inbound_bit = False,  only_isdx_vmac = False):
+
+    vmac_bitstring = '{num:0{width}b}'.format(num=participant_name, width=(ss_instance.iSDX_VMAC_size))
+
+    if not only_isdx_vmac:
+        padding_lenght = 48 - len(vmac_bitstring)
+        if padding_lenght < 48:
+            vmac_bitstring = vmac_bitstring + '0' * padding_lenght
+
+    if inbound_bit:
+        vmac_bitstring = '1' + vmac_bitstring[1:]
+
+    return vmac_bitstring
+
 # returns a mask on just participant bits
 def vmac_next_hop_mask(ss_instance, inbound_bit = False):
     part_bits_only = (1 << ss_instance.best_path_size) - 1
@@ -264,11 +279,21 @@ def vmac_next_hop_mask(ss_instance, inbound_bit = False):
     return bitmask
 
 def vmac_next_hop_mask_iSDXmac(ss_instance, inbound_bit = False, only_isdx_vmac = False):
+    print "ss_instance.iSDX_best_path_size", ss_instance.iSDX_best_path_size
     part_bits_only = (1 << ss_instance.iSDX_best_path_size) - 1
 
     bitmask = vmac_next_hop_match_iSDXmac(part_bits_only, ss_instance, inbound_bit ,only_isdx_vmac)
 
     return bitmask
+
+def vmac_next_hop_mask_iSDXmac_bitstring(ss_instance, inbound_bit = False, only_isdx_vmac = False):
+    print "ss_instance.iSDX_best_path_size", ss_instance.iSDX_best_path_size
+    part_bits_only = (1 << ss_instance.iSDX_best_path_size) - 1
+
+    bitmask = vmac_next_hop_match_iSDXmac_bitsring(part_bits_only, ss_instance, inbound_bit ,only_isdx_vmac)
+
+    return bitmask
+
 
 # constructs stage-2 VMACs (for both matching and assignment)
 def vmac_part_port_match(participant_name, port_num, ss_instance, inbound_bit = False):

@@ -12,13 +12,13 @@ import pctrl.ss_lib as ss_lib
 
 class FakeSS(object):
     def __init__(self, config):
-        self.best_path_size =   int(config["Next Hop Bits"])
+        self.iSDX_best_path_size =   int(config["Next Hop Bits"])
+        self.best_path_size = self.iSDX_best_path_size
         self.VMAC_size =        int(config["VMAC Size"])
         self.port_size =        int(config["Port Bits"])
-        self.iSDX_VMAC_size = 24
-        self.iSDX_best_path_size = 8
+        self.iSDX_VMAC_size = int(config["iSDXVMAC Size"])
 
-        self.max_bits = self.VMAC_size - self.best_path_size - 1
+        self.max_bits = self.VMAC_size - self.iSDX_best_path_size - 1
         self.max_initial_bits = self.max_bits - 4
 
 
