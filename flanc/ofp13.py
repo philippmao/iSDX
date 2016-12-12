@@ -24,9 +24,11 @@ class FlowMod(object):
         self.cookie = {}
         self.matches = {}
         self.actions = []
+        self.idle_timeout = 0
+        self.hard_timeout = 0
 
         if self.config.ofdpa:
-            self.ofdpa = OFDPA20(config);
+            self.ofdpa = OFDPA20(config)
 
         self.validate_flow_mod(flow_mod)
 
@@ -58,6 +60,11 @@ class FlowMod(object):
                             self.matches = self.validate_match(matches)
                         if "action" in flow_mod:
                             self.actions = self.validate_action(flow_mod["action"])
+                        # timeouts
+                        if "idle_timeout" in flow_mod:
+                            self.idle_timeout = int(flow_mod["idle_timeout"])
+                        if "hard_timeout" in flow_mod:
+                            self.hard_timeout = int(flow_mod["hard_timeout"])
 
     def get_priority(self, rule_type, priority):
         if priority not in self.config.priorities[rule_type]:
@@ -243,18 +250,20 @@ class FlowMod(object):
             datapath = self.config.datapaths[self.rule_type]
             table_id = self.ofdpa.get_table_id() if self.is_ofdpa_datapath(datapath) else 0
 
-
         if self.mod_type == "insert":
             if self.is_ofdpa_datapath(datapath):
                 instructions, group_mods = self.ofdpa.make_instructions_and_group_mods(self, datapath)
             else:
                 instructions = self.make_instructions()
-            flow_mod = self.parser.OFPFlowMod(datapath=datapath, 
-                                          cookie=self.cookie["cookie"], cookie_mask=self.cookie["mask"], 
-                                          table_id=table_id, 
-                                          command=self.config.ofproto.OFPFC_ADD,
-                                          priority=self.priority, 
-                                          match=match, instructions=instructions)
+            flow_mod = self.parser.OFPFlowMod(datapath=datapath,
+                                              cookie=self.cookie["cookie"], cookie_mask=self.cookie["mask"],
+                                              table_id=table_id,
+                                              command=self.config.ofproto.OFPFC_ADD,
+                                              priority=self.priority,
+                                              idle_timeout=self.idle_timeout,
+                                              hard_timeout=self.hard_timeout,
+                                              match=match,
+                                              instructions=instructions)
         else:
             flow_mod = self.parser.OFPFlowMod(datapath=datapath, 
                                           cookie=self.cookie["cookie"], cookie_mask=self.cookie["mask"], 
