@@ -8,12 +8,17 @@
 import argparse
 from collections import namedtuple
 import json
+import logging.handlers
 from multiprocessing.connection import Listener, Client
 import os
 import Queue
 import sys
 from threading import Thread, Lock
 import time
+from participant_swift import  run_peer
+from bgp_route import BGPRoute
+
+
 
 np = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 if np not in sys.path:
@@ -128,8 +133,11 @@ class PctrlClient(object):
 
     def send(self, route):
         logger.debug('Sending a route update to participant %d', self.id)
-        self.conn.send(json.dumps({'bgp': route}))
+        self.conn.send({'bgp': route})
 
+    def send_FR(self, route):
+        print "sending FR !"
+        self.conn.send(route)
 
 class PctrlListener(object):
     def __init__(self):
@@ -167,35 +175,70 @@ class PctrlListener(object):
 
 
 class BGPListener(object):
-    def __init__(self):
+    def __init__(self, swift_config):
         logger.info('Initializing the BGPListener')
 
         # Initialize XRS Server
         self.server = Server(logger)
         self.run = True
 
+        #Get Bpa parameters from sdg_global config file
+        self.win_size = swift_config["win_size"]
+        self.nb_withdrawals_burst_start = swift_config["nb_withdrawals_burst_start"]
+        self.nb_withdrawals_burst_end = swift_config["nb_withdrawals_burst_end"]
+        self.min_bpa_burst_size = swift_config["min_bpa_burst_size"]
+        self.fm_freq = swift_config["fm_freq"]
+        self.p_w = swift_config["p_w"]
+        self.r_w = swift_config["r_w"]
+        self.bpa_algo = swift_config["Bpa Algorithm"]
+        self.max_depth = swift_config["max_depth"]
+        self.nb_bits_aspath = swift_config["nb_bits_aspath"]
+        self.run_encoding_threshold = swift_config["run_encoding_threshold"]
+        self.silent = swift_config["silent"]
 
     def start(self):
         logger.info("Starting the Server to handle incoming BGP Updates.")
         self.server.start()
 
-        waiting = 0
+        self.peer_swift_dict = {}
+
+        self.peer_queue_dict = {}
+
+        self.peer_queue = Queue.Queue()
+
+        self.waiting = 0
+
+        route_server_listener_thread = Thread(target= self.Route_server_listener)
+
+        route_server_sender_thread = Thread(target= self.Route_server_sender)
+
+        route_server_sender_thread.start()
+        route_server_listener_thread.start()
+
+    def send(self, announcement):
+        self.server.sender_queue.put(announcement)
+
+
+    def stop(self):
+        logger.info("Stopping BGPListener.")
+        self.run = False
+
+    def Route_server_listener(self):
+
         while self.run:
-            # get BGP messages from ExaBGP via stdin in client.py,
-            # which is routed to server.py via port 6000,
-            # which is routed to here via receiver_queue.
             try:
                 route = self.server.receiver_queue.get(True, 1)
             except Queue.Empty:
-                if waiting == 0:
+                if self.waiting == 0:
                     logger.debug("Waiting for BGP update...")
-                waiting = (waiting+1) % 30
+                self.waiting = (self.waiting+1) % 30
                 continue
 
-            waiting = 0
+            self.waiting = 0
 
             route = json.loads(route)
 
+            logger.info("Got route from ExaBGP: %s", route)
             logger.debug("Got route from ExaBGP: %s", route)
 
             # Received BGP route advertisement from ExaBGP
@@ -206,31 +249,209 @@ class BGPListener(object):
                 logger.debug("KEYERROR" + str(route))
                 continue
 
-            found = []
             with participantsLock:
                 try:
                     advertise_id = portip2participant[advertise_ip]
-                    peers_out = participants[advertise_id].peers_out
                 except KeyError:
                     continue
 
-                for id, peer in participants.iteritems():
-                    # Apply the filtering logic
-                    if id in peers_out and advertise_id in peer.peers_in:
-                        found.append(peer)
+            route_list = self.route_2_bgp_updates(route)
 
-            for peer in found:
-                # Now send this route to participant `id`'s controller'
-                peer.send(route)
-
-
-    def send(self, announcement):
-        self.server.sender_queue.put(announcement)
+            if len(route_list) == 1:
+                if 'down' in route_list[0]:
+                    print "down route received", route_list[0]
+                    self.peer_queue.put(route_list[0])
+                    continue
+            #@TODO: when no more links to participant are active stop its siwft process
 
 
-    def stop(self):
-        logger.info("Stopping BGPListener.")
-        self.run = False
+            if advertise_id not in self.peer_queue_dict:
+                print "launching swift for peer_id:", advertise_id
+                self.peer_queue_dict[advertise_id] = Queue.Queue()
+                with participantsLock:
+                    self.peer_swift_dict[advertise_id] = Thread(target=run_peer, \
+                                    args=(self.peer_queue_dict[advertise_id], self.peer_queue, self.win_size,advertise_id, self.nb_withdrawals_burst_start, \
+                                    self.nb_withdrawals_burst_end, self.min_bpa_burst_size, "bursts", self.max_depth, self.fm_freq, self.p_w, \
+                                    self.r_w, self.bpa_algo, self.nb_bits_aspath, self.run_encoding_threshold, \
+                                    self.silent))
+
+                self.peer_swift_dict[advertise_id].start()
+
+            for route in route_list:
+                self.peer_queue_dict[advertise_id].put(route)
+
+
+        for thread in self.peer_swift_dict.items():
+            thread.stop()
+
+    def Route_server_sender(self):
+        while self.run:
+            try:
+                route = self.peer_queue.get()
+            except Queue.Empty:
+                if self.waiting == 0:
+                    logger.debug("Waiting for FR message or modified Bgp update...")
+                self.waiting = (self.waiting+1) % 30
+                continue
+
+            if 'FR' in route:
+                print "FR message received in Route-server"
+                peer_id = route['FR']['peer_id']
+                found = []
+                with participantsLock:
+                    try:
+                        print "participants_peersout", participants
+                        peers_out = participants[peer_id].peers_out
+                        print "route_server peer_out", peers_out
+                    except KeyError:
+                        continue
+
+                    for id, peer in participants.iteritems():
+                        # Apply the filtering logic
+                        if id in peers_out and peer_id in peer.peers_in:
+                            found.append(peer)
+
+                print "route_server found", found
+
+                for peer in found:
+                    # Now send this route to participant `id`'s controller'
+                    peer.send_FR(route)
+
+            elif 'down' in route:
+                try:
+                    advertise_ip = route['down']
+                except KeyError:
+                    print "KEYERROR", route
+                    logger.debug("KEYERROR" + str(route))
+                    continue
+                found = []
+                with participantsLock:
+                    try:
+                        advertise_id = portip2participant[advertise_ip]
+                        peers_out = participants[advertise_id].peers_out
+                    except KeyError:
+                        continue
+
+                    for id, peer in participants.iteritems():
+                        # Apply the filtering logic
+                        if id in peers_out and advertise_id in peer.peers_in:
+                            found.append(peer)
+
+                for peer in found:
+                    # Now send this route to participant `id`'s controller'
+                    peer.send_FR(route)
+
+            else:
+
+                if 'announce' in route:
+                    try:
+                        advertise_ip = route['announce'].neighbor
+                    except KeyError:
+                        print "KEYERROR", route
+                        logger.debug("KEYERROR" + str(route))
+                        continue
+                if 'withdraw' in route:
+                    try:
+                        advertise_ip = route['withdraw'].neighbor
+                    except KeyError:
+                        print "KEYERROR", route
+                        logger.debug("KEYERROR" + str(route))
+                        continue
+
+                found = []
+                with participantsLock:
+                    try:
+                        advertise_id = portip2participant[advertise_ip]
+                        peers_out = participants[advertise_id].peers_out
+                    except KeyError:
+                        continue
+
+                    for id, peer in participants.iteritems():
+                        # Apply the filtering logic
+                        if id in peers_out and advertise_id in peer.peers_in:
+                            found.append(peer)
+
+                for peer in found:
+                    # Now send this route to participant `id`'s controller'
+                    peer.send(route)
+
+    def route_2_bgp_updates(self, route):
+        origin = None
+        as_path = None
+        as_path_vmac = None
+        med = None
+        atomic_aggregate = None
+        communities = None
+
+        route_list = []
+
+        if 'state' in route['neighbor'] and route['neighbor']['state'] == 'down':
+            print "state down update received from:", route['neighbor']['ip']
+            down_ip = route['neighbor']['ip']
+            route_list.append({'down': down_ip})
+            return route_list
+
+        # Extract out neighbor information in the given BGP update
+        neighbor = route["neighbor"]["ip"]
+        if 'message' in route['neighbor']:
+            if 'update' in route['neighbor']['message']:
+                time = route['time']
+                if 'attribute' in route['neighbor']['message']['update']:
+                    attribute = route['neighbor']['message']['update']['attribute']
+
+                    origin = attribute['origin'] if 'origin' in attribute else ''
+
+                    as_path = attribute['as-path'] if 'as-path' in attribute else []
+
+                    as_path_vmac = attribute['as_path_vmac'] if 'as_path_vmac' in attribute else None
+
+                    med = attribute['med'] if 'med' in attribute else ''
+
+                    community = attribute['community'] if 'community' in attribute else ''
+                    communities = ''
+                    for c in community:
+                        communities += ':'.join(map(str,c)) + " "
+
+                    atomic_aggregate = attribute['atomic-aggregate'] if 'atomic-aggregate' in attribute else ''
+
+                if 'announce' in route['neighbor']['message']['update']:
+                    announce = route['neighbor']['message']['update']['announce']
+                    if 'ipv4 unicast' in announce:
+                        for next_hop in announce['ipv4 unicast'].keys():
+                            for prefix in announce['ipv4 unicast'][next_hop].keys():
+                                announced_route = BGPRoute(prefix,
+                                                           neighbor,
+                                                           next_hop,
+                                                           origin,
+                                                           as_path,
+                                                           as_path_vmac,
+                                                           communities,
+                                                           med,
+                                                           atomic_aggregate
+                                                           )
+
+                                route_list.append({'announce': announced_route ,'time': time})
+
+                elif 'withdraw' in route['neighbor']['message']['update']:
+                    withdraw = route['neighbor']['message']['update']['withdraw']
+                    if 'ipv4 unicast' in withdraw:
+                        next_hop = None
+                        for prefix in withdraw['ipv4 unicast'].keys():
+                            withdrawn_route = BGPRoute(prefix,
+                                                           neighbor,
+                                                           next_hop,
+                                                           origin,
+                                                           as_path,
+                                                           as_path_vmac,
+                                                           communities,
+                                                           med,
+                                                           atomic_aggregate,
+                                                           )
+                            route_list.append({'withdraw': withdrawn_route, 'time': time})
+
+        return route_list
+
+
 
 
 def parse_config(config_file):
@@ -247,6 +468,12 @@ def parse_config(config_file):
     logger.debug("Done parsing config")
     return Config(ah_socket)
 
+def parse_swift_config(config_file):
+
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+
+    return config["SWIFT"]["BPA Parameters"]
 
 def main():
     global bgpListener, pctrlListener, config
@@ -261,7 +488,24 @@ def main():
     logger.info("Reading config file %s", config_file)
     config = parse_config(config_file)
 
-    bgpListener = BGPListener()
+    swift_config = parse_swift_config(config_file)
+
+    #swift log directories
+    if not os.path.exists('log'):
+        os.makedirs('log')
+
+    if not os.path.exists('bursts'):
+        os.makedirs('bursts')
+
+    LOG_DIRNAME = 'log'
+    main_logger = logging.getLogger('MainLogger')
+    main_logger.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
+    handler = logging.handlers.RotatingFileHandler(LOG_DIRNAME + '/main', maxBytes=200000000000, backupCount=5)
+    handler.setFormatter(formatter)
+    main_logger.addHandler(handler)
+
+    bgpListener = BGPListener(swift_config)
     bp_thread = Thread(target=bgpListener.start)
     bp_thread.start()
 

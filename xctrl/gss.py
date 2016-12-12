@@ -163,6 +163,7 @@ class GSS(object):
                 vmac = self.vmac_builder.next_hop_match(participant.name, False)
                 vmac_mask = self.vmac_builder.next_hop_mask(False)
                 port = participant.ports[0]
+                print "VMAC default rule match:", (vmac, vmac_mask)
                 match = {"eth_dst": (vmac, vmac_mask)}
                 action = {"set_eth_dst": port.mac,
                           "fwd": [port.id]}
@@ -173,9 +174,10 @@ class GSS(object):
         for participant in self.config.peers.values():
             if participant.inbound_rules:
                 port = participant.ports[0]
-                vmac_match = self.vmac_builder.next_hop_match(participant.name, False)
-                vmac_match_mask = self.vmac_builder.next_hop_mask(False)
+                vmac_match = self.vmac_builder.next_hop_match_default(participant.name, False)
+                vmac_match_mask = self.vmac_builder.next_hop_mask_default(False)
                 vmac_action = self.vmac_builder.part_port_match(participant.name, 0, False)
+                print "VMAC default rule match:", (vmac_match, vmac_match_mask)
                 match = {"eth_dst": (vmac_match, vmac_match_mask)}
                 action = {"set_eth_dst": vmac_action, "fwd": [fwd]}
                 self.fm_builder.add_flow_mod("insert", "inbound", "inbound", match, action)

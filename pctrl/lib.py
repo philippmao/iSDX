@@ -57,6 +57,8 @@ class PConfig(object):
 
         self.vmac_options = vmac_cfg["Options"]
 
+        self.Swift_vmac = config["SWIFT"]["Vmac"]
+
     def parse_various(self):
         config = self.config
 

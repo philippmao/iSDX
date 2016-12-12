@@ -70,7 +70,7 @@ class RefMonStreamServer(StreamServer):
 
 
 def conn_factory(main_server, socket, address):
-    main_server.logger.info('server: accepted connection')
+    main_server.logger.debug('server: accepted connection')
 
     msg = ''
     while True:
@@ -79,10 +79,10 @@ def conn_factory(main_server, socket, address):
         if len(buf) == 0:
             break
     
-    main_server.logger.info('server: received message: ' + str(msg))
+    main_server.logger.debug('server: received message: ' + str(msg))
     
     main_server.queue.put(msg)
-    main_server.logger.info('server: msg queued')
+    main_server.logger.debug('server: msg queued')
     # expect other end will close the connection
         
 

@@ -2,7 +2,7 @@
 #  Rudiger Birkner (Networked Systems Group ETH Zurich)
 
 
-from ss_lib import vmac_next_hop_mask, vmac_participant_match, vmac_participant_mask, vmac_next_hop_match, vmac_part_port_match
+from ss_lib import  vmac_participant_match, vmac_participant_mask, vmac_part_port_match,vmac_next_hop_match_iSDXmac, vmac_next_hop_mask_iSDXmac
 
 # PRIORITIES (Values can be in [0,65535], 0 is miss)
 FLOW_MISS_PRIORITY = 0
@@ -58,8 +58,10 @@ def update_outbound_rules(sdx_msgs, policies, ss_instance, my_mac):
             vmac = vmac_participant_match(superset_id, bit_position, ss_instance)
             vmac_bitmask = vmac_participant_mask(bit_position, ss_instance)
 
+            print "OUTBOUND superset bit match:", (vmac, vmac_bitmask)
+
             # the vmac which will be written on a policy match
-            next_hop_mac = vmac_next_hop_match(part, ss_instance, inbound_bit = True)
+            next_hop_mac = vmac_next_hop_match_iSDXmac(part, ss_instance, inbound_bit = True)
 
             match_args = policy["match"]
             match_args["eth_dst"] = (vmac, vmac_bitmask)
@@ -95,6 +97,7 @@ def build_outbound_rules_for(out_policies, ss_instance, my_mac):
             continue
 
         part = policy["action"]["fwd"]
+        next_hop_mac = part.mac
 
         for ss_id, part_index in part_2_superset[part]:
             vmac = vmac_participant_match(ss_id,
@@ -129,8 +132,8 @@ def build_inbound_rules_for(participant_id, in_policies, ss_instance, final_swit
         port_num = policy["action"]["fwd"]
 
         # match on the next-hop
-        vmac_bitmask = vmac_next_hop_mask(ss_instance)
-        vmac = vmac_next_hop_match(participant_id, ss_instance)
+        vmac_bitmask = vmac_next_hop_mask_iSDXmac(ss_instance)
+        vmac = vmac_next_hop_match_iSDXmac(participant_id, ss_instance)
 
 
         match_args = policy["match"]

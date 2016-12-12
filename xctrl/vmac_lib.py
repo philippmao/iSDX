@@ -12,11 +12,13 @@ import pctrl.ss_lib as ss_lib
 
 class FakeSS(object):
     def __init__(self, config):
-        self.best_path_size =   int(config["Next Hop Bits"])
+        self.iSDX_best_path_size =   int(config["Next Hop Bits"])
+        self.best_path_size = self.iSDX_best_path_size
         self.VMAC_size =        int(config["VMAC Size"])
         self.port_size =        int(config["Port Bits"])
+        self.iSDX_VMAC_size = int(config["iSDXVMAC Size"])
 
-        self.max_bits = self.VMAC_size - self.best_path_size - 1
+        self.max_bits = self.VMAC_size - self.iSDX_best_path_size - 1
         self.max_initial_bits = self.max_bits - 4
 
 
@@ -26,11 +28,11 @@ class VMACBuilder(object):
 
     # constructs a match VMAC for checking next-hop
     def next_hop_match(self, participant_name, inbound_bit = False):
-        return ss_lib.vmac_next_hop_match(participant_name, self.ss_instance, inbound_bit)
+        return ss_lib.vmac_next_hop_match_iSDXmac(participant_name, self.ss_instance, inbound_bit)
 
     # returns a mask on just participant bits
     def next_hop_mask(self, inbound_bit = False):
-        return ss_lib.vmac_next_hop_mask(self.ss_instance, inbound_bit)
+        return ss_lib.vmac_next_hop_mask_iSDXmac(self.ss_instance, inbound_bit)
 
     # constructs stage-2 VMACs (for both matching and assignment)
     def part_port_match(self, participant_name, port_num, inbound_bit = False):
