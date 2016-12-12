@@ -9,18 +9,32 @@ class FlowModMsgBuilder(object):
         self.key = key
         self.flow_mods = []
 
-    def add_flow_mod(self, mod_type, rule_type, priority, match, action, cookie = None):
-        if cookie is None:
+    def add_flow_mod(self, mod_type, rule_type, priority, match, action, **kwargs):
+        if 'cookie' not in kwargs:
             cookie = (len(self.flow_mods)+1, 65535)
+        else:
+            cookie = kwargs['cookie']
+
+        if 'idle_timeout' in kwargs:
+            idle_timeout = kwargs['idle_timeout']
+        else:
+            idle_timeout = 0
+
+        if 'hard_timeout' in kwargs:
+            hard_timeout = kwargs['hard_timeout']
+        else:
+            hard_timeout = 0
 
         fm = {
-               "cookie": cookie,
-               "mod_type": mod_type,
-               "rule_type": rule_type,
-               "priority": priority,
-               "match": match,
-               "action": action
-             }
+            "cookie": cookie,
+            "mod_type": mod_type,
+            "rule_type": rule_type,
+            "priority": priority,
+            "match": match,
+            "action": action,
+            "idle_timeout": idle_timeout,
+            "hard_timeout": hard_timeout,
+        }
 
         self.flow_mods.append(fm)
 
@@ -38,8 +52,8 @@ class FlowModMsgBuilder(object):
     def get_msg(self):
         msg = {
                 "auth_info": {
-                               "participant" : self.participant,
-                               "key" : self.key
+                               "participant": self.participant,
+                               "key": self.key
                              },
                 "flow_mods": self.flow_mods
               }

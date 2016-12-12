@@ -40,6 +40,7 @@ OFPP_CONTROLLER = 0xfffffffd    # Send to controller.
 OFPP_LOCAL = 0xfffffffe         # Local openflow "port".
 OFPP_ANY = 0xffffffff               # Not associated with a physical port.
 
+
 class GSS(object):
     def __init__(self, logger, sender, config):
         self.logger = logger

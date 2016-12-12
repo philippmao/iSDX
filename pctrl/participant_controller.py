@@ -334,17 +334,22 @@ class ParticipantController(object):
                 vmac_bitmask = '{num:0{width}x}'.format(num=int(vmac_bitmask, 2), width=48 / 4)
                 vmac_bitmask = ':'.join([vmac_bitmask[i] + vmac_bitmask[i + 1] for i in range(0, 48 / 4, 2)])
 
-                match_args = {}
-                match_args["eth_dst"] = (vmac, vmac_bitmask)
+                match_args = {
+                    "eth_dst": (vmac, vmac_bitmask),
+                }
 
                 print "FR match vmac:", vmac, vmac_bitmask
                 #set dst mac to mac with best next hop
                 dst_mac = vmac_next_hop_match_iSDXmac(backup_part, self.supersets, inbound_bit=True)
                 print "FR set dst_mac", dst_mac
                 actions = {"set_eth_dst": dst_mac, "fwd": 'main-in'}
-                rule = {"rule_type": "main-in", "priority": self.Swift_hit_priority,
-                            "match": match_args, "action": actions, "mod_type": "insert",
-                            }
+                rule = {
+                    "rule_type": "main-out",
+                    "priority": self.Swift_hit_priority,
+                    "match": match_args,
+                    "action": actions,
+                    "mod_type": "insert",
+                }
                 rules.append(rule)
 
         self.dp_queued.extend(rules)
@@ -436,51 +441,6 @@ class ParticipantController(object):
             self.process_arp_request(None, FEC)
             
         return
-
-        # Original code below...
-        
-        "Process the changes in participants' policies"
-        # TODO: Implement the logic of dynamically changing participants' outbound and inbound policy
-        '''
-            change_info =
-            {
-                'removal_cookies' : [cookie1, ...], # Cookies of deleted policies
-                'new_policies' :
-                {
-                    <policy file format>
-                }
-
-            }
-        '''
-        # remove flow rules for the old policies
-        removal_msgs = []
-
-        '''
-        for cookie in change_info['removal_cookies']:
-            mod =  {"rule_type":"outbound", "priority":0,
-                    "match":match_args , "action":{},
-                    "cookie":cookie, "mod_type":"remove"}
-            removal_msgs.append(mod)
-        '''
-
-        self.dp_queued.extend(removal_msgs)
-
-
-        # add flow rules for the new policies
-        if self.cfg.isSupersetsMode():
-            dp_msgs = ss_process_policy_change(self.supersets, add_policies, remove_policies, policies,
-                                                self.port_count, self.port0_mac)
-        else:
-            dp_msgs = []
-
-        self.dp_queued.extend(dp_msgs)
-
-        self.push_dp()
-
-        return 0
-
-
-
 
     def process_arp_request(self, part_mac, vnh):
         vmac = ""

@@ -6,6 +6,7 @@ from ryu.ofproto import inet
 
 from ofdpa20 import OFDPA20
 
+
 class FlowMod(object):
     def __init__(self, config, origin, flow_mod):
         self.mod_types = ["insert", "remove"]

@@ -56,6 +56,5 @@ def main():
     logger.info('start')
     controller.start()
 
-
 if __name__ == '__main__':
     main()
