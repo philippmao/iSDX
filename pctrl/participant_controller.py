@@ -339,7 +339,7 @@ class ParticipantController(object):
 
                 print "FR match vmac:", vmac, vmac_bitmask
                 #set dst mac to mac with best next hop
-                dst_mac = vmac_next_hop_match_iSDXmac(backup_part, self.supersets)
+                dst_mac = vmac_next_hop_match_iSDXmac(backup_part, self.supersets, inbound_bit=True)
                 print "FR set dst_mac", dst_mac
                 actions = {"set_eth_dst": dst_mac, "fwd": 'main-in'}
                 rule = {"rule_type": "main-in", "priority": self.Swift_hit_priority,
