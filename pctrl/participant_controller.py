@@ -274,6 +274,7 @@ class ParticipantController(object):
             print "processing down participant"
             down_ip = data['down']
             self.deal_with_local_failure(down_ip)
+
         if 'bgp' in data :
             self.logger.debug("Event Received: BGP Update.")
             update = data['bgp']

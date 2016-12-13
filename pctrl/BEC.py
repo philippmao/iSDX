@@ -23,7 +23,7 @@ class BEC(object):
             if 'announce' in update:
                 prefix = update['announce'].prefix
                 route = self.bgp_instance.get_routes('local', False, prefix=prefix)
-                as_path = route.as_path
+                as_path = route.as_path[0:4]
                 as_path_vmac = route.as_path_vmac
                 if route:
                     #If no encoding yet, use default BEC

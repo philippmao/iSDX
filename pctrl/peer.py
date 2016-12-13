@@ -40,29 +40,8 @@ class BGPPeer(object):
         self.peers_out = peers_out
 
     def update(self, route):
-        origin = None
-        as_path = None
-        as_path_vmac = None
-        med = None
-        atomic_aggregate = None
-        communities = None
 
-        route_list = []
         # Extract out neighbor information in the given BGP update
-        if 'neighbor' in route:
-            if 'state' in route['neighbor'] and route['neighbor']['state'] == 'down':
-                neighbor = route["neighbor"]["ip"]
-                print "neighbor down - " + str(neighbor) + " - I am " + str(self.asn)
-
-                self.logger.debug("neighbor down - " + str(neighbor))
-
-                routes = self.get_routes('input', True, neighbor=neighbor)
-
-                for route_item in routes:
-                    route_list.append({'withdraw': route_item})
-
-                self.delete_all_routes('input', neighbor=neighbor)
-
         if 'announce' in route:
             announce = route['announce']
             self.add_route('input', announce)
