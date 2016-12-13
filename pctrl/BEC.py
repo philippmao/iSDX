@@ -23,7 +23,7 @@ class BEC(object):
             if 'announce' in update:
                 prefix = update['announce'].prefix
                 route = self.bgp_instance.get_routes('local', False, prefix=prefix)
-                as_path = route.as_path[0:4]
+                as_path = route.as_path[0:self.max_depth+1]
                 as_path_vmac = route.as_path_vmac
                 if route:
                     #If no encoding yet, use default BEC
@@ -31,7 +31,7 @@ class BEC(object):
                         self.prefix_2_BEC[prefix] = self.BEC_list[((-1, -1, -1), (-1, -1, -1))]
                     else:
                         backup_nbs = []
-                        for d in range(0 ,min(len(as_path)-1, self.max_depth)):
+                        for d in range(0 ,len(as_path)-1):
                             backup_nb = self.get_backup_avoiding_as_link(self.prefix_2_FEC[prefix]['next_hop_part'], prefix, (as_path[d], as_path[d+1]))
                             if backup_nb is not None:
                                 backup_nbs.append(backup_nb)
@@ -57,10 +57,10 @@ class BEC(object):
                 prefix = update['withdraw'].prefix
                 route = self.bgp_instance.get_routes('local', False, prefix=prefix)
                 if route:
-                    as_path = route.as_path
+                    as_path = route.as_path[0:self.max_depth+1]
                     as_path_vmac = route.as_path_vmac
                     backup_nbs = []
-                    for d in range(0, min(len(as_path)-1, self.max_depth)):
+                    for d in range(0, len(as_path)-1):
 
                         backup_nb = self.get_backup_avoiding_as_link(self.prefix_2_FEC[prefix]['next_hop_part'], prefix,
                                                                      (as_path[d], as_path[d + 1]))

@@ -65,6 +65,7 @@ class ParticipantController(object):
         self.max_depth = self.cfg.Swift_vmac["max_depth"]
         self.nexthops_nb_bits = self.cfg.Swift_vmac["nexthops_nb_bits"]
         self.Swift_hit_priority = self.cfg.Swift_vmac["Swift flowrule priority"]
+        self.Swift_flow_rule_timeout = self.cfg.Swift_vmac["hard timeout"]
         self.vnh_2_BFEC = {}
         #swift tag dic mapping ip to mac
         self.tag_dict = {}
@@ -310,7 +311,7 @@ class ParticipantController(object):
             print "backup_ip", backup_ip
             print "self.tag_dict:", self.tag_dict
             backup_part = self.nexthop_2_part[backup_ip]
-            if backup_part != self.id:
+            if backup_part != peer_id:
                 backup_vmac = ''
                 backup_bitmask = ''
                 for i in range(1, self.max_depth+1):
@@ -343,13 +344,15 @@ class ParticipantController(object):
                 #set dst mac to mac with best next hop
                 dst_mac = vmac_next_hop_match_iSDXmac(backup_part, self.supersets, inbound_bit=True)
                 print "FR set dst_mac", dst_mac
+                print self.Swift_hit_priority, "hit priority"
                 actions = {"set_eth_dst": dst_mac, "fwd": 'main-in'}
                 rule = {
+                    "mod_type": "insert",
                     "rule_type": "main-out",
                     "priority": self.Swift_hit_priority,
                     "match": match_args,
                     "action": actions,
-                    "mod_type": "insert",
+                    "hard_timeout": self.Swift_flow_rule_timeout
                 }
                 rules.append(rule)
 
@@ -607,8 +610,8 @@ class ParticipantController(object):
         #remove duplicates
         new_VNHs = list(set(new_VNHs))
 
-        #print self.id, "tag_dict", self.tag_dict
-        #print self.id, "VNH_2_vmac", self.VNH_2_vmac
+        print self.id, "tag_dict", self.tag_dict
+        print self.id, "VNH_2_vmac", self.VNH_2_vmac
         #print "new_vnh_next_hops", new_VNHs
 
         # Send gratuitous ARP responses for all them
