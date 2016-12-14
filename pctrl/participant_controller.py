@@ -589,7 +589,8 @@ class ParticipantController(object):
             # TODO: similar logic for MDS
             self.logger.debug("Creating ctrlr messages for MDS scheme")
 
-        self.push_dp()
+        if len(self.dp_queued) != 0:
+            self.push_dp()
 
         if TIMING:
             elapsed = time.time() - tstart
