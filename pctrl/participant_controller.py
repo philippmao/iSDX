@@ -64,7 +64,6 @@ class ParticipantController(object):
         self.prefix_2_BEC_nrfp = {}
         self.max_depth = self.cfg.Swift_vmac["max_depth"]
         self.nexthops_nb_bits = self.cfg.Swift_vmac["nexthops_nb_bits"]
-        self.Swift_hit_priority = self.cfg.Swift_vmac["Swift flowrule priority"]
         self.Swift_flow_rule_timeout = self.cfg.Swift_vmac["hard timeout"]
         self.vnh_2_BFEC = {}
         #swift tag dic mapping ip to mac
@@ -344,12 +343,11 @@ class ParticipantController(object):
                 #set dst mac to mac with best next hop
                 dst_mac = vmac_next_hop_match_iSDXmac(backup_part, self.supersets, inbound_bit=True)
                 print "FR set dst_mac", dst_mac
-                print self.Swift_hit_priority, "hit priority"
-                actions = {"set_eth_dst": dst_mac, "fwd": 'main-in'}
+                actions = {"set_eth_dst": dst_mac, "fwd": 'main-out'}
                 rule = {
                     "mod_type": "insert",
-                    "rule_type": "main-out",
-                    "priority": self.Swift_hit_priority,
+                    "rule_type": "main-in",
+                    "priority": "fast_reroute",
                     "match": match_args,
                     "action": actions,
                     "hard_timeout": self.Swift_flow_rule_timeout

@@ -80,7 +80,7 @@ class RefMon(app_manager.RyuApp):
         elif self.config.isOneSwitchMode():
             self.controller = OneSwitchController(self.config)
 
-	# this must be set before Server, which uses it.
+        # this must be set before Server, which uses it.
         self.flow_mod_times = Queue()
 
         # start server receiving flowmod requests
