@@ -136,6 +136,9 @@ class PConfig(object):
 
         key = config["Participants"][self.id]["Flanc Key"]
 
+        if True:
+            return FakeClient(address, port, key, logger, 'refmon')
+
         return GenericSockClient(address, port, key, logger, 'refmon')
 
     def isMultiSwitchMode(self):
@@ -158,7 +161,6 @@ class GenericClient(object):
         self.key = key
         self.logger = logger
         self.serverName = sname
-
 
     def send(self, msg):
         # TODO: Busy wait will do for initial startup but for dealing with server down in the middle of things
@@ -221,6 +223,18 @@ class GenericSockClient(object):
         if conn:
             conn.sendall(msg)
             conn.close()
+
+
+class FakeClient(object):
+    def __init__(self, address, port, key, logger, sname):
+        self.address = address
+        self.port = int(port)
+        self.key = key
+        self.logger = logger
+        self.serverName = sname
+
+    def send(self, msg):
+        pass
 
 
 class GenericClient2(object):
