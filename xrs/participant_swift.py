@@ -142,7 +142,7 @@ naive           Use the naive approach if True
 """
 def run_peer(queue_server_peer, queue_peer_server, win_size, peer_id, nb_withdrawals_burst_start, \
 nb_withdrawals_burst_end, min_bpa_burst_size, burst_outdir, max_depth, \
-nb_withdraws_per_cycle=100, p_w=1, r_w=1, bpa_algo=False, nb_bits_aspath=33, \
+nb_withdraws_per_cycle=100, p_w=1, r_w=1, bpa_algo='bpa-multiple', nb_bits_aspath=12, \
 run_encoding_threshold=1000000, silent=False):
 
     import socket
