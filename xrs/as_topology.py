@@ -73,12 +73,12 @@ class ASTopology(nx.DiGraph):
                 self[as_path[i]][as_path[i+1]]['prefixes'].remove(prefix)
 
             # Clean the graph
-            if self[as_path[i]][as_path[i+1]]['prefix_counter'] == 0.:
-                self.remove_edge(as_path[i], as_path[i+1])
-                if self.out_degree(as_path[i]) == 0 and self.in_degree(as_path[i]) == 0.:
-                    self.remove_node(as_path[i])
-                if self.out_degree(as_path[i+1]) == 0 and self.in_degree(as_path[i+1]) == 0.:
-                    self.remove_node(as_path[i+1])
+            #if self[as_path[i]][as_path[i+1]]['prefix_counter'] == 0.:
+                #self.remove_edge(as_path[i], as_path[i+1])
+                #if self.out_degree(as_path[i]) == 0 and self.in_degree(as_path[i]) == 0.:
+                    #self.remove_node(as_path[i])
+                #if self.out_degree(as_path[i+1]) == 0 and self.in_degree(as_path[i+1]) == 0.:
+                    #self.remove_node(as_path[i+1])
 
 
     def print_nodes(self):
