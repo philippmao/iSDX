@@ -268,7 +268,7 @@ run_encoding_threshold=1000000, silent=False):
 
                     # Update the queue of withdraws
                     if as_path != []:
-                        bgp_msg.as_path = as_path
+                        bgp_msg['withdraw'].as_path = as_path
                         W_queue.append(bgp_msg)
 
                     # Update the encoding
@@ -354,7 +354,7 @@ run_encoding_threshold=1000000, silent=False):
                 # Update the graph of withdraws.)
                 if current_burst is None:
                     for w in W_queue.refresh_iter(bgp_msg['time']):
-                        G_W.remove(w.as_path)
+                        G_W.remove(w['withdraw'].as_path)
 
                 # Update the last timestamp seen
                 last_ts = bgp_msg['time']
