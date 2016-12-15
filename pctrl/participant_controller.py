@@ -524,7 +524,7 @@ class ParticipantController(object):
 
         if TIMING:
             elapsed = time.time() - tstart
-            self.logger.info("Time taken for decision process: " + str(elapsed))
+            #self.logger.info("Time taken for decision process: " + str(elapsed))
             self.logger.debug("Time taken for decision process: " + str(elapsed))
             tstart = time.time()
 
@@ -618,7 +618,7 @@ class ParticipantController(object):
 
         if TIMING:
             elapsed = time.time() - tstart
-            self.logger.info("Time taken to send garps/announcements: "+str(elapsed))
+            #self.logger.info("Time taken to send garps/announcements: "+str(elapsed))
             self.logger.debug("Time taken to send garps/announcements: " + str(elapsed))
             tstart = time.time()
 
