@@ -343,7 +343,7 @@ class ParticipantController(object):
                 #set dst mac to mac with best next hop
                 dst_mac = vmac_next_hop_match_iSDXmac(backup_part, self.supersets, inbound_bit=True)
                 print "FR set dst_mac", dst_mac
-                actions = {"set_eth_dst": dst_mac, "fwd": 'main-out'}
+                actions = {"set_eth_dst": dst_mac, "fwd": ["inbound"]}
                 rule = {
                     "mod_type": "insert",
                     "rule_type": "main-in",

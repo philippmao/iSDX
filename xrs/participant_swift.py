@@ -224,6 +224,8 @@ run_encoding_threshold=1000000, silent=False):
                     prefix = bgp_msg['announce'].prefix
                     as_path = bgp_msg['announce'].as_path
 
+                    print "as_path ", as_path
+
                     # Update the set set of peer_as (useful when doing the naive solution)
                     #if len(as_path) > 0:
                         #peer_as_set.add(as_path[0])
