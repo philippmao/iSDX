@@ -527,7 +527,8 @@ class ParticipantController(object):
             # TODO: similar logic for MDS
             self.logger.debug("Creating ctrlr messages for MDS scheme")
 
-        self.push_dp()
+        if len(self.dp_queued) != 0:
+            self.push_dp()
 
         if TIMING:
             elapsed = time.time() - tstart
@@ -536,7 +537,6 @@ class ParticipantController(object):
 
         new_FECs, announcements = self.bgp_instance.bgp_update_peer(updates,self.prefix_2_VNH_nrfp,
                 self.prefix_2_FEC, self.VNH_2_vmac, self.cfg.ports)
-
 
         """ Combine the VNHs which have changed BGP default routes with the
             VNHs which have changed supersets.
