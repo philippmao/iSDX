@@ -270,12 +270,12 @@ class ParticipantController(object):
             FR_parameters = data['FR']
             self.process_FR(FR_parameters)
 
-        if 'down' in data:
+        elif 'down' in data:
             self.logger.info("processing down participant")
             down_ip = data['down']
             self.deal_with_local_failure(down_ip)
 
-        if 'bgp' in data :
+        elif 'bgp' in data :
             self.logger.debug("Event Received: BGP Update.")
             update = data['bgp']
             # Process the incoming BGP updates from XRS

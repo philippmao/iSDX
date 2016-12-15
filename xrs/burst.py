@@ -40,8 +40,8 @@ class Burst:
         self.fd_real.close()
         self.fd_predicted.close()
 
-        with open(self.info_file, 'a') as fd:
-            fd.write(self.peer_id+'\t'+str(self.start_time)+'\t'+str(self.last_ts)+'\t'+str(self.duration)+'\t'+str(len(self.real_prefixes))+'\n')
+        #with open(self.info_file, 'a') as fd:
+            #fd.write(self.peer_id+'\t'+str(self.start_time)+'\t'+str(self.last_ts)+'\t'+str(self.duration)+'\t'+str(len(self.real_prefixes))+'\n')
 
     """
     Check if the burst is expired

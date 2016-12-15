@@ -274,7 +274,6 @@ run_encoding_threshold=1000000, silent=False):
                     # Update the encoding
                     encoding.withdraw(as_path)
 
-
                 #elif'state' in bgp_msg['neighbor'] and bgp_msg['neighbor']['state'] == 'down':
 
                     #queue_peer_server.put(bgp_msg)
@@ -327,6 +326,7 @@ run_encoding_threshold=1000000, silent=False):
                         # Remove the current burst (if any) if it the size of the withdraws is lower than w_threshold (meaning it has finished)
                         if len(W_queue) < nb_withdrawals_burst_end: #current_burst.is_expired(bgp_msg.time):
                             # Execute BPA at the end of the burst if the burst is large enough
+                            print "burst is over"
                             best_edge_set, best_fm_score, best_TP, best_FN, best_FP = burst_prediction(current_burst, G, G_W, W_queue, p_w, r_w, bpa_algo, peer_as_set)
                             current_burst.fd_predicted.write('PREDICTION_END|'+bpa_algo+'|'+str(len(current_burst))+'|'+str(best_fm_score)+'|'+str(best_TP)+'|'+str(best_FN)+'|'+str(best_FP)+'\n')
                             current_burst.fd_predicted.write('PREDICTION_END_EDGE|')
@@ -343,7 +343,7 @@ run_encoding_threshold=1000000, silent=False):
 
                             # Update the graph of withdrawals
                             for w in current_burst.deleted_from_W_queue:
-                                G_W.remove(w.as_path)
+                                G_W.remove(w['withdraw'].as_path)
 
                             current_burst.stop(bgp_msg['time'])
                             current_burst = None
@@ -362,7 +362,9 @@ run_encoding_threshold=1000000, silent=False):
                 # Add the updates in the real prefixes set of the burst, if any
                 if current_burst is not None: #and not silent:
                     if 'announce' in bgp_msg:
-                        current_burst.add_real_prefix(bgp_msg['time'], bgp_msg.prefix, 'A', bgp_msg['announce'].as_path)
+                        current_burst.add_real_prefix(bgp_msg['time'], bgp_msg['announce'].prefix, 'A', bgp_msg['announce'].as_path)
+                    if 'withdraw' in bgp_msg:
+                        current_burst.add_real_prefix(bgp_msg['time'], bgp_msg['withdraw'].prefix, 'W', bgp_msg['withdraw'].as_path)
 
                 # If we are not in the burst yet, we create the burst
                 if current_burst is None and len(W_queue) >= nb_withdrawals_burst_start:
@@ -381,7 +383,8 @@ run_encoding_threshold=1000000, silent=False):
                 # ii) we have wait the number of withdrawals required per cycle or the queue is empty
                 if current_burst is not None:
                     total_current_burst_size = len(current_burst)+nb_withdrawals_burst_start
-                    if total_current_burst_size >= min_bpa_burst_size and total_current_burst_size > next_bpa_execution:#\
+                    if total_current_burst_size >= min_bpa_burst_size and total_current_burst_size > next_bpa_execution:
+                        print "AYYYY LMAO"
                         if nb_withdraws_per_cycle > 0 and total_current_burst_size < 12505:
                             next_bpa_execution += nb_withdraws_per_cycle
                         else:
