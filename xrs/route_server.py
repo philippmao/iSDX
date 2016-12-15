@@ -136,7 +136,7 @@ class PctrlClient(object):
         self.conn.send({'bgp': route})
 
     def send_FR(self, route):
-        print "sending FR !"
+        logger.info("sending FR")
         self.conn.send(route)
 
 class PctrlListener(object):
@@ -259,7 +259,7 @@ class BGPListener(object):
 
             if len(route_list) == 1:
                 if 'down' in route_list[0]:
-                    print "down route received", route_list[0]
+                    logger.debug("down route received" + str(route_list[0]))
                     self.peer_queue.put(route_list[0])
                     continue
             #@TODO: when no more links to participant are active stop its siwft process
@@ -295,14 +295,11 @@ class BGPListener(object):
                 continue
 
             if 'FR' in route:
-                print "FR message received in Route-server"
                 peer_id = route['FR']['peer_id']
                 found = []
                 with participantsLock:
                     try:
-                        print "participants_peersout", participants
                         peers_out = participants[peer_id].peers_out
-                        print "route_server peer_out", peers_out
                     except KeyError:
                         continue
 
@@ -310,8 +307,6 @@ class BGPListener(object):
                         # Apply the filtering logic
                         if id in peers_out and peer_id in peer.peers_in:
                             found.append(peer)
-
-                print "route_server found", found
 
                 for peer in found:
                     # Now send this route to participant `id`'s controller'

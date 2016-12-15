@@ -279,7 +279,6 @@ def vmac_next_hop_mask(ss_instance, inbound_bit = False):
     return bitmask
 
 def vmac_next_hop_mask_iSDXmac(ss_instance, inbound_bit = False, only_isdx_vmac = False):
-    print "ss_instance.iSDX_best_path_size", ss_instance.iSDX_best_path_size
     part_bits_only = (1 << ss_instance.iSDX_best_path_size) - 1
 
     bitmask = vmac_next_hop_match_iSDXmac(part_bits_only, ss_instance, inbound_bit ,only_isdx_vmac)
@@ -287,7 +286,6 @@ def vmac_next_hop_mask_iSDXmac(ss_instance, inbound_bit = False, only_isdx_vmac 
     return bitmask
 
 def vmac_next_hop_mask_iSDXmac_bitstring(ss_instance, inbound_bit = False, only_isdx_vmac = False):
-    print "ss_instance.iSDX_best_path_size", ss_instance.iSDX_best_path_size
     part_bits_only = (1 << ss_instance.iSDX_best_path_size) - 1
 
     bitmask = vmac_next_hop_match_iSDXmac_bitsring(part_bits_only, ss_instance, inbound_bit ,only_isdx_vmac)

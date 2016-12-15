@@ -217,14 +217,10 @@ run_encoding_threshold=1000000, silent=False):
 
             if bgp_msg is not None:
 
-                print "bgp_message received", list(bgp_msg.keys())[0]
-
                 if 'announce' in bgp_msg:
 
                     prefix = bgp_msg['announce'].prefix
                     as_path = bgp_msg['announce'].as_path
-
-                    print "as_path ", as_path
 
                     # Update the set set of peer_as (useful when doing the naive solution)
                     #if len(as_path) > 0:

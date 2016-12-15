@@ -58,8 +58,6 @@ def update_outbound_rules(sdx_msgs, policies, ss_instance, my_mac):
             vmac = vmac_participant_match(superset_id, bit_position, ss_instance)
             vmac_bitmask = vmac_participant_mask(bit_position, ss_instance)
 
-            print "OUTBOUND superset bit match:", (vmac, vmac_bitmask)
-
             # the vmac which will be written on a policy match
             next_hop_mac = vmac_next_hop_match_iSDXmac(part, ss_instance, inbound_bit = True)
 

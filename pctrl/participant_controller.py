@@ -265,13 +265,13 @@ class ParticipantController(object):
 
         #@TODO: when receiving swift FR push backup rules
         if 'FR' in data:
-            print "FR in participant controller received"
+            self.logger.info("Event Received: FR request"+ str(data))
             self.logger.debug("Event Received: FR request")
             FR_parameters = data['FR']
             self.process_FR(FR_parameters)
 
         if 'down' in data:
-            print "processing down participant"
+            self.logger.info("processing down participant")
             down_ip = data['down']
             self.deal_with_local_failure(down_ip)
 
@@ -303,12 +303,9 @@ class ParticipantController(object):
         as_path_bitmask = FR_parameters['as_path_bitmask']
         depth = FR_parameters['depth']
         rules = []
-        print "FR with parameters as_path_vmac", as_path_vmac, as_path_bitmask ,depth
         if depth > self.max_depth:
             return
         for backup_ip in self.tag_dict.keys():
-            print "backup_ip", backup_ip
-            print "self.tag_dict:", self.tag_dict
             backup_part = self.nexthop_2_part[backup_ip]
             if backup_part != peer_id:
                 backup_vmac = ''
@@ -328,7 +325,6 @@ class ParticipantController(object):
                 next_hop_mask = vmac_next_hop_mask_iSDXmac_bitstring(self.supersets, only_isdx_vmac=True)
 
                 vmac = next_hop_match + backup_vmac + as_path_vmac
-                print "vmac", vmac, "next_hop_match:", next_hop_match, "backup_vamc", backup_vmac, "as_path_vmac", as_path_vmac
                 vmac_bitmask = next_hop_mask + backup_bitmask + as_path_bitmask
                 vmac = '{num:0{width}x}'.format(num=int(vmac, 2), width=48 / 4)
                 vmac= ':'.join([vmac[i] + vmac[i + 1] for i in range(0, 48 / 4, 2)])
@@ -339,10 +335,8 @@ class ParticipantController(object):
                     "eth_dst": (vmac, vmac_bitmask),
                 }
 
-                print "FR match vmac:", vmac, vmac_bitmask
                 #set dst mac to mac with best next hop
                 dst_mac = vmac_next_hop_match_iSDXmac(backup_part, self.supersets, inbound_bit=True)
-                print "FR set dst_mac", dst_mac
                 actions = {"set_eth_dst": dst_mac, "fwd": ["inbound"]}
                 rule = {
                     "mod_type": "insert",
@@ -354,9 +348,13 @@ class ParticipantController(object):
                 }
                 rules.append(rule)
 
+                self.logger.info("FR - rule:" + str(vmac)+ str(dst_mac))
+
         self.dp_queued.extend(rules)
 
         self.push_dp()
+
+        self.logger.info("finished pushing FR rules")
 
 
     def update_policies(self, new_policies, in_out):
@@ -608,10 +606,6 @@ class ParticipantController(object):
 
         #remove duplicates
         new_VNHs = list(set(new_VNHs))
-
-        print self.id, "tag_dict", self.tag_dict
-        print self.id, "VNH_2_vmac", self.VNH_2_vmac
-        #print "new_vnh_next_hops", new_VNHs
 
         # Send gratuitous ARP responses for all them
         for VNH in new_VNHs:
