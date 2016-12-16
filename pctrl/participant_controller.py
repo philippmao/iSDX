@@ -310,7 +310,7 @@ class ParticipantController(object):
             if backup_part != peer_id:
                 backup_vmac = ''
                 backup_bitmask = ''
-                for i in range(1, self.max_depth+1):
+                for i in range(2, self.max_depth+2):
                     if i == depth:
                         backup_tag = self.tag_dict[backup_ip]
                         backup_vmac += bin(backup_tag)[2:].zfill(self.nexthops_nb_bits)
@@ -621,6 +621,9 @@ class ParticipantController(object):
             #self.logger.info("Time taken to send garps/announcements: "+str(elapsed))
             self.logger.debug("Time taken to send garps/announcements: " + str(elapsed))
             tstart = time.time()
+
+        #print self.id, "BEC_list", self.BEC_list
+        #print self.id, "VHN_2_VMAC", self.VNH_2_vmac
 
     def send_announcement(self, announcement):
         "Send the announcements to XRS"

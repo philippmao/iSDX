@@ -113,7 +113,8 @@ def add_as_path_encoding_to_route(bgp_msg , rib, encoding):
         # Make the second part of the v_mac (the part where the as-path is encoded)
         v_mac = ''
         deep = 1
-        for asn in bgp_msg.as_path:
+        as_path = [65000] + bgp_msg.as_path
+        for asn in as_path:
             if deep in encoding.mapping:
                 depth_value = encoding.mapping[deep].get_mapping_string(asn)
                 v_mac += ''+depth_value
@@ -221,6 +222,8 @@ run_encoding_threshold=1000000, silent=False):
 
                     prefix = bgp_msg['announce'].prefix
                     as_path = bgp_msg['announce'].as_path
+
+                    as_path = [65000] + as_path
 
                     # Update the set set of peer_as (useful when doing the naive solution)
                     #if len(as_path) > 0:
@@ -429,7 +432,7 @@ run_encoding_threshold=1000000, silent=False):
                             FR_message = {'FR': {'peer_id': peer_id, 'as_path_vmac': vmac_partial, 'as_path_bitmask': bitmask_partial, 'depth': d}}
                             queue_peer_server.put(FR_message)
 
-                            print "FR_message:", FR_message, "best_edge_set:", best_edge_set
+                            print "FR_message:", FR_message, "best_edge", e
 
             # Print information about the perdiction in the predicted file
             current_burst.fd_predicted.write('PREDICTION|'+bpa_algo+'|'+str(len(current_burst))+'|'+str(best_fm_score)+'|'+str(best_TP)+'|'+str(best_FP)+'|'+str(best_FN)+'\n')
