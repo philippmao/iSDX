@@ -303,7 +303,7 @@ class ParticipantController(object):
         as_path_bitmask = FR_parameters['as_path_bitmask']
         depth = FR_parameters['depth']
         rules = []
-        if depth > self.max_depth:
+        if depth > self.max_depth+1:
             return
         for backup_ip in self.tag_dict.keys():
             backup_part = self.nexthop_2_part[backup_ip]
@@ -349,6 +349,9 @@ class ParticipantController(object):
                 rules.append(rule)
 
                 self.logger.info("FR - rule:" + str(vmac)+ str(dst_mac))
+
+                print self.id, "FR rule match:", (vmac, vmac_bitmask)
+                print self.id, "VNH2VMAC", self.VNH_2_vmac
 
         self.dp_queued.extend(rules)
 
