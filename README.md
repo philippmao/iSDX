@@ -21,7 +21,7 @@ To get started install these softwares on your ```host``` machine:
 
 * Clone the ```iSDX``` repository from Github:
 ```bash 
-$ git clone https://github.com/sdn-ixp/iSDX.git
+$ git clone https://github.com/philippmao/iSDX.git
 ```
 
 * Change the directory to ```iSDX```:
@@ -42,7 +42,6 @@ The provisioning scripts will install all the required software (and their depen
 
 ## Usage
 Run the different setups provided in the examples directory. Check out the [`test-ms`](https://github.com/sdn-ixp/iSDX/tree/master/examples/test-ms) example for a simple case with three IXP participants.
-Or, look at the [`test`](https://github.com/sdn-ixp/iSDX/tree/master/test) directory to experiment with the testing framework.
 
 ## Directory Structure
 
@@ -59,10 +58,3 @@ The top level directories are:
 * [`visualization`](https://github.com/sdn-ixp/iSDX/tree/master/visualization) - Tools for visualizing iSDX flows
 * [`setup`](https://github.com/sdn-ixp/iSDX/tree/master/setup) - Scripts run from the Vagrantfile when the VM is created
 * [`bin`](https://github.com/sdn-ixp/iSDX/tree/master/bin) - Utility scripts
-
-## Running iSDX with Hardware Switches
-
-Most of the examples on this site use [Mininet](http://mininet.org/) as the underlying network.
-
-[Here](https://github.com/sdn-ixp/iSDX/tree/master/examples/test-ms/ofdpa)
-is an example of iSDX running on hardware switches.
