@@ -119,17 +119,34 @@ sudo /home/vagrant/iSDX/Bgpdump/bgp_simple.pl -myas 64000 -myip 173.0.255.252 -p
 Bgpsimple will advertise a certain amount of prefixes ("number of prefixes") to r1. It takes these routes from the myroutes file. To advertise all 300000 prefixes in myroutes remove -m "number of prefixes" from the command.
 
 
-## Testing the setup
+## Testing with Swift
 
-Check if the route server has correctly advertised the routes  
+Check if the route server has correctly advertised the routes and received the routes from bgpsimple
 
-    mininext> a1 route -n  
-    Kernel IP routing table  
-    Destination     Gateway         Genmask         Flags Metric Ref    Use Iface  
-    140.0.0.0       172.0.1.3       255.255.255.0   UG    0      0        0 a1-eth0  
-    150.0.0.0       172.0.1.4       255.255.255.0   UG    0      0        0 a1-eth0  
-    172.0.0.0       0.0.0.0         255.255.0.0     U     0      0        0 a1-eth0  
+    mininext> a1 telnet localhost bgpd
+    password: sdnip
+    sh ip bgp summary
 
+
+Choose a prefix ("prefix") advertised by x3. (when using all 300000 prefixes use 222.251.186.1/24)
+Then use the following commands to be able to ping this prefix from a1:
+```bash
+mininet> r1 ifconfig lo "prefix" 
+mininet> r1 route add default gw 2.0.0.1
+mininet> r1 route add default gw 1.0.0.1
+```
+
+Check if a1 can ping the prefix:
+```bash
+mininet> h1_a1 ping "prefix"
+```
+
+Set the link b1 r1 down:
+```bash
+mininet> link b1 r1 down
+```
+Now Swift will detect a failure and reroute the traffic via c1. Use wireshark to observe the pings. 
+At one point when the pings start working again you should see that even though the pings are coming from a1 with the intention to go via b1 they get rerouted via c1. 
 
 ####Cleanup
 Run the `clean` script:
