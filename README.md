@@ -40,8 +40,16 @@ The provisioning scripts will install all the required software (and their depen
 * [Mininet](http://mininet.org/)
 * [Exabgp](https://github.com/Exa-Networks/exabgp)
 
+*Install Perl Net::Bgp:
+Connect to the VM via ssh. 
+```bash
+$ perl -MCPAN -e shell
+$ install Net::BGP
+$ exit
+```
+
 ## Usage
-Run the different setups provided in the examples directory. Check out the [`test-ms`](https://github.com/sdn-ixp/iSDX/tree/master/examples/test-ms) example for a simple case with three IXP participants.
+Run the setup provided in the examples directory. Check out the examples folder for a simple case with three IXP participants.
 
 ## Directory Structure
 

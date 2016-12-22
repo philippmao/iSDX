@@ -28,6 +28,8 @@ Vagrant.configure("2") do |config|
   config.vm.provision :shell, privileged: false, :path => "setup/ryu-setup.sh"
   config.vm.provision :shell, privileged: false, :path => "setup/grafana-setup.sh"
   config.vm.provision :shell, privileged: false, :path => "setup/sdx-setup.sh"
+  config.vm.provision :shell, privileged: false, :path => "setup/swift-setup.sh"
+  config.vm.provision :shell, privileged: false, :path => "setup/bgpsimple-setup.sh"
 
   ## SSH config
   config.ssh.forward_x11 = true
