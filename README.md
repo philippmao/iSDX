@@ -40,8 +40,7 @@ The provisioning scripts will install all the required software (and their depen
 * [Mininet](http://mininet.org/)
 * [Exabgp](https://github.com/Exa-Networks/exabgp)
 
-Install Perl Net::Bgp:
-Connect to the VM via ssh. 
+Now Perl Net::BGP needs to be installed, connect to the VM via  ssh and use the commands:
 ```bash
 $ perl -MCPAN -e shell
 $ install Net::BGP
