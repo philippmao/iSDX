@@ -29,7 +29,7 @@ $ git clone https://github.com/philippmao/iSDX.git
 $ cd iSDX
 ```
 
-Now run the vagrant up command. This will read the Vagrantfile from the current directory and provision the VM accordingly:
+* Now run the vagrant up command. This will read the Vagrantfile from the current directory and provision the VM accordingly:
 ```bash
 $ vagrant up
 ```
@@ -40,7 +40,7 @@ The provisioning scripts will install all the required software (and their depen
 * [Mininet](http://mininet.org/)
 * [Exabgp](https://github.com/Exa-Networks/exabgp)
 
-*Install Perl Net::Bgp:
+Install Perl Net::Bgp:
 Connect to the VM via ssh. 
 ```bash
 $ perl -MCPAN -e shell
