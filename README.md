@@ -29,7 +29,7 @@ $ git clone https://github.com/philippmao/iSDX.git
 $ cd iSDX
 ```
 
-* Now run the vagrant up command. This will read the Vagrantfile from the current directory and provision the VM accordingly:
+Now run the vagrant up command. This will read the Vagrantfile from the current directory and provision the VM accordingly:
 ```bash
 $ vagrant up
 ```
