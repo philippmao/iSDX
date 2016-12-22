@@ -35,7 +35,7 @@ The SDX route server (which is based on ExaBGP) runs in the root namespace. We c
 The test-ms scenario has been wrapped in a launch.sh shell script.
 
 ### Log Server
-
+```bash
 $ cd ~/iSDX
 $ rm -f SDXLog.log
 $ python logServer.py SDXLog.log
@@ -54,7 +54,7 @@ $ cd ~
 $ ./iSDX/launch.sh test-ms 3
 ```
 
-This will start the following parts (and if `--stats` is specificed, it will also start the gauge.py Ryu app):
+This will start the following parts :
 
 #### RefMon (Fabric Manager)
 ```bash
@@ -130,6 +130,8 @@ Check if the route server has correctly advertised the routes
     150.0.0.0       172.0.1.4       255.255.255.0   UG    0      0        0 a1-eth0  
     172.0.0.0       0.0.0.0         255.255.0.0     U     0      0        0 a1-eth0  
 
+
+####Cleanup
 Run the `clean` script:
 ```bash
 $ sh ~/iSDX/pctrl/clean.sh
