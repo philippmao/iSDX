@@ -4,29 +4,30 @@
 ## Topology
 
 ![Experimental Setup]
-(iSDX Swift test setup.png)
+(https://creately.com/diagram/ix0o4t3p/eRUcTBqB71plGQ720c7JxcWNoAw%3D)
 
 The setup consists of 3 participants (participating ASes) A, B and C. These participants have the following routers:
 
-`Router A1, Router B1, Router C1, and Router C2`
+`Router A1, Router B1, Router C1
 
 These routers are running the zebra and bgpd daemons, part of the `Quagga` routing engine. We've used the `MiniNext` emulation tool to create this topology. In this example we have three switches representing SDX switch: (1) Main Switch, (2) Outbound Switch, and (3) Inbound Switch. 
 
 ## Configuring the Setup
 
-The experiment needs two types of configurations: the control plane (SDX controller), and the data plane (Mininet topology). 
+The experiment needs two types of configurations: the control plane (SDX controller and Swift), and the data plane (Mininet topology). 
 
 * **Control Plane Configurations**
 
-The control plane configuration involves defining participant's policies, configuring `bgp.conf` for SDX's route server (based on ExaBGP), configuring 'sdx_global.cfg' to provide each participant's information to the SDX controller. 
+The control plane configuration involves defining participant's policies, configuring `bgp.conf` for SDX's route server (based on ExaBGP), configuring 'sdx_global.cfg' to provide each participant's information to the SDX controller and to provide the Swift parameters including vmac partitioning. 
 
-In this example, participant `A` has outbound policies defined in `/examples/test-ms/policies/participant_1.py`. Participant `C` has inbound policies as defined in `/examples/test-ms/policies/participant_3.py`. Participant `B` has no policy.
+In this example, participant `A` has outbound policies defined in `/examples/test-ms/policies/participant_1.py`. Participant `C` and Participant `B` have no policy.
 
 
 * **Data Plane Configurations**
 
 In our experimental setup, we need edge routers running a routing engine to exchange BGP paths. 
-For our example, the MiniNext script is described in `/examples/test-ms/mininext/sdx_mininext.py`.
+We also need X3 to inject routes into r1 which then get advertised to B1 C1 and ultimately A1. 
+For our example, the MiniNext script is described in `/examples/test-ms/mininext/r1_simple_sdx.py`.
 
 The SDX route server (which is based on ExaBGP) runs in the root namespace. We created an interface in the root namespace itself and connected it with the SDX switch. 
 
@@ -34,37 +35,23 @@ The SDX route server (which is based on ExaBGP) runs in the root namespace. We c
 The test-ms scenario has been wrapped in a launch.sh shell script.
 
 ### Log Server
-```bash
-$ cd ~
-$ ./iSDX/launch.sh test-ms 1
-```
 
-This performs the following tasks:
-
-```bash
 $ cd ~/iSDX
-$ sh pctrl/clean.sh
 $ rm -f SDXLog.log
 $ python logServer.py SDXLog.log
 ```
 
 ### Mininet
 ```bash
-$ cd ~
-$ ./iSDX/launch.sh test-ms 2
+$ cd iSDX/examples/test-ms/mininet
+$ sudo python r1_simple_sdx.py
 ```
 
-This performs the following tasks:
-
-```bash
-$ cd ~
-$ sudo python iSDX/examples/test-mt/mininet/simple_sdx.py
-```
 
 ### Run everything else
 ```bash
 $ cd ~
-$ ./iSDX/launch.sh [--stats] test-ms 3
+$ ./iSDX/launch.sh test-ms 3
 ```
 
 This will start the following parts (and if `--stats` is specificed, it will also start the gauge.py Ryu app):
@@ -102,7 +89,8 @@ $ sudo python route_server.py test-ms &
 $ sleep 1
 ```
 
-The BGP relay is based on ExaBGP and is similar to a BGP route server in terms of establishing peering sessions with the border routers. Unlike a route server, it does not perform any route selection. Instead, it multiplexes all BGP routes to the participant controllers.
+The BGP relay is based on ExaBGP and is similar to a BGP route server in terms of establishing peering sessions with the border routers. Unlike a route server, it does not perform any route selection. Instead, it multiplexes all BGP routes to the participant controllers. 
+It also starts swift processes for the participants
 
 #### pctrl (Participant SDN Controller)
 ```bash
@@ -123,6 +111,14 @@ $ exabgp examples/test-ms/config/bgp.conf
 
 It is part of the `xrs` module itself and it handles the BGP sessions with all the border routers of the SDX participants.
 
+#### Bgpsimple
+```bash
+sudo /home/vagrant/iSDX/Bgpdump/bgp_simple.pl -myas 64000 -myip 173.0.255.252 -peerip 173.0.0.31 -peeras 400 -holdtime 180 - keepalive 60 -p /home/vagrant/iSDX/Bgpdump/myroutes -m “number of prefixes” -n
+```
+
+Bgpsimple will advertise a certain amount of prefixes ("number of prefixes") to r1. It takes these routes from the myroutes file. To advertise all 300000 prefixes in myroutes remove -m "number of prefixes" from the command.
+
+
 ## Testing the setup
 
 Check if the route server has correctly advertised the routes  
@@ -134,52 +130,6 @@ Check if the route server has correctly advertised the routes
     150.0.0.0       172.0.1.4       255.255.255.0   UG    0      0        0 a1-eth0  
     172.0.0.0       0.0.0.0         255.255.0.0     U     0      0        0 a1-eth0  
 
-### Test 1
-
-Outbound policy of a1: match(tcp_port=80) >> fwd(b1)
-
-```bash
-mininext> h1_b1 iperf -s -B 140.0.0.1 -p 80 &  
-mininext> h1_a1 iperf -c 140.0.0.1 -B 100.0.0.1 -p 80 -t 2
-```
-
-### Test 2
-
-Outbound policy of a1: match(tcp_port=4321) >> fwd(c)
-and Inbound policy of c: match(tcp_port=4321) >> fwd(c1)
-
-```bash
-mininext> h1_c1 iperf -s -B 140.0.0.1 -p 4321 &
-mininext> h1_a1 iperf -c 140.0.0.1 -B 100.0.0.1 -p 4321 -t 2  
-```
-
-### Test 3 
-
-Outbound policy of a1: match(tcp_port=4322) >> fwd(c)
-and Inbound policy of c: match(tcp_port=4322) >> fwd(c2)
-
-```bash
-mininext> h1_c2 iperf -s -B 140.0.0.1 -p 4322 &  
-mininext> h1_a1 iperf -c 140.0.0.1 -B 100.0.0.1 -p 4322 -t 2  
-```
-
-Successful `iperf` connections should look like this:  
-
-    mininext> h1_c2 iperf -s -B 140.0.0.1 -p 4322 &  
-    mininext> h1_a1 iperf -c 140.0.0.1 -B 100.0.0.1 -p 4322 -t 2  
-    ------------------------------------------------------------  
-    Client connecting to 140.0.0.1, TCP port 4322  
-    Binding to local address 100.0.0.1  
-    TCP window size: 85.3 KByte (default)  
-    ------------------------------------------------------------  
-    [  3] local 100.0.0.1 port 4322 connected with 140.0.0.1 port 4322  
-    [ ID] Interval       Transfer     Bandwidth  
-    [  3]  0.0- 2.0 sec  1.53 GBytes  6.59 Gbits/sec  
-
-In case the `iperf` connection is not successful, you should see the message, `connect failed: Connection refused.`
-Notice that here each iperf tests one of the participants' policies. The iperf has always the same destination ip, but reaches different hosts (b1, c1, c2) due to the more specific SDN policies.
-
-## Cleanup
 Run the `clean` script:
 ```bash
 $ sh ~/iSDX/pctrl/clean.sh
