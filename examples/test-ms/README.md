@@ -4,7 +4,7 @@
 ## Topology
 
 ![Experimental Setup]
-(https://docs.google.com/drawings/d/1aO6wxbl6jv7nfOHl8kKbb7I3vJYeWRar4Yv_6uYGeSE/pub?w=808&h=579)
+(https://creately.com/diagram/ix0o4t3p/eRUcTBqB71plGQ720c7JxcWNoAw%3D)
 
 The setup consists of 3 participants (participating ASes) A, B and C. These participants have the following routers:
 
