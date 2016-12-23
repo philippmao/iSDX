@@ -15,6 +15,8 @@ class BEC(object):
         self.FEC_list = pctrl.FEC_list
         self.prefix_2_FEC = pctrl.prefix_2_FEC
         self.prefix_2_BEC_nrfp = pctrl.prefix_2_BEC_nrfp
+        self.tag_dict = pctrl.tag_dict
+        self.nexthops_nb_bits = pctrl.nexthops_nb_bits
 
     def assignment(self, update):
         "Assign VNHs for the advertised prefixes"
@@ -34,6 +36,7 @@ class BEC(object):
                         for d in range(0 ,len(as_path)-1):
                             backup_nb = self.get_backup_avoiding_as_link(self.prefix_2_FEC[prefix]['next_hop_part'], prefix, (as_path[d], as_path[d+1]))
                             if backup_nb is not None:
+                                backup_nb = self.nexthop_2_part[backup_nb]
                                 backup_nbs.append(backup_nb)
                             else:
                                 backup_nbs.append(-1)
@@ -65,6 +68,7 @@ class BEC(object):
                         backup_nb = self.get_backup_avoiding_as_link(self.prefix_2_FEC[prefix]['next_hop_part'], prefix,
                                                                      (as_path[d], as_path[d + 1]))
                         if backup_nb is not None:
+                            backup_nb = self.nexthop_2_part[backup_nb]
                             backup_nbs.append(backup_nb)
                         else:
                             backup_nbs.append(-1)
@@ -113,6 +117,7 @@ class BEC(object):
                         backup_nb = self.get_backup_avoiding_as_link(self.prefix_2_FEC[prefix]['next_hop_part'], prefix,
                                                                      (as_path[d], as_path[d + 1]))
                         if backup_nb is not None:
+                            backup_nb = self.nexthop_2_part[backup_nb]
                             backup_nbs.append(backup_nb)
                         else:
                             backup_nbs.append(-1)
@@ -159,6 +164,10 @@ class BEC(object):
                         break
 
                 if good_aspath:
+                    #if tag dict is full and selected backup is not in the tag dict, keep searching:
+                    if bgproute.next_hop not in self.tag_dict:
+                        if len(self.tag_dict) == 2**self.nexthops_nb_bits:
+                            continue
                     selected_backup = bgproute.next_hop
                     break
 

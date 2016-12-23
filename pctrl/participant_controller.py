@@ -305,14 +305,13 @@ class ParticipantController(object):
         rules = []
         if depth > self.max_depth+1:
             return
-        for backup_ip in self.tag_dict.keys():
-            backup_part = self.nexthop_2_part[backup_ip]
+        for backup_part in self.tag_dict.keys():
             if backup_part != peer_id:
                 backup_vmac = ''
                 backup_bitmask = ''
                 for i in range(2, self.max_depth+2):
                     if i == depth:
-                        backup_tag = self.tag_dict[backup_ip]
+                        backup_tag = self.tag_dict[backup_part]
                         backup_vmac += bin(backup_tag)[2:].zfill(self.nexthops_nb_bits)
                         backup_bitmask += '1' * self.nexthops_nb_bits
 
@@ -352,6 +351,7 @@ class ParticipantController(object):
 
                 print self.id, "FR rule match:", (vmac, vmac_bitmask)
                 print self.id, "VNH2VMAC", self.VNH_2_vmac
+                print self.id, "tag_dict:", self.tag_dict
 
         self.dp_queued.extend(rules)
 
