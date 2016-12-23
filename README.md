@@ -42,7 +42,7 @@ The provisioning scripts will install all the required software (and their depen
 
 Now Perl Net::BGP needs to be installed, connect to the VM via  ssh and use the commands:
 ```bash
-$ perl -MCPAN -e shell
+$ sudo perl -MCPAN -e shell
 $ install Net::BGP
 $ exit
 ```
