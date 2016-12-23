@@ -147,7 +147,7 @@ mininet> link b1 r1 down
 ```
 Now Swift will detect a failure and reroute the traffic via c1. Use wireshark to observe the pings. 
 At one point when the pings start working again you should see that even though the pings are coming from a1 with the intention to go via b1 they get rerouted via c1. 
-```
+
 See the pushed FR rules:
 ```bash
 sudo ovs-ofctl dump-flows s1 -O OpenFlow13
