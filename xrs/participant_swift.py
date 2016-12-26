@@ -141,7 +141,7 @@ nb_withdraws_per_cycle After how many new withdrawals BPA needs to run_peer
 silent          print output in files to get information. To speed-up the algo, set to True.
 naive           Use the naive approach if True
 """
-def run_peer(queue_server_peer, queue_peer_server, win_size, peer_id, nb_withdrawals_burst_start, \
+def run_peer(queue_server_peer, queue_peer_server, FR_queue, win_size, peer_id, nb_withdrawals_burst_start, \
 nb_withdrawals_burst_end, min_bpa_burst_size, burst_outdir, max_depth, \
 nb_withdraws_per_cycle=100, p_w=1, r_w=1, bpa_algo='bpa-multiple', nb_bits_aspath=12, \
 run_encoding_threshold=1000000, silent=False):
@@ -387,7 +387,6 @@ run_encoding_threshold=1000000, silent=False):
                 if current_burst is not None:
                     total_current_burst_size = len(current_burst)+nb_withdrawals_burst_start
                     if total_current_burst_size >= min_bpa_burst_size and total_current_burst_size > next_bpa_execution:
-                        print "AYYYY LMAO"
                         if nb_withdraws_per_cycle > 0 and total_current_burst_size < 12505:
                             next_bpa_execution += nb_withdraws_per_cycle
                         else:
@@ -430,7 +429,7 @@ run_encoding_threshold=1000000, silent=False):
                                         bitmask_partial += '0' * encoding.mapping[i].nb_bytes
 
                             FR_message = {'FR': {'peer_id': peer_id, 'as_path_vmac': vmac_partial, 'as_path_bitmask': bitmask_partial, 'depth': d}}
-                            queue_peer_server.put(FR_message)
+                            FR_queue.put(FR_message)
 
                             print "FR_message:", FR_message, "best_edge", e
 

@@ -137,6 +137,7 @@ class PctrlClient(object):
 
     def send_FR(self, route):
         logger.info("sending FR")
+        print "sending FR"
         self.conn.send(route)
 
 class PctrlListener(object):
@@ -206,6 +207,8 @@ class BGPListener(object):
 
         self.peer_queue = Queue.Queue()
 
+        self.FR_queue = Queue.Queue()
+
         self.waiting = 0
 
         route_server_listener_thread = Thread(target= self.Route_server_listener)
@@ -270,7 +273,7 @@ class BGPListener(object):
                 self.peer_queue_dict[advertise_id] = Queue.Queue()
                 with participantsLock:
                     self.peer_swift_dict[advertise_id] = Thread(target=run_peer, \
-                                    args=(self.peer_queue_dict[advertise_id], self.peer_queue, self.win_size,advertise_id, self.nb_withdrawals_burst_start, \
+                                    args=(self.peer_queue_dict[advertise_id], self.peer_queue, self.FR_queue, self.win_size,advertise_id, self.nb_withdrawals_burst_start, \
                                     self.nb_withdrawals_burst_end, self.min_bpa_burst_size, "bursts", self.max_depth, self.fm_freq, self.p_w, \
                                     self.r_w, self.bpa_algo, self.nb_bits_aspath, self.run_encoding_threshold, \
                                     self.silent))
@@ -286,13 +289,17 @@ class BGPListener(object):
 
     def Route_server_sender(self):
         while self.run:
+            route = None
             try:
-                route = self.peer_queue.get()
+                route = self.FR_queue.get(False)
             except Queue.Empty:
-                if self.waiting == 0:
-                    logger.debug("Waiting for FR message or modified Bgp update...")
-                self.waiting = (self.waiting+1) % 30
-                continue
+                pass
+
+            if route is None:
+                try:
+                    route = self.peer_queue.get(False)
+                except Queue.Empty:
+                    continue
 
             if 'FR' in route:
                 peer_id = route['FR']['peer_id']
