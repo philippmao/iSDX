@@ -647,9 +647,6 @@ class ParticipantController(object):
                     if (BEC_id, FEC_id) not in self.BECid_FECid_2_VNH:
                         self.num_VNHs_in_use += 1
                         vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
-                        if vnh in self.nexthop_2_part:
-                            self.num_VNHs_in_use += 1
-                            vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
                         self.BECid_FECid_2_VNH[(BEC_id, FEC_id)] = vnh
                         self.vnh_2_BFEC[vnh] = [self.prefix_2_BEC[prefix], self.prefix_2_FEC[prefix]]
                     else:
@@ -674,9 +671,6 @@ class ParticipantController(object):
                 if (BEC_id, FEC_id) not in self.BECid_FECid_2_VNH:
                     self.num_VNHs_in_use += 1
                     vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
-                    if vnh in self.nexthop_2_part:
-                        self.num_VNHs_in_use += 1
-                        vnh = str(self.cfg.VNHs[self.num_VNHs_in_use])
                     self.BECid_FECid_2_VNH[(BEC_id, FEC_id)] = vnh
                     self.vnh_2_BFEC[vnh] = [self.prefix_2_BEC[prefix], self.prefix_2_FEC[prefix]]
 
