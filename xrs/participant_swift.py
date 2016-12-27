@@ -312,10 +312,6 @@ run_encoding_threshold=1000000, silent=False):
                 if len(routes_without_as_path_encoding)> 0:
                     if encoding is not None:
                         for unsent_bgp_msg in routes_without_as_path_encoding:
-                            if 'withdraw' in bgp_msg:
-                                if unsent_bgp_msg['announce'].prefix == bgp_msg['withdraw'].prefix:
-                                    routes_without_as_path_encoding.pop(unsent_bgp_msg)
-                                    continue
                             unsent_bgp_msg['announce'] = add_as_path_encoding_to_route(unsent_bgp_msg['announce'], rib, encoding)
                             queue_peer_server.put(unsent_bgp_msg)
 
@@ -416,7 +412,6 @@ run_encoding_threshold=1000000, silent=False):
 
                 for d in depth_set:
                     if encoding.is_encoded(d, e[0], e[1]):
-
 
                             vmac_partial = ''
                             bitmask_partial = ''
