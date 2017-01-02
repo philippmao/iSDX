@@ -1,0 +1,167 @@
+%****************************************************************************
+%** Copyright 2001, 2002, 2003, 2004 by Lukas Ruf, <lukas.ruf@lpr.ch>
+%** Information is provided under the terms of the
+%** GNU Free Documentation License <http://www.gnu.org/copyleft/fdl.html>
+%** Fairness: Cite the source of information, visit <http://www.topsy.net>
+%****************************************************************************
+%** Last Modification: 2013-07-31
+%** 2004-02-17: Lukas Ruf
+%**             Added recommendation by Thomas Duebendorfer
+%**             Added different babel languages
+%**             Added more comments
+%** 2004-10-16: Lukas Ruf
+%**             More comments
+%**             Added subfigure
+%** 2005-07-11	Bernhard Tellenbach
+%**							Added \abbrev command to generate a list of abbrevations
+%**							Removed support for psfig and epsfig (old)
+%** 						Adapted syntax for new nomencl packet version
+%** 2013-07-31 David Gugelmann (gugdavid)
+%**            Adapted for pdflatex
+%**            Added hyperref
+%**            Style of headers modified, adapted watermark command
+%****************************************************************************
+
+\RequirePackage{times}
+
+\usepackage[english]{babel}
+%-% \usepackage[german]{babel}
+%-% \usepackage[ngerman]{babel}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{type1cm}
+
+\usepackage{a4}
+
+\usepackage{hyperref}
+\hypersetup{colorlinks,%
+            citecolor=black,%
+            filecolor=black,%
+            linkcolor=black,%
+            urlcolor=black,%
+            pdftex}
+
+\usepackage[pdftex]{color,graphicx} % pdftex does not read eps files -> use epstopdf to convert files
+\graphicspath{{Figures/},{logos/}}
+
+\usepackage{caption}
+\usepackage{subcaption} % caption/subcaption replaces subfigure, which is deprecated
+
+\usepackage{fancyhdr}
+\usepackage{fancybox}
+
+\usepackage{float}
+\usepackage{longtable}
+\usepackage{paralist}
+\usepackage{url}
+\usepackage{lscape}
+\usepackage{moreverb}
+\usepackage{pdfpages}
+
+\usepackage{nomencl}
+  \let\abbrev\nomenclature
+  \renewcommand{\nomname}{List of Abbrevations}
+  \setlength{\nomlabelwidth}{.25\hsize}
+  \renewcommand{\nomlabel}[1]{#1 \dotfill}
+  \setlength{\nomitemsep}{-\parsep}
+  %For old nomencl package, uncomment this:
+  \makeglossary 
+  %For new nomencl package, uncomment this:
+  %\makenomenclature
+
+\usepackage[normalem]{ulem}
+  \newcommand{\markup}[1]{\uline{#1}}
+  
+%% Thanks to Thomas Duebendorfer: Should create smoother fonts
+\usepackage{ae,aecompl}
+
+\addtolength{\textwidth}{2cm}
+\addtolength{\textheight}{2cm}
+\addtolength{\oddsidemargin}{-1.0cm}
+\addtolength{\evensidemargin}{-1.0cm}
+\addtolength{\topmargin}{-1.5cm}
+
+%% No Serifs: Put comment markers in front of the next three lines otherwise
+\renewcommand{\ttdefault}{cmtt}
+\renewcommand{\rmdefault}{phv}  % Helvetica for roman type as well as sf
+\renewcommand{\ttdefault}{pcr}  % use Courier for fixed pitch, if needed
+
+\newcommand{\?}{\discretionary{/}{}{/}}
+\newcommand{\liter}[0]{/home/ruf/Lib/Bibl/}
+\newcommand{\fref}[1]{\mbox{Figur~\ref{#1}}}
+
+\pagestyle{fancy}
+%%-lpr Note: 'chapters' are defined for 'book's only
+%%-lpr       in articles, we make use of sections only
+%%-lpr \renewcommand{\chaptermark}[1]{\markboth{#1}{}}
+\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+\fancyhf{}
+\fancyhead[LE,RO]{\bfseries\thepage}
+\fancyhead[LO]{\bfseries\rightmark}
+\fancyhead[RE]{\bfseries\leftmark}
+\renewcommand{\headrulewidth}{0.5pt}
+\addtolength{\headheight}{0.5pt}
+\fancypagestyle{plain}{%
+   \fancyhf{}
+   \fancyfoot[C]{\bfseries \thepage}
+   \fancyhead{}%get rid of headers on plain pages
+   \renewcommand{\headrulewidth}{0pt} % an the line
+}
+\newcommand{\clearemptydoublepage}{\newpage{\pagestyle{empty}\cleardoublepage}}
+
+\setlength{\parindent}{0in}
+
+\hyphenation{Lukas not-to-hyphen-else-where}
+
+\newcommand{\Appendix}[2][?]
+{
+  \refstepcounter{section}
+  \addcontentsline{toc}{appendix}
+  {
+    \protect\numberline{\appendixname~\thesection} %1
+  }
+  {
+    \flushright\large\bfseries\appendixname\ \thesection\par
+    \nohypens\centering#1\par
+  }
+  \vspace{\baselineskip}
+}
+
+\let\margin\marginpar
+\newcommand\myMargin[1]{\margin{\raggedright\scriptsize #1}}
+\renewcommand{\marginpar}[1]{\myMargin{#1}}
+
+\newcommand\CHECK{\myMargin{CHECK}}
+\newcommand\NEW{\myMargin{NEW}}
+
+%% adapt headers %%
+% from http://www.markschenk.com/tensegrity/latexexplanation.html
+% Result:
+% - No headers on empty pages before new chapter
+% - To avoid header on other pages (e.g. in the abstract), set pagestlye to plain
+\makeatletter
+\def\cleardoublepage{\clearpage\if@twoside \ifodd\c@page\else
+    \hbox{}
+    \thispagestyle{plain}
+    \newpage
+    \if@twocolumn\hbox{}\newpage\fi\fi\fi}
+\makeatother
+
+%% allow to set a watermark %%
+% from http://www.goodcomputingtips.com/site/2010/06/how-to-insert-watermark-in-latexpdflatex-documents/
+% - to include a watermark, define \watermark in the main document, e.g.: \newcommand{\watermark}{MY WATERMARK TXT}
+\ifdefined\watermark
+  \usepackage{graphicx,type1cm,eso-pic,color}
+  \makeatletter
+            \AddToShipoutPicture{
+              \setlength{\@tempdimb}{.5\paperwidth}
+              \setlength{\@tempdimc}{.5\paperheight}
+              \setlength{\unitlength}{1pt}
+              \put(\strip@pt\@tempdimb,\strip@pt\@tempdimc){
+          \makebox(0,0){\rotatebox{55}{\textcolor[gray]{0.95}
+          {\fontsize{5cm}{5cm}\selectfont{\watermark}}}}
+              }
+          }
+  \makeatother
+\fi
