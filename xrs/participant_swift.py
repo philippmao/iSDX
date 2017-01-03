@@ -113,7 +113,7 @@ def add_as_path_encoding_to_route(bgp_msg , rib, encoding):
         # Make the second part of the v_mac (the part where the as-path is encoded)
         v_mac = ''
         deep = 1
-        as_path = [65000] + bgp_msg.as_path
+        as_path = bgp_msg.as_path
         for asn in as_path:
             if deep in encoding.mapping:
                 depth_value = encoding.mapping[deep].get_mapping_string(asn)
@@ -222,8 +222,7 @@ run_encoding_threshold=1000000, silent=False):
 
                     prefix = bgp_msg['announce'].prefix
                     as_path = bgp_msg['announce'].as_path
-
-                    as_path = [65000] + as_path
+                    #as_path = [65000] + as_path
 
                     # Update the set set of peer_as (useful when doing the naive solution)
                     #if len(as_path) > 0:

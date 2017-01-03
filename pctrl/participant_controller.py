@@ -309,7 +309,7 @@ class ParticipantController(object):
             if backup_part != peer_id:
                 backup_vmac = ''
                 backup_bitmask = ''
-                for i in range(2, self.max_depth+2):
+                for i in range(1, self.max_depth+1):
                     if i == depth:
                         backup_tag = self.tag_dict[backup_part]
                         backup_vmac += bin(backup_tag)[2:].zfill(self.nexthops_nb_bits)
