@@ -165,7 +165,7 @@ class BEC(object):
 
                 if good_aspath:
                     #if tag dict is full and selected backup is not in the tag dict, keep searching:
-                    if bgproute.next_hop not in self.tag_dict:
+                    if self.nexthop_2_part[bgproute.next_hop] not in self.tag_dict:
                         if len(self.tag_dict) == 2**self.nexthops_nb_bits:
                             continue
                     selected_backup = bgproute.next_hop
