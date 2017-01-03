@@ -94,22 +94,22 @@ For every prefix Swift encodes the AS-path up to a certain depth and the backup 
 \subsection{\label{chapter2:Swift:burst prediciton algorithm}burst prediction algorithm}
 The burst prediction algorithm takes BGP updates. It uses the updates to build a AS-topology. Once enough withdrawals arrive in a time frame short enough to trigger a burst, the burst prediction algorithm uses the withdrawals and the AS-topology to predict the failed AS-link. \\
 Upon predicting a failed link the Swift Controller pushes flow rules int the SDN switch matching on the failed AS-link and on the corresponding backup next-hop. \\
-Every packet that traverses the failed link (has the failed AS-link in its AS-path encoding) will get rerouted to the backup neighbor.
+Every packet that traverses the failed link (has the failed AS-link in it's AS-path encoding) will get rerouted to the backup neighbor.
 \begin{figure}[h]
 \center
 \includegraphics[scale = 0.36]{C:/Users/Philipp/SemesterProject/report/Figures/bckgrnd_swift_fr.pdf}
 \caption{Example of a fast-reroute after BPA predicts the AS link 300 600 to be down}
 \end{figure}
 
-By predicting the failed and pushing fast-reroute rules instead of waiting for all withdraws to arrive, Swift reduces the convergence time of the swifted router significantly.
+By predicting the failed link and pushing fast-reroute rules instead of waiting for all withdrawals to arrive, Swift reduces the convergence time of the swifted router significantly.
 
 
 \section{\label{chapter2:Motivation}Motivation}
 
-The iSDX takes a long time to converge upon remote failure. The main problem is that the iSDX needs to do some additional computing a traditional bgp router does not need to do. \\
+The iSDX takes a long time to converge upon remote failure. The main problem is that the iSDX needs to do some additional computing a traditional BGP-router does not need to do. \\
 When receiving a withdrawal the iSDX participant controller updates it's RIB, checks if the policy flow rules have changed and if the virtual next hop/vmac has changed. This additional computation adds a significant overhead to the convergence time of the iSDX. \\
 Implementing Swift into the iSDX promises to significantly reduce the convergence time. Convergence time being the time until packets get sent to the correct participant and not into a black hole. \\
-The main reason why implementing Swift in the iSDX is reasonable is their similar architecture. Both the iSDX and Swift use a SDN switch to program flow rules to steer traffic. They both are connected to BGP speaking routers and receive BGP updates from them. Swift and iSDX both use the destination mac address to encode information about a prefix and use the next-hop to map this vmac to a prefix. In addition the swift framework allows multiple swifted routers to be connected to the SDN switch, which in the iSDX's case means that all the participants will benefit swift.
+The main reason why implementing Swift in the iSDX is reasonable is their similar architecture. Both the iSDX and Swift use a SDN switch to program flow rules to steer traffic. They both are connected to BGP speaking routers and receive BGP updates from them. Swift and iSDX both use the destination mac address to encode information about a prefix and use the next-hop to map this vmac to a prefix. In addition the swift framework allows multiple swifted routers to be connected to the SDN switch, which in the iSDX's case means that all the participants will benefit from Swift.
 
 
 
