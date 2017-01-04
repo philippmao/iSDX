@@ -330,28 +330,33 @@ class ParticipantController(object):
                 vmac_bitmask = '{num:0{width}x}'.format(num=int(vmac_bitmask, 2), width=48 / 4)
                 vmac_bitmask = ':'.join([vmac_bitmask[i] + vmac_bitmask[i + 1] for i in range(0, 48 / 4, 2)])
 
-                match_args = {
-                    "eth_dst": (vmac, vmac_bitmask),
-                }
+                for port in self.cfg.get_macs():
 
-                #set dst mac to mac with best next hop
-                dst_mac = vmac_next_hop_match_iSDXmac(backup_part, self.supersets, inbound_bit=True)
-                actions = {"set_eth_dst": dst_mac, "fwd": ["outbound"]}
-                rule = {
-                    "mod_type": "insert",
-                    "rule_type": "main-in",
-                    "priority": "fast_reroute",
-                    "match": match_args,
-                    "action": actions,
-                    "hard_timeout": self.Swift_flow_rule_timeout
-                }
-                rules.append(rule)
 
-                self.logger.info("FR - rule:" + str(vmac)+ str(dst_mac))
+                    match_args = {
+                        "eth_dst": (vmac, vmac_bitmask),
+                    }
 
-                print self.id, "FR rule match:", (vmac, vmac_bitmask)
-                print self.id, "VNH2VMAC", self.VNH_2_vmac
-                print self.id, "tag_dict:", self.tag_dict
+                    match_args["eth_src"] = port
+
+                    #set dst mac to mac with best next hop
+                    dst_mac = vmac_next_hop_match_iSDXmac(backup_part, self.supersets, inbound_bit=True)
+                    actions = {"set_eth_dst": dst_mac, "fwd": ["outbound"]}
+                    rule = {
+                        "mod_type": "insert",
+                        "rule_type": "main-in",
+                        "priority": "fast_reroute",
+                        "match": match_args,
+                        "action": actions,
+                        "hard_timeout": self.Swift_flow_rule_timeout
+                    }
+                    rules.append(rule)
+
+                    self.logger.info("FR - rule:" + str(vmac)+ str(dst_mac))
+
+                    print self.id, "FR rule match:", (vmac, vmac_bitmask)
+                    print self.id, "VNH2VMAC", self.VNH_2_vmac
+                    print self.id, "tag_dict:", self.tag_dict
 
         self.dp_queued.extend(rules)
 
