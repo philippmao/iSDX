@@ -518,6 +518,7 @@ class ParticipantController(object):
 
         # Map to update for each prefix in the route advertisement.
         self.bgp_instance.update(update)
+        self.logger.info("process_bgp_route:: " + str(update))
         self.logger.debug("process_bgp_route:: "+str(update))
         # TODO: This step should be parallelized
         # TODO: The decision process for these prefixes is going to be same, we
@@ -626,7 +627,7 @@ class ParticipantController(object):
 
         if TIMING:
             elapsed = time.time() - tstart
-            #self.logger.info("Time taken to send garps/announcements: "+str(elapsed))
+            self.logger.info("Time taken to send garps/announcements: "+str(elapsed))
             self.logger.debug("Time taken to send garps/announcements: " + str(elapsed))
             tstart = time.time()
 

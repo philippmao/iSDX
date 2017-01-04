@@ -273,7 +273,7 @@ class BGPListener(object):
                 self.peer_queue_dict[advertise_id] = Queue.Queue()
                 with participantsLock:
                     self.peer_swift_dict[advertise_id] = Thread(target=run_peer, \
-                                    args=(self.peer_queue_dict[advertise_id], self.peer_queue, self.FR_queue, self.win_size,advertise_id, self.nb_withdrawals_burst_start, \
+                                    args=(logger, self.peer_queue_dict[advertise_id], self.peer_queue, self.FR_queue, self.win_size,advertise_id, self.nb_withdrawals_burst_start, \
                                     self.nb_withdrawals_burst_end, self.min_bpa_burst_size, "bursts", self.max_depth, self.fm_freq, self.p_w, \
                                     self.r_w, self.bpa_algo, self.nb_bits_aspath, self.run_encoding_threshold, \
                                     self.silent))

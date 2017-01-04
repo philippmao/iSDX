@@ -12,7 +12,6 @@ import string
 import Queue
 
 
-
 from bgp_messages import BGPMessagesQueue
 from rib import RIBPeer
 from as_topology import ASTopology
@@ -141,7 +140,7 @@ nb_withdraws_per_cycle After how many new withdrawals BPA needs to run_peer
 silent          print output in files to get information. To speed-up the algo, set to True.
 naive           Use the naive approach if True
 """
-def run_peer(queue_server_peer, queue_peer_server, FR_queue, win_size, peer_id, nb_withdrawals_burst_start, \
+def run_peer(logger, queue_server_peer, queue_peer_server, FR_queue, win_size, peer_id, nb_withdrawals_burst_start, \
 nb_withdrawals_burst_end, min_bpa_burst_size, burst_outdir, max_depth, \
 nb_withdraws_per_cycle=100, p_w=1, r_w=1, bpa_algo='bpa-multiple', nb_bits_aspath=12, \
 run_encoding_threshold=1000000, silent=False):
@@ -400,10 +399,14 @@ run_encoding_threshold=1000000, silent=False):
 
         if current_burst is not None:
 
+            logger.info("Burst detected starting preditcion")
+
             # Compute the set of edges with the highest FM score
             best_edge_set, best_fm_score, best_TP, best_FP, best_FN = burst_prediction(current_burst, G, G_W, W_queue, p_w, r_w, bpa_algo, peer_as_set)
             # Load that set in the burst
             if not silent: burst_add_edge(current_burst, rib, encoding, bgp_msg['time'], best_edge_set, G, G_W, silent)
+
+            logger.info("prediction finished")
 
             # Inform the global RIB about the set of failed links
             for e in best_edge_set:
