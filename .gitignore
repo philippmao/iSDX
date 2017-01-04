@@ -4,7 +4,6 @@ tags
 *.bak
 *.DS_Store
 .vagrant
-*.pdf
 *.bbl
 *.brf
 *.blg
