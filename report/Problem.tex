@@ -27,7 +27,7 @@ Outbound policies let participants direct packets going from themselves to the i
 Inbound policies allow participants to direct packets coming from the iSDX. In effect they allow the participant to choose to which of his own routers packets from the iSDX get sent to. 
 
 \begin{figure}[h]
-\includegraphics[scale = 0.32]{C:/Users/Philipp/SemesterProject/report/Figures/bckgrnd_sdx_policies.pdf}
+\includegraphics[scale = 0.32]{../Figures/bckgrnd_sdx_policies.pdf}
 \caption{Example of outbound and inbound policies with an iSDX connected to three \\ participants}
 \end{figure}
 
@@ -44,13 +44,13 @@ In the destination mac address the iSDX encodes the participants advertising the
 \end{tabular}
 
 \begin{figure}[h]
-\includegraphics[scale = 0.36]{C:/Users/Philipp/SemesterProject/report/Figures/intro_sdx_vmac.pdf}
+\includegraphics[scale = 0.36]{../Figures/intro_sdx_vmac.pdf}
 \caption{Example of the iSDX vmac with an iSDX connected to three participants}
 \end{figure}
 
 \subsection{\label{chapter2:iSX:iSDX architecture}iSDX architecture}
 \begin{figure}[h]
-\includegraphics[scale = 0.4]{C:/Users/Philipp/SemesterProject/report/Figures/bckdgrnd_sdx_architecture_cropped.pdf}
+\includegraphics[scale = 0.4]{../Figures/bckdgrnd_sdx_architecture_cropped.pdf}
 \caption{iSDX architecture}
 \end{figure}
 
@@ -65,7 +65,7 @@ Swift is a prediction and fast-reroute framework to improve the convergence time
 
 \begin{figure}[h]
 \center
-\includegraphics[scale = 0.5]{C:/Users/Philipp/SemesterProject/report/Figures/bckgrnd_swift_architecture.pdf}
+\includegraphics[scale = 0.5]{../Figures/bckgrnd_swift_architecture.pdf}
 \caption{Example topology of a swifted router}
 \end{figure}
 
@@ -86,7 +86,7 @@ For every prefix Swift encodes the AS-path up to a certain depth and the backup 
 
 \begin{figure}[h]
 \center
-\includegraphics[scale = 0.24]{C:/Users/Philipp/SemesterProject/report/Figures/bckgrnd_swift_topology.pdf}
+\includegraphics[scale = 0.24]{../Figures/bckgrnd_swift_topology.pdf}
 \caption{Example of the Swift vmac}
 \end{figure}
 
@@ -97,7 +97,7 @@ Upon predicting a failed link the Swift Controller pushes flow rules int the SDN
 Every packet that traverses the failed link (has the failed AS-link in it's AS-path encoding) will get rerouted to the backup neighbor.
 \begin{figure}[h]
 \center
-\includegraphics[scale = 0.36]{C:/Users/Philipp/SemesterProject/report/Figures/bckgrnd_swift_fr.pdf}
+\includegraphics[scale = 0.36]{../Figures/bckgrnd_swift_fr.pdf}
 \caption{Example of a fast-reroute after BPA predicts the AS link 300 600 to be down}
 \end{figure}
 

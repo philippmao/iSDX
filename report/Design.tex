@@ -7,7 +7,7 @@ possible in both the iSDX and Swift. Utilizing their similar architecture to kee
 
 \begin{figure}[h]
 \center
-\includegraphics[scale = 0.7]{C:/Users/Philipp/SemesterProject/report/Figures/design_sdx_swift_cropped.pdf}
+\includegraphics[scale = 0.7]{../Figures/design_sdx_swift_cropped.pdf}
 \caption{iSDX architecture with Swift}
 \end{figure}
 
@@ -18,7 +18,7 @@ In the following sections I will go over the functionality of the new modules an
 
 \begin{figure}[h]
 \center
-\includegraphics[scale = 0.5]{C:/Users/Philipp/SemesterProject/report/Figures/design_swift_bpa_cropped.pdf}
+\includegraphics[scale = 0.5]{../Figures/design_swift_bpa_cropped.pdf}
 \caption{pipeline of the Swift-BPA module}
 \end{figure}
 
@@ -32,7 +32,7 @@ The Swift-BPA then checks if the received BGP updates are enough trigger a burst
 
 \begin{figure}[h]
 \center
-\includegraphics[scale = 0.6]{C:/Users/Philipp/SemesterProject/report/Figures/design_fr_handler_cropped.pdf}
+\includegraphics[scale = 0.6]{../Figures/design_fr_handler_cropped.pdf}
 \caption{pipeline of the fast reroute handler}
 \end{figure}
 
@@ -53,7 +53,7 @@ The sender receives modified BGP updates and FR messages from the Swift-BPA and 
 
 \begin{figure}[h]
 \center
-\includegraphics[scale = 0.45]{C:/Users/Philipp/SemesterProject/report/Figures/design_route_server_cropped2.pdf}
+\includegraphics[scale = 0.45]{../Figures/design_route_server_cropped2.pdf}
 \caption{pipeline of the modified route server}
 \end{figure}
 
@@ -72,8 +72,8 @@ Both Swift and the iSDX use the destination mac address to encode information ab
 The encoded AS-path starts with the second AS on the AS-path. This is because the first AS is already encoded as the BGP best next-hop. (in the iSDX part of the vmac)
 \begin{figure}[h]
 \center
-\includegraphics[scale = 0.24]{C:/Users/Philipp/SemesterProject/report/Figures/design_vmac_topology.pdf}
-\includegraphics[scale = 0.35]{C:/Users/Philipp/SemesterProject/report/Figures/design_vmac_cropped.pdf}
+\includegraphics[scale = 0.24]{../Figures/design_vmac_topology.pdf}
+\includegraphics[scale = 0.35]{../Figures/design_vmac_cropped.pdf}
 \caption{example of the vmac in the iSDX with Swift}
 \end{figure}
 
