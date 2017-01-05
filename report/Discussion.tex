@@ -1,8 +1,8 @@
-\chapter{\label{chapter 4}Discussion}
+\chapter{\label{chapter5}Discussion}
 
 \rb{discuss the results and also the above topics, then also talk about the priority of policies vs. fast reroute rules}
 
-\section{\label{chapter4:vmac evaluation}VMAC Evaluation}
+\section{\label{chapter5:vmac evaluation}VMAC Evaluation}
 
 Since both the iSDX and Swift use the destination mac address to encode different information, the amount of bits available to  the iSDX and Swift is reduced. In this section the vmac partitioning in its current state will be analyzed.
 
@@ -19,7 +19,7 @@ With 12 bits used for the AS-path encoding the encoding has a coverage performan
 12 bits for 3 backup next-hops means 4 bits for each next-hop. This means that every participant can have 16 backup next-hops at most. This is not a lot and after 16 backup next-hops have been assigned some prefixes will end up with no backup next-hop. On the other hand it also limits the number of fast reroute rules. 
 
 
-\section{\label{chapter4:number of flow rules}Fast Reroute Flow Rules}
+\section{\label{chapter5:number of flow rules}Fast Reroute Flow Rules}
 
 After a fast reroute message has been received the FR handler pushes reroute rules into the IXP fabric. For every backup next-hop that the participant has stored a rule is pushed. This means the maximum number of rules pushed by a participant after a fast reroute is 16. \\
 FR messages get sent to every participant so the maximum number of flow rules for all the participants is 256*16 = 4096. This amount of flow rules is not substantial enough to have a significant impact on the iSDX. With the number of participants limited to 256 and participants having a reasonbale number policies, the flow rule limit for current SDN switches should not be reached. (iSDX paper figure 3 (a) amsix paper figure 9 )\\
