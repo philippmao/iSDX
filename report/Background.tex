@@ -38,9 +38,9 @@ In this section we will first show the iSDX architecture, explain the policies a
 \caption{iSDX architecture}
 \end{figure}
 
-The iSDX architecture has two main Parts. The Central Services and the Participant Controller. Every participant has its own participant controller. \\
+The iSDX architecture has two main Parts. The Central Services and the Participant Controller. \\
 Central Services forwards BGP updates and ARP queries to the corresponding participant controller. It also initializes all the static flow rules. \\
-The participant controller receives and processes BGP updates from the Route Server. Every participant controller has a local routing information base keeping track of all the received routes, currently used routes and routes advertised to other participants. It also updates policy flow rules and manages ARP requests and gratitious ARP. 
+Every participant has its own participant controller. The participant controller receives and processes BGP updates from the Route Server. Every participant controller has a local routing information base keeping track of all the received routes, currently used routes and routes advertised to other participants.It takes care of the Virtual next-hop and VMAC assignment. It also updates policy flow rules and manages ARP requests and gratuitous ARP. Before BGP updates get sent to the participants border router they are processed by the participant controller.
 
 \subsection{\label{chapter2:iSDX:policies}Policies}
 Policies match on a field of the packet header and then forward the packet to a participant. Policies are implemented as flow rules that the participants controller programs into the SDN switch. 
