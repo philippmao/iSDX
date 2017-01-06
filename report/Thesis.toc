@@ -10,9 +10,10 @@
 \contentsline {subsection}{\numberline {2.2.3}Virtual Next-Hop, Virtual MAC Address}{12}{subsection.2.2.3}
 \contentsline {paragraph}{iSDX VMAC:}{13}{section*.9}
 \contentsline {section}{\numberline {2.3}Swift}{13}{section.2.3}
-\contentsline {subsection}{\numberline {2.3.1}Encoding of Routing Information}{14}{subsection.2.3.1}
+\contentsline {subsection}{\numberline {2.3.1}Architecture}{14}{subsection.2.3.1}
+\contentsline {subsection}{\numberline {2.3.2}Encoding of Routing Information}{14}{subsection.2.3.2}
 \contentsline {paragraph}{Swift VMAC:}{14}{section*.12}
-\contentsline {subsection}{\numberline {2.3.2}Burst Prediction Algorithm}{14}{subsection.2.3.2}
+\contentsline {subsection}{\numberline {2.3.3}Burst Prediction Algorithm}{14}{subsection.2.3.3}
 \contentsline {chapter}{\numberline {3}Motivation}{17}{chapter.3}
 \contentsline {chapter}{\numberline {4}Implementation}{19}{chapter.4}
 \contentsline {section}{\numberline {4.1}Architecture}{19}{section.4.1}
@@ -27,7 +28,11 @@
 \contentsline {section}{\numberline {5.1}Test Setup}{23}{section.5.1}
 \contentsline {section}{\numberline {5.2}Convergence Time without Swift}{23}{section.5.2}
 \contentsline {section}{\numberline {5.3}Convergence Time with Swift}{24}{section.5.3}
+\contentsline {section}{\numberline {5.4}Swift overhead}{24}{section.5.4}
 \contentsline {chapter}{\numberline {6}Discussion}{25}{chapter.6}
-\contentsline {section}{\numberline {6.1}VMAC Evaluation}{25}{section.6.1}
-\contentsline {section}{\numberline {6.2}Fast Reroute Flow Rules}{25}{section.6.2}
+\contentsline {section}{\numberline {6.1}Convergence time}{25}{section.6.1}
+\contentsline {section}{\numberline {6.2}VMAC Evaluation}{25}{section.6.2}
+\contentsline {section}{\numberline {6.3}Fast Reroute Flow Rules}{26}{section.6.3}
+\contentsline {subsection}{\numberline {6.3.1}Number of Flow Rules}{26}{subsection.6.3.1}
+\contentsline {subsection}{\numberline {6.3.2}Outbound Policies and Fast Reroute Rules}{26}{subsection.6.3.2}
 \contentsline {chapter}{\numberline {7}Conclusion}{27}{chapter.7}

@@ -30,9 +30,9 @@ This is because of the way updates propagate trough the network. Changes are onl
 
 The iSDX is an internet exchange point enhanced with a SDN switch and SDN controller.\\
 An internet exchange point is a physical location where multiple autonomous systems meet to exchange traffic and BGP routes. In a traditional exchange point participants can only use a single route per prefix even though they often have multiple routes available. The iSDX gives the participants additional more fine-grained control over routing decisions. Participants can define policies to make use of this.  \\
-In this section we will first show the iSDX architecture, explain the policies and explain how the next-hop and destination mac address is used.
+In this section we will first show the iSDX architecture in \ref{chapter2:iSDX:iSDX_architecture}, explain the policies in \ref{chapter2:iSDX:policies} and explain how the next-hop and destination mac address is used in \ref{chapter2:iSDX:VNH_VMAC}.
 
-\subsection{\label{chapter2:iSX:iSDX architecture}iSDX Architecture}
+\subsection{\label{chapter2:iSDX:iSDX_architecture}iSDX Architecture}
 \begin{figure}[h]
 \includegraphics[scale = 0.4]{Figures/bckdgrnd_sdx_architecture_cropped.pdf}
 \caption{iSDX architecture}
@@ -57,7 +57,7 @@ Inbound policies allow participants to direct packets coming from the iSDX. In e
 \end{figure}
   
 
-\subsection{\label{chapter2:iSDX:virtual next-hop, virtual mac address}Virtual Next-Hop, Virtual MAC Address}
+\subsection{\label{chapter2:iSDX:VNH_VMAC}Virtual Next-Hop, Virtual MAC Address}
 
 
 Participants are not restricted when defining outbound policies. Some policies might direct packets to participants that did not advertise the prefix or simply do not know a route to the prefix. This is a problem because outbound policies can end up violating BGP advertisements. The iSDX solves this problem by attaching additional information to each packet. This additional information is embedded into the destination mac address, transforming the destination mac addresses of packets traversing the SDN switch into a Virtual Mac Address. \\ 
@@ -84,8 +84,10 @@ Figure~\ref{fig:isdx_vmac} shows the Virtual Next-Hops and Virtual MAC Addresses
 
 \rb{make sure that the order of the iSDX and Swift text is aligned}
 
-Swift is a prediction and fast-reroute framework to improve the convergence time of a BGP speaking router upon remote failure. Swifts prediction relies on the fact that the cause of a burst of withdrawals can be predicted before receiving all the withdrawals. \\ Swift uses a SDN switch connected to the swifted router, it's neighbors and to the Swift controller. 
+Swift is a prediction and fast-reroute framework to improve the convergence time of a BGP speaking router upon remote failure. Swifts prediction relies on the fact that the cause of a burst of withdrawals can be predicted before receiving all the withdrawals. \\
+In this section we will show the Swift architecture in \ref{chapter2:Swift:Architecture_SWift}, explain the encoding in \ref{chapter2:Swift:encoding_of_routing_information} and how Swift reduces the convergence time of the swifted router in \ref{chapter2:Swift:BPA}.
 
+\subsection{\label{chapter2:Swift:Architecture_SWift}Architecture}
 
 \begin{figure}[h]
 \center
@@ -93,9 +95,10 @@ Swift is a prediction and fast-reroute framework to improve the convergence time
 \caption{Example topology of a swifted router}
 \end{figure}
 
-The Swift Controller has two main modules: the burst prediction algorithm and the encoding of routing information. In this section we will show the Swift architecture and explain how Swift improves the convergence time of the swifted router. 
+Swift uses a SDN switch connected to the swifted router, its neighbors and to the Swift controller. The Swift Controller has three main parts, the  BGP controller, Swift engine and the SDN \& ARP controller. The BGP controller receives BGP updates from the peers of the swifted router. The BGP controller forwards the updates to the Swift engine. The Swift engine has two main modules: the burst prediction algorithm and the encoding of routing information. These two modules are the two main features of Swift. The SDN \& ARP controller programs flow rules into the SDN switch and manages ARP requests. 
 
-\subsection{\label{chapter2:Swift:encoding of routing information}Encoding of Routing Information}
+
+\subsection{\label{chapter2:Swift:encoding_of_routing_information}Encoding of Routing Information}
 Swift similarly to the iSDX uses virtual next-hops and the destination mac address to encode information about the packet's prefix.\\
 For every prefix Swift encodes the AS-path up to a certain depth and the backup next-hops for each AS-link on that AS-path. Backup next-hops are neigbhors of the swifted router which also advertise the prefix and their advertised route does not traverse the specific AS-link. This encoding is then mapped to a virtual next-hop. When the swifted router wants to send a packet to any prefix it will use the virtual next-hop assigned by Swift. The virtual next-hop directly maps to the destination mac address. \\
 Figure~\ref{fig:isdx_vmac} shows the swifted router and the VMACs used for the prefixes advertised by the neigbhors.
@@ -117,10 +120,10 @@ Figure~\ref{fig:isdx_vmac} shows the swifted router and the VMACs used for the p
 \end{figure}
 
 
-\subsection{\label{chapter2:Swift:burst prediciton algorithm}Burst Prediction Algorithm}
+\subsection{\label{chapter2:Swift:BPA}Burst Prediction Algorithm}
 \rb{refer to the figure}
 The burst prediction algorithm takes BGP updates. It uses the updates to build an AS-topology. Once enough withdrawals arrive in a time frame short enough to trigger a burst, the burst prediction algorithm uses the withdrawals and the AS-topology to predict the failed AS-link. \\
-Upon predicting a failed link the Swift Controller pushes flow rules into the SDN switch matching on the failed AS-link and on the corresponding backup next-hop. In Figure~\ref{fig:isdx_vmac} the burst prediciton module has predicted the AS-link 300 600 to be down. So it pushes rules matching on the AS-path 300 600 and the backup next-hop in this case 400.\\
+Upon predicting a failed link the Swift Controller pushes Fast Reroute flow rules into the SDN switch matching on the failed AS-link and on the corresponding backup next-hop. In Figure~\ref{fig:isdx_vmac} the burst prediciton module has predicted the AS-link 300 600 to be down. So it pushes rules matching on the AS-path 300 600 and the backup next-hop in this case 400.\\
 Every packet that traverses the failed link (has the failed AS-link in it's AS-path encoding) will get rerouted to the backup neighbor.
 \begin{figure}[h]
 \center
@@ -129,7 +132,7 @@ Every packet that traverses the failed link (has the failed AS-link in it's AS-p
 \label{fig:swift_FR}
 \end{figure}
 
-By predicting the failed link and pushing fast-reroute rules instead of waiting for all withdrawals to arrive, Swift reduces the convergence time of the swifted router significantly.
+By predicting the failed link and pushing Fast-Reroute rules instead of waiting for all withdrawals to arrive, Swift reduces the convergence time of the swifted router significantly.
 
 
 
