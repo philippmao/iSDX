@@ -28,11 +28,11 @@
 \contentsline {section}{\numberline {5.1}Test Setup}{23}{section.5.1}
 \contentsline {section}{\numberline {5.2}Convergence Time without Swift}{23}{section.5.2}
 \contentsline {section}{\numberline {5.3}Convergence Time with Swift}{24}{section.5.3}
-\contentsline {section}{\numberline {5.4}Swift overhead}{24}{section.5.4}
-\contentsline {chapter}{\numberline {6}Discussion}{25}{chapter.6}
-\contentsline {section}{\numberline {6.1}Convergence time}{25}{section.6.1}
-\contentsline {section}{\numberline {6.2}VMAC Evaluation}{25}{section.6.2}
-\contentsline {section}{\numberline {6.3}Fast Reroute Flow Rules}{26}{section.6.3}
-\contentsline {subsection}{\numberline {6.3.1}Number of Flow Rules}{26}{subsection.6.3.1}
-\contentsline {subsection}{\numberline {6.3.2}Outbound Policies and Fast Reroute Rules}{26}{subsection.6.3.2}
-\contentsline {chapter}{\numberline {7}Conclusion}{27}{chapter.7}
+\contentsline {section}{\numberline {5.4}Swift Overhead}{25}{section.5.4}
+\contentsline {chapter}{\numberline {6}Discussion}{27}{chapter.6}
+\contentsline {section}{\numberline {6.1}Convergence time}{27}{section.6.1}
+\contentsline {section}{\numberline {6.2}VMAC Evaluation}{27}{section.6.2}
+\contentsline {section}{\numberline {6.3}Fast Reroute Flow Rules}{28}{section.6.3}
+\contentsline {subsection}{\numberline {6.3.1}Number of Flow Rules}{28}{subsection.6.3.1}
+\contentsline {subsection}{\numberline {6.3.2}Outbound Policies and Fast Reroute Rules}{28}{subsection.6.3.2}
+\contentsline {chapter}{\numberline {7}Conclusion}{29}{chapter.7}

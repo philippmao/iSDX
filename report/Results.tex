@@ -23,11 +23,32 @@ The experiment setup is run in on a server with following specs: 1x4 Cores Xeon 
 Convergence time is measured as the time between the first withdraw arriving in the route server and the participant controller finishing to process the last withdraw. To measure the convergence time we use the built in iSDX log server.\\
 This convergence time does not take into account the hold timer or the time the participant router takes to process the withdrawals. But since these things are not under the control of the iSDX they are ignored in this evaluation.
 
-\begin{figure}[h]
-\center
+\begin{figure}
+\centering
+\begin{minipage}[t]{.4\textwidth}
+\centering
+\vspace{0pt}
 \includegraphics[scale = 1]{Figures/noswift.pdf}
 \caption{Convergence time of the iSDX without Swift}
 \label{fig:noswift}
+\end{minipage}\hfill
+\begin{minipage}[t]{.4\textwidth}
+\centering
+\vspace{0pt}
+\begin{tabular}{@{}ll@{}}
+	\\
+	prefixes & Conv. time \\
+	\hline
+	\\
+    5K & 0.9 s  \\
+    10K & 1.8 s   \\
+    25K & 4.9 s   \\
+    50K & 10.1 s  \\
+    100K & 20 s \\
+    250K & 52.75 s   \\
+    500K & 86.5 s  \\
+\end{tabular}
+\end{minipage}
 \end{figure}
 
 Figure~\ref{fig:noswift} shows the convergence time depending on the number of prefixes injected by bgpsimple.
@@ -39,15 +60,47 @@ At 500'000 prefixes the iSDX takes about 90 seconds to converge. During these 90
 Convergence time is measured as the time between the first withdraw arriving in the route server and the participant controllers FR handler finishing to push the Fast-reroute rules. \\
 
 \begin{figure}[h]
-\center
+\centering
+\begin{minipage}[t]{.4\textwidth}
+\centering
+\vspace{0pt}
 \includegraphics[scale = 1]{Figures/swift.pdf}
 \caption{Convergence time of the iSDX without Swift}
 \label{fig:withswift}
+\end{minipage}\hfill
+\begin{minipage}[t]{.4\textwidth}
+\centering
+\vspace{0pt}
+\begin{tabular}{@{}ll@{}}
+	\\
+	prefixes & Conv. time \\
+	\hline
+	\\
+    5K & 0.5 s  \\
+    10K & 0.6 s   \\
+    25K & 0.7 s   \\
+    50K & 0.8 s  \\
+    100K & 0.85 s \\
+    250K & 1.25 s   \\
+    500K & 1.4 s  \\
+\end{tabular}
+\end{minipage}
 \end{figure}
 
 Figure~\ref{fig:withswift} shows the convergence time depending on the number of prefixes injected by bgpsimple.
 The convergence time increases slightly with higher number of prefixes. At 500'000 prefixes the iSDX takes about 1.5 seconds to push the FR rules. After these 1.5 seconds packets sent from A1 get redirected to C1 and reach their destination. \\
 
-\section{\label{chapter4:Swift overhead}Swift overhead}
+\section{\label{chapter4:Swift overhead}Swift Overhead}
+
+In this section we present the overhead that Swift adds to the processing of a single BGP update. We measure the time between the BGP update arriving in the route server and the participant controller finishing to process the update. 
+
+\begin{figure}[h]
+\center
+\includegraphics[scale = 1]{Figures/results_overhead.pdf}
+\caption{Time to process a single BGP Update with and without Swift}
+\label{fig:swiftoverhead}
+\end{figure}
+
+Figure~\ref{fig:swiftoverhead} shows the time to process a single BGP. \\On average iSDX takes 987 ns without Swift and 1119 ns with Swift.
 
 \newpage
