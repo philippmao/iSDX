@@ -1,10 +1,13 @@
 \chapter{\label{chapter5}Discussion}
 
-In this chapter we will discuss the convergence times of iSDX with and without Swift in \ref{chapter5:Convergence time}. We will evaluate the VMAC partitioning in \ref{chapter5:vmac evaluation} and examine the fast reroute flow rules in \ref{chapter5:number of flow rules}
+In this chapter we will discuss the convergence performance of iSDX with and without Swift in \ref{chapter5:Convergence time}. We will evaluate the VMAC partitioning in \ref{chapter5:vmac evaluation} and examine the fast reroute flow rules in \ref{chapter5:number of flow rules}
 
-\section{\label{chapter5:Convergence time}Convergence time}
+\section{\label{chapter5:Convergence time}Convergence Performance}
 
-\rb{discuss results and overhead and swift performance}
+In this section will discuss the results of the measurements presented in \ref{chapter4}. \\
+As clearly seen in Figure~\ref{fig:noswift} and Figure~\ref{fig:withswift} iSDX with Swift has a much shorter convergence time. At 500'000 prefixes the convergence time is improved by a factor of 60. The convergence time of iSDX with Swift increases slightly with a higher number of prefixes. As seen in Figure~\ref{fig:activities} with more prefixes more time is spent until the Fast Reroute rules are pushed into the SDN switch. We suppose that this is because the participant controller has to process more BGP updates before it can process the FR message, as the FR messages and BGP udpates get sent over the same channel. \\
+The shorter convergence time comes at a cost. That is the overhead Swift adds to the processing of a single BGP update. Since the updates get sent to Swift-BPA module before getting sent to the participant controller it takes iSDX with Swift longer to process a single BGP update. On average it takes iSDX with Swift about 132 ns longer to process a single BGP update, 13 \% longer. 
+
 
 \section{\label{chapter5:vmac evaluation}VMAC Evaluation}
 
