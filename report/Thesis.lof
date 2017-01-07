@@ -3,23 +3,23 @@
 \addvspace {10\p@ }
 \contentsline {figure}{\numberline {2.1}{\ignorespaces iSDX architecture\relax }}{12}{figure.caption.5}
 \contentsline {figure}{\numberline {2.2}{\ignorespaces Example of outbound and inbound policies with an iSDX connected to three participants\relax }}{12}{figure.caption.8}
-\contentsline {figure}{\numberline {2.3}{\ignorespaces Example of the iSDX vmac with an iSDX connected to three participants\relax }}{13}{figure.caption.10}
-\contentsline {figure}{\numberline {2.4}{\ignorespaces Example topology of a swifted router\relax }}{14}{figure.caption.11}
-\contentsline {figure}{\numberline {2.5}{\ignorespaces Example of the Swift vmac\relax }}{14}{figure.caption.13}
-\contentsline {figure}{\numberline {2.6}{\ignorespaces Example of a fast-reroute after BPA predicts the AS link 300 600 to be down\relax }}{15}{figure.caption.14}
+\contentsline {figure}{\numberline {2.3}{\ignorespaces Example of the iSDX vmac with an iSDX connected to three participants\relax }}{13}{figure.caption.9}
+\contentsline {figure}{\numberline {2.4}{\ignorespaces Example topology of a swifted router\relax }}{14}{figure.caption.10}
+\contentsline {figure}{\numberline {2.5}{\ignorespaces Example of the Swift vmac\relax }}{14}{figure.caption.12}
+\contentsline {figure}{\numberline {2.6}{\ignorespaces Example of a fast-reroute after BPA predicts the AS link 300 600 to be down\relax }}{15}{figure.caption.13}
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {4.1}{\ignorespaces iSDX architecture with Swift\relax }}{19}{figure.caption.15}
-\contentsline {figure}{\numberline {4.2}{\ignorespaces pipeline of the Swift-BPA module\relax }}{20}{figure.caption.16}
-\contentsline {figure}{\numberline {4.3}{\ignorespaces pipeline of the fast reroute handler\relax }}{20}{figure.caption.17}
-\contentsline {figure}{\numberline {4.4}{\ignorespaces pipeline of the modified route server\relax }}{21}{figure.caption.19}
-\contentsline {figure}{\numberline {4.5}{\ignorespaces example of the vmac in the iSDX with Swift\relax }}{22}{figure.caption.22}
+\contentsline {figure}{\numberline {4.1}{\ignorespaces iSDX architecture with Swift\relax }}{19}{figure.caption.14}
+\contentsline {figure}{\numberline {4.2}{\ignorespaces pipeline of the Swift-BPA module\relax }}{20}{figure.caption.15}
+\contentsline {figure}{\numberline {4.3}{\ignorespaces pipeline of the fast reroute handler\relax }}{20}{figure.caption.16}
+\contentsline {figure}{\numberline {4.4}{\ignorespaces pipeline of the modified route server\relax }}{21}{figure.caption.18}
+\contentsline {figure}{\numberline {4.5}{\ignorespaces example of the vmac in the iSDX with Swift\relax }}{22}{figure.caption.21}
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {5.1}{\ignorespaces Test Setup\relax }}{23}{figure.caption.23}
-\contentsline {figure}{\numberline {5.2}{\ignorespaces Convergence time of the iSDX without Swift\relax }}{24}{figure.caption.24}
-\contentsline {figure}{\numberline {5.3}{\ignorespaces Convergence time of the iSDX without Swift\relax }}{24}{figure.caption.25}
-\contentsline {figure}{\numberline {5.4}{\ignorespaces Time spent on detection, prediction and rules during a Fast Reroute\relax }}{25}{figure.caption.26}
-\contentsline {figure}{\numberline {5.5}{\ignorespaces Time to process a single BGP Update with and without Swift\relax }}{25}{figure.caption.27}
+\contentsline {figure}{\numberline {5.1}{\ignorespaces Test Setup\relax }}{23}{figure.caption.22}
+\contentsline {figure}{\numberline {5.2}{\ignorespaces Convergence time of the iSDX without Swift\relax }}{24}{figure.caption.23}
+\contentsline {figure}{\numberline {5.3}{\ignorespaces Convergence time of the iSDX without Swift\relax }}{24}{figure.caption.24}
+\contentsline {figure}{\numberline {5.4}{\ignorespaces Time spent on detection, prediction and rules during a Fast Reroute\relax }}{25}{figure.caption.25}
+\contentsline {figure}{\numberline {5.5}{\ignorespaces Time to process a single BGP Update with and without Swift\relax }}{25}{figure.caption.26}
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {6.1}{\ignorespaces Vmac of the iSDX with Swift\relax }}{27}{figure.caption.28}
+\contentsline {figure}{\numberline {6.1}{\ignorespaces Vmac of the iSDX with Swift\relax }}{27}{figure.caption.27}
 \addvspace {10\p@ }

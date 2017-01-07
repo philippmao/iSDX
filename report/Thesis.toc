@@ -8,11 +8,10 @@
 \contentsline {paragraph}{Outbound Policies:}{12}{section*.6}
 \contentsline {paragraph}{Inbound Policies:}{12}{section*.7}
 \contentsline {subsection}{\numberline {2.2.3}Virtual Next-Hop, Virtual MAC Address}{13}{subsection.2.2.3}
-\contentsline {paragraph}{iSDX VMAC:}{13}{section*.9}
 \contentsline {section}{\numberline {2.3}Swift}{13}{section.2.3}
-\contentsline {subsection}{\numberline {2.3.1}Architecture}{14}{subsection.2.3.1}
-\contentsline {subsection}{\numberline {2.3.2}Encoding of Routing Information}{14}{subsection.2.3.2}
-\contentsline {paragraph}{Swift VMAC:}{14}{section*.12}
+\contentsline {subsection}{\numberline {2.3.1}Architecture}{13}{subsection.2.3.1}
+\contentsline {subsection}{\numberline {2.3.2}Encoding of Routing Information}{13}{subsection.2.3.2}
+\contentsline {paragraph}{Swift VMAC:}{14}{section*.11}
 \contentsline {subsection}{\numberline {2.3.3}Burst Prediction Algorithm}{14}{subsection.2.3.3}
 \contentsline {chapter}{\numberline {3}Motivation}{17}{chapter.3}
 \contentsline {chapter}{\numberline {4}Implementation}{19}{chapter.4}
@@ -20,9 +19,9 @@
 \contentsline {section}{\numberline {4.2}Swift-BPA}{20}{section.4.2}
 \contentsline {section}{\numberline {4.3}FR-Handler}{20}{section.4.3}
 \contentsline {section}{\numberline {4.4}Changes to the iSDX}{21}{section.4.4}
-\contentsline {paragraph}{Route Server:}{21}{section*.18}
-\contentsline {paragraph}{Local RIB:}{21}{section*.20}
-\contentsline {paragraph}{VMAC Encoding:}{21}{section*.21}
+\contentsline {paragraph}{Route Server:}{21}{section*.17}
+\contentsline {paragraph}{Local RIB:}{21}{section*.19}
+\contentsline {paragraph}{VMAC Encoding:}{21}{section*.20}
 \contentsline {section}{\numberline {4.5}VMAC Partitioning}{21}{section.4.5}
 \contentsline {chapter}{\numberline {5}Evaluation}{23}{chapter.5}
 \contentsline {section}{\numberline {5.1}Test Setup}{23}{section.5.1}

@@ -65,24 +65,14 @@ In the Virtual Mac Address the participant controller encodes the participants a
 The Virtual Mac Address corresponds to a Virtual Next Hop, which is assigned to every prefix. \\ The participant controller sends BGP updates to it's border routers, with the next-hop of the update set to the Virtual Next-Hop of the prefix. The Virtual Mac Address is communicated to the participants via ARP. \\
 Figure~\ref{fig:isdx_vmac} shows the Virtual Next-Hops and Virtual MAC Addresses used by participant A.
 
-\paragraph{\label{chapter2:iSDX:virtual next-hop :inbound policies}iSDX VMAC:}
-
-\rb{replace with a figure like the one later in the report}
-\begin{tabular}{|r|l|}
-  \hline 
-  participants advertising the prefix & BGP best next-hop participant \\
-  \hline
-\end{tabular}
-
 \begin{figure}[h]
-\includegraphics[scale = 0.36]{Figures/intro_sdx_vmac.pdf}
+\center
+\includegraphics[scale = 0.36]{Figures/bckgrnd_sdx_vmac_cropped.pdf}
 \caption{Example of the iSDX vmac with an iSDX connected to three participants}
 \label{fig:isdx_vmac}
 \end{figure}
 
 \section{\label{chapter2:Swift}Swift}
-
-\rb{make sure that the order of the iSDX and Swift text is aligned}
 
 Swift is a prediction and fast-reroute framework to improve the convergence time of a BGP speaking router upon remote failure. Swifts prediction relies on the fact that the cause of a burst of withdrawals can be predicted before receiving all the withdrawals. \\
 In this section we will show the Swift architecture in \ref{chapter2:Swift:Architecture_SWift}, explain the encoding in \ref{chapter2:Swift:encoding_of_routing_information} and how Swift reduces the convergence time of the swifted router in \ref{chapter2:Swift:BPA}.
@@ -121,7 +111,6 @@ Figure~\ref{fig:isdx_vmac} shows the swifted router and the VMACs used for the p
 
 
 \subsection{\label{chapter2:Swift:BPA}Burst Prediction Algorithm}
-\rb{refer to the figure}
 The burst prediction algorithm takes BGP updates. It uses the updates to build an AS-topology. Once enough withdrawals arrive in a time frame short enough to trigger a burst, the burst prediction algorithm uses the withdrawals and the AS-topology to predict the failed AS-link. \\
 Upon predicting a failed link the Swift Controller pushes Fast Reroute flow rules into the SDN switch matching on the failed AS-link and on the corresponding backup next-hop. In Figure~\ref{fig:isdx_vmac} the burst prediciton module has predicted the AS-link 300 600 to be down. So it pushes rules matching on the AS-path 300 600 and the backup next-hop in this case 400.\\
 Every packet that traverses the failed link (has the failed AS-link in it's AS-path encoding) will get rerouted to the backup neighbor.
