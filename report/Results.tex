@@ -1,10 +1,10 @@
-\chapter{\label{chapter4}Evaluation}
+\chapter{\label{chapter5}Evaluation}
 
-In this chapter, we present the results of the tests we ran to evaluate the convergence performance of the iSDX. We explain the test setup in \ref{chapter4:Test Setup}. We present the convergence time of iSDX without Swift in \ref{chapter4:Convergence time without Swift}, the one of the iSDX with Swift in \ref{chapter4:Convergence time with Swift} and examine the Swift overhead in \ref{chapter4:Swift overhead}.
+In this chapter, we present the results of the tests we ran to evaluate the convergence performance of the iSDX. We explain the test setup in \ref{chapter5:Test Setup}. We present the convergence time of the iSDX without Swift in \ref{chapter5:Convergence time without Swift}, the convergence time of the iSDX with Swift in \ref{chapter5:Convergence time with Swift} and examine the Swift overhead in \ref{chapter5:Swift overhead}.
 
-In the next chapter we will discuss the results, examine the VMAC partitioning and the fast-reroute rules.
+In the next chapter we discuss the results, examine the VMAC partitioning and the fast reroute rules.
 
-\section{\label{chapter4:Test Setup}Test Setup}
+\section{\label{chapter5:Test Setup}Test Setup}
 
 \begin{figure}[h]
 \center
@@ -18,7 +18,7 @@ The test setup has an iSDX with or without Swift connected to three participants
 
 The experiment setup is run on a server with following specs: Intel Xeon CPU E5620 with 4 Cores at 2.4 GHz, 36GB of RAM, running Ubuntu 14.04. The experiment uses Mininet~\cite{mininet} to simulate the network. The routers A1, B1, C1 and R1 are quagga~\cite{quagga} routers. The perl script bgpsimple~\cite{bgpsimple} is used to inject an arbitrary number of routes into R1. 
 
-\section{\label{chapter4:Convergence time without Swift}Convergence Time without Swift}
+\section{\label{chapter5:Convergence time without Swift}Convergence Time without Swift}
 
 We measure the convergence time as the time between the first withdraw arriving at the route server and the participant controller finishing to process the last withdraw. To measure the convergence time we use the built in iSDX log server.
 
@@ -30,13 +30,11 @@ This convergence time does not take into account the hold timer or the time the 
 \centering
 \vspace{0pt}
 \includegraphics[scale = 1]{Figures/noswift.pdf}
-\caption{Convergence time of the iSDX without Swift}
-\label{fig:noswift}
 \end{minipage}\hfill
 \begin{minipage}[t]{.4\textwidth}
 \centering
 \vspace{0pt}
-\begin{tabular}{@{}ll@{}}
+\begin{tabular}{@{}lr@{}}
 	\\
 	prefixes & Conv. time \\
 	\hline
@@ -50,15 +48,15 @@ This convergence time does not take into account the hold timer or the time the 
     500K & 86.5 s  \\
 \end{tabular}
 \end{minipage}
+\caption{Convergence time of the iSDX without Swift}
+\label{fig:noswift}
 \end{figure}
-
-\rb{try to change the alignment of the caption of Figure~\ref{fig:noswift} and also change the tables to align the numbers on the right. Such that the numbers line up.}
 
 Figure~\ref{fig:noswift} shows the convergence time depending on the number of prefixes injected by bgpsimple. The results show that the convergence time increases linearly with the number of prefixes advertised by R1.
 
 At 500'000 prefixes the iSDX takes about 90 seconds to converge. During these 90 seconds A1 is still sending packet to B1 even though that route does not exist anymore. Hence, all the traffic is dropped. 
 
-\section{\label{chapter4:Convergence time with Swift}Convergence Time with Swift}
+\section{\label{chapter5:Convergence time with Swift}Convergence Time with Swift}
 
 Here, we measure the convergence time as the time between the first withdraw arriving at the route server and the participant controller's FR-handler finishing to push the Fast-reroute rules.
 
@@ -68,13 +66,11 @@ Here, we measure the convergence time as the time between the first withdraw arr
 \centering
 \vspace{0pt}
 \includegraphics[scale = 1]{Figures/swift.pdf}
-\caption{Convergence time of the iSDX without Swift}
-\label{fig:withswift}
 \end{minipage}\hfill
 \begin{minipage}[t]{.4\textwidth}
 \centering
 \vspace{0pt}
-\begin{tabular}{@{}ll@{}}
+\begin{tabular}{@{}lr@{}}
 	\\
 	prefixes & Conv. time \\
 	\hline
@@ -88,6 +84,8 @@ Here, we measure the convergence time as the time between the first withdraw arr
     500K & 1.4 s  \\
 \end{tabular}
 \end{minipage}
+\caption{Convergence time of the iSDX without Swift}
+\label{fig:withswift}
 \end{figure}
 
 Figure~\ref{fig:withswift} shows the convergence time depending on the number of prefixes injected by bgpsimple.
@@ -96,14 +94,14 @@ The convergence time increases slightly with higher number of prefixes. At 500'0
 \begin{figure}[h]
 \center
 \includegraphics[scale = 1]{Figures/barplot.pdf}
-\caption{Time spent on detection, prediction and reroute rule installation during a Fast Reroute}
+\caption{Time spent on detection, prediction and reroute rule installation during a fast reroute}
 \label{fig:activities}
 \end{figure}
 
 Figure~\ref{fig:activities} shows the fraction of the total convergence time and what this time is made up of. In blue is the time until a burst of withdrawals is detected. In red is the time it takes to predict the failed AS-link. In violet is the time it takes for the participant controller to receive and push the Fast Reroute rules. With a higher number of prefixes withdrawn rises the time until Fast Reroute rules are pushed. The time for the prediction increases slightly with a higher number of prefixes. The time to detect the burst is more or less constant since we used the same Swift configuration for all the experiments. 
 \rb{you will most certainly get a question why it takes so much longer to install the fast reroute flow rules for 500k prefixes. Make sure to look this up and also write this in the thesis.}
 
-\section{\label{chapter4:Swift overhead}Swift Overhead}
+\section{\label{chapter5:Swift overhead}Swift Overhead}
 
 In this section we present the overhead that Swift adds to the processing of a single BGP update. We measure the time between the BGP update arriving in the route server and the participant controller finishing to process the update. 
 

@@ -1,17 +1,17 @@
-\chapter{\label{chapter5}Discussion}
+\chapter{\label{chapter6}Discussion}
 
 \rb{this chapter needs still some polishing.}
 
-In this chapter, we discuss the results of the previous chapter \ref{chapter5:Convergence time}. We evaluate the VMAC partitioning in \ref{chapter5:vmac evaluation} and examine the number of required fast reroute flow rules in \ref{chapter5:number of flow rules}.
+In this chapter, we discuss the results of the previous chapter \ref{chapter6:Convergence time}. We evaluate the VMAC partitioning in \ref{chapter6:vmac evaluation} and examine the number of required fast reroute flow rules in \ref{chapter6:number of flow rules}.
 
-\section{\label{chapter5:Convergence time}Convergence Performance}
+\section{\label{chapter6:Convergence time}Convergence Performance}
 
-In this section will discuss the results of the measurements presented in \ref{chapter4}. \\
+In this section will discuss the results of the measurements presented in \ref{chapter5}. \\
 As clearly seen in Figure~\ref{fig:noswift} and Figure~\ref{fig:withswift} iSDX with Swift has a much shorter convergence time. At 500'000 prefixes the convergence time is improved by a factor of 60. The convergence time of iSDX with Swift increases slightly with a higher number of prefixes. As seen in Figure~\ref{fig:activities} with more prefixes more time is spent until the Fast Reroute rules are pushed into the SDN switch. We suppose that this is because the participant controller has to process more BGP updates before it can process the FR message, as the FR messages and BGP udpates get sent over the same channel. \\
 The shorter convergence time comes at a cost. That is the overhead Swift adds to the processing of a single BGP update. Since the updates get sent to Swift-BPA module before getting sent to the participant controller it takes iSDX with Swift longer to process a single BGP update. On average it takes iSDX with Swift about 132ns longer to process a single BGP update, 13 \% longer. 
 
 
-\section{\label{chapter5:vmac evaluation}VMAC Evaluation}
+\section{\label{chapter6:vmac evaluation}VMAC Evaluation}
 
 Since both the iSDX and Swift use the destination mac address to encode the required additional information, the amount of bits available to the iSDX and Swift encoding is reduced as the space has to be shared. The current VMAC partitioning is simply the first intuition on how the VMAC can be partitioned. The partitioning can be easily changed by configuring the iSDXs parameters. There may still be some optimization. But we realize that optimizing the VMAC partitioning would outgrow the time frame of this project. In this section we evaluate the VMAC partitioning in its current state.
 
@@ -29,11 +29,11 @@ With 12 bits used for the AS-path encoding the encoding has a coverage performan
 12 bits for 3 backup next-hops means 4 bits for each next-hop. This means that every participant can have 16 backup next-hops at most. This is not a lot and after 16 backup next-hops have been assigned some prefixes will end up with no backup next-hop. On the other hand, it also limits the number of fast reroute rules. \\
 
 
-\section{\label{chapter5:number of flow rules}Fast Reroute Flow Rules}
+\section{\label{chapter6:number of flow rules}Fast Reroute Flow Rules}
 
 In this section we will first examine the number of Fast reroute Flow Rules required for a Fast-Reroute in \ref{chapter5:number of flow rules:number_of_Flow_Rules}. We will also examine the priority of the Fast-Reroute Flow Rules compared to Outbound Policies in \ref{chapter5:number of flow rules:outbound_FR}
 
-\subsection{\label{chapter5:number of flow rules:number_of_Flow_Rules}Number of Flow Rules}
+\subsection{\label{chapter6:number of flow rules:number_of_Flow_Rules}Number of Flow Rules}
 
 \rb{important to emphasize that on what the number of fast reroute flow rules depends. It does not depend on the number of withdrawn prefixes.}
 
@@ -41,7 +41,7 @@ After a Fast Reroute message has been received the FR handler pushes Fast Rerout
 FR messages get sent to every participant that is peering with the participant whose Swift-BPA triggered the Fast Reroute. This means the maximum number of flow rules pushed after a Fast Reroute is triggered is 256*16 = 4096. This amount of flow rules is not substantial enough to have a significant impact on the iSDX. With the number of participants limited to 256 and participants having a reasonbale number policies, the flow rule limit for current SDN switches should not be reached. (iSDX paper figure 3 (a) amsix paper figure 9 )\rb{proper citation}\\
 Usually this upper bound of flow rules should not be reached. Upon a Fast-Reroute not all participants will be peering with the participant that triggered the Fast Reroute. Also the participants may not have reached the maximum number of Flow Rules yet.
 
-\subsection{\label{chapter5:number of flow rules:outbound_FR}Outbound Policies and Fast Reroute Rules}
+\subsection{\label{chapter6:number of flow rules:outbound_FR}Outbound Policies and Fast Reroute Rules}
 
 \rb{improve the writing. it is not quite clear what the higher priorities actually mean}
 Fast Reroute rules and Outbound Policies are in conflict.\\
