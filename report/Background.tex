@@ -95,7 +95,7 @@ In this section, we first show the Swift architecture in \ref{chapter2:Swift:Arc
 \begin{figure}[h]
 \center
 \includegraphics[scale = 0.5]{Figures/bckgrnd_swift_architecture.pdf}
-\caption{Example topology of a swifted router}
+\caption{Example topology of a swifted router \cite{swift}}
 \end{figure}
 
 Swift uses an SDN switch connected to the swifted router, its neighbors and to the Swift controller. The Swift Controller has three main parts, \emph{(i)} the BGP controller, \emph{(ii)} the Swift engine and \emph{(iii)} the SDN \& ARP controller. The BGP controller receives BGP updates from the peers of the swifted router. The BGP controller forwards the updates to the Swift engine. The Swift engine consists of two main modules: \emph{(i)} the burst prediction algorithm and \emph{(ii)} the encoding of routing information. These two modules are the two main features of Swift. Every peer of the swifted router has its own Swift eninge running. The SDN \& ARP controller programs flow rules into the SDN switch and manages ARP requests. 

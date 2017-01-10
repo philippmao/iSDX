@@ -8,11 +8,10 @@ In the next chapter, we present the results of the tests done to measure the con
 
 \begin{figure}[h]
 \center
-\includegraphics[scale = 0.7]{Figures/design_sdx_swift_cropped.pdf}
+\includegraphics[scale = 0.5]{Figures/design_sdx_swift_cropped.pdf}
 \caption{iSDX architecture with Swift}
 \label{fig:isdx_architecture_with_swift}
 \end{figure}
-\rb{decrease the size of the figure a bit}
 
 Figure~\ref{fig:isdx_architecture_with_swift} shows the iSDX~\cite{feamster2013sdx} architecture with Swift. The orange modules represent the new modules we had to add to the iSDX to implement Swift. The iSDX receives two additional modules the Swift-BPA module in the central services and the FR handler in the participant controller. With these two modules the iSDX is able to detect bursts of withdrawals, predict the failed AS-link that caused the burst and push fast reroute rules into the IXP fabric.
 
@@ -26,18 +25,17 @@ In the following sections, we explain the functionality of the new modules and o
 \caption{pipeline of the Swift-BPA module}
 \end{figure}
 
-The Swift-BPA module implements Swifts main functionality, encoding and prediction. It is part of the central services and exchanges BGP updates and FR messages with the route server and participant controllers.
+The Swift-BPA module implements Swifts main functionality, encoding and prediction. It is part of the central services and exchanges BGP updates and fast reroute (FR) messages with the route server and participant controllers.
 
 The Swift-BPA module is placed in the route server and processes each update received by the route server before passing it on to the participant controllers. 
-
-\rb{better explain what the AS-topology is for or refer to the Background chapter if you explained it there, the same goes for the AS-path. Have you explained anywhere what FR messages are? If not, you need to do this. Else it is hard to understand what these messages are and why they would be sent. Also in the sentence afterwards, you kind of explain it, but you don't use the abbreviation consistently. you should introduce the abbreviation somewhere. You can use these FR messages to link to the next section.}
-When receiving a BGP update the Swift-BPA updates the AS-topology and adds the AS-path encoding to the BGP update. Then the update gets sent to the participant controller. 
-After the update is sent to the participant controller the burst detection checks if the update triggers a burst. If so the prediction module predicts the failed AS-link, the cause for the burst and sends FR messages to the participant controller. 
-The fast reroute message inform the participant controllers about the AS-link that is predicted to be down. \rb{In the following, we show how the participant controller handles the FR messages.}
-
 Similar to the participant controller every participant has a Swift-BPA process running. The Swift-BPA only receives BGP updates from his own routers. This way the Swift engine can be implemented without any modifications.
 
-\section{\label{chapter4:FR-handler}FR-Handler}
+When receiving a BGP update the Swift-BPA updates the AS-topology and adds the AS-path encoding to the BGP update. The AS-topology is used when predicting a failed AS-link, it stores AS-links and the number of received routes that traverse this link. Then the update gets sent to the participant controller. The AS-path encoding is used in the Swift part of the VMAC. 
+After the update is sent to the participant controller the burst detection checks if the update triggers a burst. If so the prediction module predicts the failed AS-link, the cause of the burst and sends FR messages to the participant controllers. 
+The FR messages inform the participant controllers about the AS-link that is predicted to be down. In the following, we show how the participant controllers handle the FR messages.
+
+
+\section{\label{chapter4:FR-handler}FR Handler}
 
 \begin{figure}[h]
 \center
@@ -45,10 +43,9 @@ Similar to the participant controller every participant has a Swift-BPA process 
 \caption{pipeline of the fast reroute handler}
 \end{figure}
 
-\rb{reorder it. start with the reception of such a FR message to link it to the previous section and then explain what is done in the FR Handler.}
-The FR-handler implements the pushing of fast reroute rules.
-Once the Swift-BPA predicts a failed AS-link it sends FR messages to all the participant controllers.
-The FR-handler receives FR messages and computes the fast reroute rules using the backup next-hops and the predicted AS-link. Every participant controller computes its own backup next-hops. The fast reroute rules get sent to the reference monitor as flow rule messages. The reference monitor then installs the flow rules in the SDN switch. Just like in Swift the fast reroute rules match on the failed AS-link and on the backup next-hop.    
+The FR-handler is placed in the participant controller and processes FR messages.
+Upon receiving a FR message the FR handler computes the FR rules. The FR rules are computed using the failed AS-link contained in the FR message and the backup next-hops, which were computed by the participant controller. 
+The FR rules get sent to the reference monitor as flow rule messages. The reference monitor then installs the flow rules in the SDN switch. Just like in Swift the FR rules match on the failed AS-link and on the backup next-hop.    
 
 \newpage
 
@@ -73,11 +70,7 @@ We had to apply a few changes to the iSDX's modules. These changes mainly affect
 \paragraph{\label{chapter4:Changes to the iSDX:route server}Route Server:}
 
 The route server had to be adapted to work with the Swift-BPA module. 
-\rb{don't go into that much detail: Listener and Sender. Just write that instead of simply forwarding all the BGP updates to the participant controllers, the route server now has to notify the Swift-BPA module before forwarding the updates. Only after the Swift-BPA has finished processing the updates, they can be forwarded to the participants as the updates have to be augmented with the encoding.}
-It now has two modules the Listener and Sender. \\
-The Listener receives BGP updates and forwards them to the Swift-BPA. \\
-The Sender receives modified BGP updates and FR messages from the Swift-BPA and forwards them to the participant controllers. The sender processes FR messages with higher priority than modified BGP updates, this way the FR messages reach the FR handlers as quickly as possible. 
-
+Instead of simply forwarding BGP updates from participant routers to the corresponding participant controller the route server forwards these updates to the corresponding Swift-BPA process. This is done so the Swift-BPA can augment the updates with the encoding of the AS-path. The route server also receives FR messages and augmented BGP updates with AS-path encoding from the Swift-BPA and forwards them to the corresponding participant controllers. 
 \begin{figure}[h]
 \center
 \includegraphics[scale = 0.45]{Figures/design_route_server_cropped2.pdf}
@@ -87,12 +80,10 @@ The Sender receives modified BGP updates and FR messages from the Swift-BPA and 
 
 \paragraph{\label{chapter4:Changes to the iSDX:local RIB}Local RIB:}
 
-\rb{try to link it to the previous paragraph: As each BGP update from the route server now also contains the AS-path encoding, the local RIB had to be adapted to also store this information. and so on}
-The local RIB now stores the AS-path encoding. When processing a BGP update the local RIB extracts the AS-path encoding (added by the Swift-BPA) and saves it as an additional attribute. The encoded AS-path is then used in the VMAC encoding. 
+As each BGP update from the route server contains the AS-path encoding, the local RIB had to be adapted to store this information. 
+When processing a BGP update the local RIB extracts the AS-path encoding (added by the Swift-BPA) and saves it as an additional attribute. The encoded AS-path is then used in the VMAC encoding. 
 
 \paragraph{\label{chapter4:Changes to the iSDX:Vmac Encoding}VMAC Encoding:}
-\rb{try to reduce the usage of now. Here don't focus that much on what the VMAC encodes, but also that this module has to take two encodings and merge them.}
-The VMAC encoding now computes the backup next-hops for the AS-path of the BGP update. There is one backup next-hop for every AS-link on the AS-path, packets can be sent to the backup next-hop in case this AS-link is predicted to be down. \\
-The VMAC encoding now builds the VMAC using both iSDX and Swift encoding. \\
+The VMAC encoding builds the VMAC with both  the iSDX and Swift information. The Swift encoding uses the AS-path encoding stored in the local RIB and the backup next-hops. The backup next-hops are computed by the VMAC encoding for the encoded AS-paths. There is one backup next-hop for every AS-link on the AS-path, packets can be sent to the backup next-hop in case this AS-link is predicted to be down. \\
 
 \newpage

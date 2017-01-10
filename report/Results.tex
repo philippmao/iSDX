@@ -2,7 +2,7 @@
 
 In this chapter, we present the results of the tests we ran to evaluate the convergence performance of the iSDX. We explain the test setup in \ref{chapter5:Test Setup}. We present the convergence time of the iSDX without Swift in \ref{chapter5:Convergence time without Swift}, the convergence time of the iSDX with Swift in \ref{chapter5:Convergence time with Swift} and examine the Swift overhead in \ref{chapter5:Swift overhead}.
 
-The results show that iSDX with Swift converges about 60 times faster. However, this comes at the cost of a $13%$ increase in processing time for BGP updates. The majority of the convergence time is spent on detecting the burst.
+The results show that iSDX with Swift converges about 60 times faster. However, this comes at the cost of a $13\%$ increase in processing time for BGP updates. The majority of the convergence time is spent on detecting the burst.
 
 In the next chapter we discuss the results, examine the VMAC partitioning and the fast reroute rules.
 
@@ -60,7 +60,7 @@ At $500'000$ prefixes the iSDX takes about $90$\,seconds to converge. During the
 
 \section{\label{chapter5:Convergence time with Swift}Convergence Time with Swift}
 
-Here, we measure the convergence time as the time between the first withdraw arriving at the route server and the participant controller's FR-handler finishing to push the Fast-reroute rules.
+In this section, we measure the convergence time as the time between the first withdraw arriving at the route server and the participant controller's FR-handler finishing to push the Fast-reroute rules.
 
 \begin{figure}[h]
 \centering
@@ -100,24 +100,19 @@ The convergence time increases slightly with higher number of prefixes. At 500'0
 \label{fig:activities}
 \end{figure}
 
-\rb{explain this test as well. what did you measure? withdraws/updates/both? how many times did you repeat it? I would probably change to absolute values instead of the relative ones, then it is probably easier to show why it takes that much longer with 500k prefixes.}
-
-Figure~\ref{fig:activities} shows the fraction of the total convergence time and what this time is made up of. In blue is the time until a burst of withdrawals is detected. In red is the time it takes to predict the failed AS-link. In violet is the time it takes for the participant controller to receive and push the Fast Reroute rules. With a higher number of prefixes withdrawn rises the time until Fast Reroute rules are pushed. The time for the prediction increases slightly with a higher number of prefixes. The time to detect the burst is more or less constant since we used the same Swift configuration for all the experiments. 
-\rb{you will most certainly get a question why it takes so much longer to install the fast reroute flow rules for 500k prefixes. Make sure to look this up and also write this in the thesis.}
+Figure~\ref{fig:activities} shows what the convergence time is made up of. In blue is the time until a burst of withdrawals is detected. In red is the time it takes to predict the failed AS-link. In violet is the time after the Swift-BPA sends FR messages until the participant controller receives and pushes the FR rules. With a higher number of prefixes withdrawn rises the time until Fast Reroute rules are pushed. The time for the prediction increases slightly with a higher number of prefixes. The time to detect the burst is more or less constant since we used the same Swift configuration for all the experiments. 
 
 \section{\label{chapter5:Swift overhead}Swift Overhead}
 
-\rb{again explain what kind of test did you run:  what did you measure? withdraws/updates/both? how many times did you repeat it?}
-
-In this section we present the overhead that Swift adds to the processing of a single BGP update. We measure the time between the BGP update arriving in the route server and the participant controller finishing to process the update. 
+In this section we present the overhead that Swift adds to the processing of a single BGP update. We measure the time between the BGP update arriving in the route server and the participant controller finishing to process the update. To measure this we use R1 to advertise a single route and set the link between B1 and R1 down and then up. This gives A1 a single withdrawal and then a single announcement to process. 
 
 \begin{figure}[h]
 \center
-\includegraphics[scale = 1]{Figures/results_overhead.pdf}
+\includegraphics[scale = 1]{Figures/cdf.pdf}
 \caption{Time to process a single BGP Update with and without Swift}
 \label{fig:swiftoverhead}
 \end{figure}
 
-Figure~\ref{fig:swiftoverhead} shows the time to process a single BGP. On average iSDX takes $987$\,ns without Swift and $1119$\,ns with Swift. We see that Swift increases the processing time by a factor $1.13$.
+Figure~\ref{fig:swiftoverhead} shows the time to process a single BGP update. On average iSDX takes $987$\,ns without Swift and $1119$\,ns with Swift. We see that Swift increases the processing time by a factor $1.13$.
 
 \newpage

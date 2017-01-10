@@ -4,7 +4,7 @@
 \contentsline {figure}{\numberline {2.1}{\ignorespaces iSDX architecture\relax }}{12}{figure.caption.5}
 \contentsline {figure}{\numberline {2.2}{\ignorespaces Example of outbound and inbound policies at an iSDX connected to three participants\relax }}{13}{figure.caption.8}
 \contentsline {figure}{\numberline {2.3}{\ignorespaces Example of the VMAC at an iSDX connected to three participants\relax }}{14}{figure.caption.9}
-\contentsline {figure}{\numberline {2.4}{\ignorespaces Example topology of a swifted router\relax }}{14}{figure.caption.10}
+\contentsline {figure}{\numberline {2.4}{\ignorespaces Example topology of a swifted router \cite {swift}\relax }}{14}{figure.caption.10}
 \contentsline {figure}{\numberline {2.5}{\ignorespaces Example of a fast reroute after BPA predicts the AS link 300 600 to be down\relax }}{15}{figure.caption.11}
 \contentsline {figure}{\numberline {2.6}{\ignorespaces Example of the Swift vmac\relax }}{15}{figure.caption.12}
 \addvspace {10\p@ }
@@ -21,5 +21,5 @@
 \contentsline {figure}{\numberline {5.4}{\ignorespaces Time spent on detection, prediction and reroute rule installation during a fast reroute\relax }}{25}{figure.caption.24}
 \contentsline {figure}{\numberline {5.5}{\ignorespaces Time to process a single BGP Update with and without Swift\relax }}{25}{figure.caption.25}
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {6.1}{\ignorespaces Vmac of the iSDX with Swift\relax }}{28}{figure.caption.26}
+\contentsline {figure}{\numberline {6.1}{\ignorespaces Vmac of the iSDX with Swift\relax }}{27}{figure.caption.26}
 \addvspace {10\p@ }

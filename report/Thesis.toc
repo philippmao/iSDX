@@ -16,7 +16,7 @@
 \contentsline {chapter}{\numberline {4}Implementation}{19}{chapter.4}
 \contentsline {section}{\numberline {4.1}Architecture}{19}{section.4.1}
 \contentsline {section}{\numberline {4.2}Swift-BPA}{20}{section.4.2}
-\contentsline {section}{\numberline {4.3}FR-Handler}{20}{section.4.3}
+\contentsline {section}{\numberline {4.3}FR Handler}{20}{section.4.3}
 \contentsline {section}{\numberline {4.4}VMAC Partitioning}{21}{section.4.4}
 \contentsline {section}{\numberline {4.5}Changes to the iSDX}{21}{section.4.5}
 \contentsline {paragraph}{Route Server:}{21}{section*.17}
@@ -33,4 +33,4 @@
 \contentsline {section}{\numberline {6.3}Fast Reroute Flow Rules}{28}{section.6.3}
 \contentsline {subsection}{\numberline {6.3.1}Number of Flow Rules}{28}{subsection.6.3.1}
 \contentsline {subsection}{\numberline {6.3.2}Outbound Policies and Fast Reroute Rules}{28}{subsection.6.3.2}
-\contentsline {chapter}{\numberline {7}Conclusion}{31}{chapter.7}
+\contentsline {chapter}{\numberline {7}Conclusion}{29}{chapter.7}
