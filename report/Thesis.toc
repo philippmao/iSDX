@@ -19,9 +19,9 @@
 \contentsline {section}{\numberline {4.3}FR Handler}{20}{section.4.3}
 \contentsline {section}{\numberline {4.4}VMAC Partitioning}{21}{section.4.4}
 \contentsline {section}{\numberline {4.5}Changes to the iSDX}{21}{section.4.5}
-\contentsline {paragraph}{Route Server:}{21}{section*.17}
-\contentsline {paragraph}{Local RIB:}{22}{section*.19}
-\contentsline {paragraph}{VMAC Encoding:}{22}{section*.20}
+\contentsline {paragraph}{Route Server:}{21}{section*.20}
+\contentsline {paragraph}{Local RIB:}{21}{section*.22}
+\contentsline {paragraph}{VMAC Encoding:}{22}{section*.23}
 \contentsline {chapter}{\numberline {5}Evaluation}{23}{chapter.5}
 \contentsline {section}{\numberline {5.1}Test Setup}{23}{section.5.1}
 \contentsline {section}{\numberline {5.2}Convergence Time without Swift}{23}{section.5.2}

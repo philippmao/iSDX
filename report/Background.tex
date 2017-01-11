@@ -19,7 +19,8 @@ In this chapter, we give a brief overview of BGP in \ref{chapter2:BGP} and expla
 
 \section{\label{chapter2:BGP}BGP}
 
-The Border Gateway Protocol (BGP) allows autonomous systems to exchange routing information with each other. The routing information is communicated on a per prefix basis using BGP updates. BGP updates contain attributes. Attributes are the prefix, the next hop and the \\
+The Border Gateway Protocol (BGP) allows autonomous systems to exchange routing information with each other. The routing information is communicated on a per prefix basis using BGP updates. BGP updates contain attributes. Attributes are the prefix, the next hop and the 
+
 AS-path the packet will traverse, if packets are sent via this route. There are two types of updates, announcements and withdraws. Announcements inform that the prefix can be reached via this route and withdraws inform that the previously announced prefix cannot be reached via this route anymore. 
 
 Upon receiving a BGP update routers make a routing decision using the attributes of the BGP update and then send updates to their peers. Routers only send announcements with their own best route to the prefix and if the routers do not know a route to the prefix they send withdraws.
@@ -73,14 +74,21 @@ Inbound policies allow participants to specify how incoming packets are handled.
 Note that when specifying a policy, the network operator does not have to take into account whether the specified destination  is actually able to handle that traffic. Some policies might direct packets to participants that did not advertise the prefix to that participant or simply do not know a route to the prefix. Participants are not restricted when defining outbound policies. This is a problem because outbound policies can end up violating BGP advertisements. It is not possible to require participants to only specify feasible policies as the routing information is quite volatile and network operators would constantly need to update their policies to make sure none of the traffic is sent to a black hole. 
 
 The iSDX solves this problem by attaching additional information to each packet. This additional information is embedded into the destination MAC address, transforming the destination MAC addresses of packets traversing the SDN switch into a Virtual Mac Address (VMAC).
-In the VMAC the participant controller encodes the participants advertising the prefix of the packet and the BGP best next hop participant for this prefix. The first part is used every time a outbound policy is applied. The outbound policy checks if the participant the outbound policy is sending packets to has advertised the prefix. The second part is used if the packet does not match any outbound policy. Default rules in the SDN switch match on the best next hop participant and send the packet to this participant.
+In the VMAC the participant controller encodes the participants advertising the prefix of the packet (reachability) and the BGP best next hop participant for this prefix. The first part is used every time a outbound policy is applied. The outbound policy checks if the participant the outbound policy is sending packets to has advertised the prefix. The second part is used if the packet does not match any outbound policy. Default rules in the SDN switch match on the best next hop participant and send the packet to this participant.
+
+\begin{figure}[h]
+\center
+\includegraphics[scale = 0.5]{Figures/sdx_vmac4_cropped.pdf}
+\caption{VMAC of the iSDX}
+\end{figure}
 
 Each border router replaces the destination MAC address with the corresponding VMAC before sending a packet to the iSDX fabric. It is possible to assign this task to the participant's border routers using the next hop attribute in the BGP announcement. Every prefix is assigned a virtual next hop (VNH) that maps to a VMAC. Before sending BGP updates to its border routers the participant controller sets the next hop attribute to the VNH corresponding to the prefix of the update.  When a packet arrives at the border router it checks its routing table and finds the next hop, in this case the VNH. The border routers learn the VMAC of the VNHs via ARP. The border router broadcasts a ARP request for the VNH which is received by the ARP proxy, forwarded to the corresponding participant controller and replied to with the corresponding VMAC.
 
 Figure~\ref{fig:isdx_vmac} shows the VNHs and VMACs used by participant A.
 
 \begin{figure}[h]
-\includegraphics[scale = 0.4]{Figures/sdx_vmac2_cropped.pdf}
+\center
+\includegraphics[scale = 0.33]{Figures/sdx_vmac3.pdf}
 \caption{Example of the VMAC at an iSDX connected to three participants}
 \label{fig:isdx_vmac}
 \end{figure}
@@ -115,7 +123,7 @@ Upon predicting a failed link the Swift Controller pushes FR flow rules into the
 Every packet that traverses the failed link (has the failed AS-link in it's AS-path encoding) will get rerouted to the backup neighbor.
 \begin{figure}[h]
 \center
-\includegraphics[scale = 0.36]{Figures/bckgrnd_swift_fr.pdf}
+\includegraphics[scale = 0.32]{Figures/bckgrnd_swift_fr.pdf}
 \caption{Example of a fast reroute}
 \label{fig:swift_FR}
 \end{figure}
@@ -127,14 +135,21 @@ By predicting the failed link and pushing FR rules instead of waiting for all wi
 \subsection{\label{chapter2:Swift:encoding_of_routing_information}Encoding of Routing Information}
 Swift similarly to the iSDX uses virtual next hops and the destination MAC address to encode the necessary information about the packet and its backup paths.
 
-For every prefix Swift encodes the AS-path up to a certain depth and the backup next hops for each AS-link on that AS-path. Backup next hops are neighbors of the swifted router which also advertise the prefix and their advertised route does not traverse the specific AS-link. This encoding is then mapped to a VNH. When the swifted router wants to send a packet to any prefix it will use the VNH assigned by Swift. The VNH directly maps to the VMAC. \\
+For every prefix Swift encodes the AS-path up to a certain depth and the backup next hops for each AS-link on that AS-path. Backup next hops are neighbors of the swifted router which also advertise the prefix and their advertised route does not traverse the specific AS-link. This encoding is then mapped to a VNH. When the swifted router wants to send a packet to any prefix it will use the VNH assigned by Swift. The VNH directly maps to the VMAC. 
+
 Figure~\ref{fig:swift_vmac} shows the Swifted router and the VMACs used for the prefixes advertised by the neighbors.
 
 \begin{figure}[h]
 \center
-\includegraphics[scale = 0.6]{Figures/bckgrnd_swift_vmac_cropped.pdf}
+\includegraphics[scale = 0.6]{Figures/swift_vmac3_cropped.pdf}
+\caption{Swift VMAC}
+\end{figure}
+
+
+\begin{figure}[h]
+\center
 \includegraphics[scale = 0.24]{Figures/bckgrnd_swift_topology.pdf}
-\caption{Example of the Swift vmac}
+\caption{Example of the Swift VMAC}
 \label{fig:swift_vmac}
 \end{figure}
 

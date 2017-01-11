@@ -53,13 +53,20 @@ The FR rules get sent to the reference monitor as flow rule messages. The refere
 
 Both Swift and iSDX use the destination MAC address as a VMAC to attach additional information to the packet. It is not easy to use another field of the header as only the destination MAC address can be changed by modifying the next hop attribute. Therefore the VMAC has to be shared between the iSDX and the Swift. The number of bits available to encode information for the iSDX and Swift is reduced. This is because the iSDX and Swift encode different \\information about the prefix. The iSDX encodes the participants advertising the prefix and the BGP best next hop. Swift encodes the AS-path and the backup next hops for each link on the AS-path.
 
-The encoded AS-path starts with the second AS on the AS-path. This is because the first AS is already encoded as the BGP best next hop. (in the iSDX part of the VMAC)\\
+The encoded AS-path starts with the second AS on the AS-path. This is because the first AS is already encoded as the BGP best next hop. (in the iSDX part of the VMAC)
+
 Figure~\ref{fig:sixdsvmac} shows an example of a VMAC in a simple topology with a Swifted iSDX connected to three participants. 
 
 \begin{figure}[h]
 \center
+\includegraphics[scale = 0.5]{Figures/design_vmac3_cropped.pdf}
+\caption{VMAC of the iSDX with Swift}
+\end{figure}
+
+\begin{figure}[h]
+\center
 \includegraphics[scale = 0.24]{Figures/design_vmac_topology.pdf}
-\includegraphics[scale = 0.35]{Figures/design_vmac_cropped.pdf}
+\includegraphics[scale = 0.35]{Figures/vmac_picture_cropped.pdf}
 \caption{Example of the VMAC in the iSDX with Swift}
 \label{fig:sixdsvmac}
 \end{figure}
