@@ -7,11 +7,11 @@
 \contentsline {subsection}{\numberline {2.2.2}Policies}{12}{subsection.2.2.2}
 \contentsline {paragraph}{Outbound Policies:}{12}{section*.6}
 \contentsline {paragraph}{Inbound Policies:}{12}{section*.7}
-\contentsline {subsection}{\numberline {2.2.3}Virtual Next-Hop, Virtual MAC Address}{12}{subsection.2.2.3}
-\contentsline {section}{\numberline {2.3}Swift}{13}{section.2.3}
+\contentsline {subsection}{\numberline {2.2.3}Virtual Next Hop, Virtual MAC Address}{13}{subsection.2.2.3}
+\contentsline {section}{\numberline {2.3}Swift}{14}{section.2.3}
 \contentsline {subsection}{\numberline {2.3.1}Architecture}{14}{subsection.2.3.1}
-\contentsline {subsection}{\numberline {2.3.2}Burst Prediction Algorithm}{14}{subsection.2.3.2}
-\contentsline {subsection}{\numberline {2.3.3}Encoding of Routing Information}{15}{subsection.2.3.3}
+\contentsline {subsection}{\numberline {2.3.2}Burst Prediction Algorithm}{15}{subsection.2.3.2}
+\contentsline {subsection}{\numberline {2.3.3}Encoding of Routing Information}{16}{subsection.2.3.3}
 \contentsline {chapter}{\numberline {3}Motivation}{17}{chapter.3}
 \contentsline {chapter}{\numberline {4}Implementation}{19}{chapter.4}
 \contentsline {section}{\numberline {4.1}Architecture}{19}{section.4.1}
@@ -20,7 +20,7 @@
 \contentsline {section}{\numberline {4.4}VMAC Partitioning}{21}{section.4.4}
 \contentsline {section}{\numberline {4.5}Changes to the iSDX}{21}{section.4.5}
 \contentsline {paragraph}{Route Server:}{21}{section*.17}
-\contentsline {paragraph}{Local RIB:}{21}{section*.19}
+\contentsline {paragraph}{Local RIB:}{22}{section*.19}
 \contentsline {paragraph}{VMAC Encoding:}{22}{section*.20}
 \contentsline {chapter}{\numberline {5}Evaluation}{23}{chapter.5}
 \contentsline {section}{\numberline {5.1}Test Setup}{23}{section.5.1}

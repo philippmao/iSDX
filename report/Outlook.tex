@@ -1,8 +1,8 @@
 \chapter{\label{chapter7}Conclusion}
-In this project Swift was implemented into the iSDX without significantly changing either the iSDX or Swift.\\
-The convergence time upon remote failure of the iSDX was significantly reduced without requiring a lot of additional flow rules. Swift adds a small overhead to the processing of a BGP update. \\
-Their similar architecture makes integrating one into the other intuitive but it also severely constrains the iSDX's ability to scale with a higher number of participants. This is due to the bottleneck created by the limited size of the destination MAC address. With the current design up to $256$ participants can be supported. At the time of writing, only $1.8\%$ of all IXPs have more than $256$ participants. \cite{ixps} 
+In this project Swift was implemented in the iSDX without significantly changing either the iSDX or Swift.\\
+The convergence time upon remote failure of the iSDX was significantly reduced without requiring \\ a lot of additional flow rules. Swift adds a small overhead to the processing of a BGP update. \\
+Their similar architecture makes integrating one into the other intuitive but it also severely constrains the iSDX's ability to scale with a higher number of participants. This is due to the\\bottleneck created by the limited size of the destination MAC address. With the current design up to $256$ participants can be supported. At the time of writing, only $1.8\%$ of all IXPs have more than $256$ participants. \cite{ixps} 
 
 
-If the iSDX with Swift should be deployed at an IXP with more participants, more bits need to be allocated to the iSDX part of the VMAC. This in turn impacts the performance of Swift, leading to traffic being unnecessarily redirected or failed links not being correctly detected. One might look into implementing a more lightweight fast reroute framework that does not need to encode information on the destination mac address. \\
-Future work may include finding a optimal partitioning of the VMAC, enabling the participant controller to use more backup next-hops and solving the conflict between outbound policies and FR rules
+If the iSDX with Swift should be deployed at an IXP with more participants, more bits need to be allocated to the iSDX part of the VMAC. This in turn impacts the performance of Swift, leading to traffic being unnecessarily redirected or failed links not being correctly detected. One might look into implementing a more lightweight fast reroute framework that does not need to encode information on the destination MAC address. \\
+Future work may include finding a optimal partitioning of the VMAC, enabling the participant controller to use more backup next hops and solving the conflict between outbound policies and FR rules

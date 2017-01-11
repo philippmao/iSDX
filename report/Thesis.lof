@@ -5,21 +5,21 @@
 \contentsline {figure}{\numberline {2.2}{\ignorespaces Example of outbound and inbound policies at an iSDX connected to three participants\relax }}{13}{figure.caption.8}
 \contentsline {figure}{\numberline {2.3}{\ignorespaces Example of the VMAC at an iSDX connected to three participants\relax }}{14}{figure.caption.9}
 \contentsline {figure}{\numberline {2.4}{\ignorespaces Example topology of a swifted router \cite {swift}\relax }}{14}{figure.caption.10}
-\contentsline {figure}{\numberline {2.5}{\ignorespaces Example of a fast reroute after BPA predicts the AS link 300 600 to be down\relax }}{15}{figure.caption.11}
-\contentsline {figure}{\numberline {2.6}{\ignorespaces Example of the Swift vmac\relax }}{15}{figure.caption.12}
+\contentsline {figure}{\numberline {2.5}{\ignorespaces Example of a fast reroute\relax }}{15}{figure.caption.11}
+\contentsline {figure}{\numberline {2.6}{\ignorespaces Example of the Swift vmac\relax }}{16}{figure.caption.12}
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \contentsline {figure}{\numberline {4.1}{\ignorespaces iSDX architecture with Swift\relax }}{19}{figure.caption.13}
-\contentsline {figure}{\numberline {4.2}{\ignorespaces pipeline of the Swift-BPA module\relax }}{20}{figure.caption.14}
-\contentsline {figure}{\numberline {4.3}{\ignorespaces pipeline of the fast reroute handler\relax }}{20}{figure.caption.15}
-\contentsline {figure}{\numberline {4.4}{\ignorespaces example of the VMAC in the iSDX with Swift\relax }}{21}{figure.caption.16}
-\contentsline {figure}{\numberline {4.5}{\ignorespaces pipeline of the modified route server\relax }}{21}{figure.caption.18}
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Pipeline of the Swift-BPA module\relax }}{20}{figure.caption.14}
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Pipeline of the FR handler\relax }}{20}{figure.caption.15}
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Example of the VMAC in the iSDX with Swift\relax }}{21}{figure.caption.16}
+\contentsline {figure}{\numberline {4.5}{\ignorespaces Pipeline of the modified route server\relax }}{21}{figure.caption.18}
 \addvspace {10\p@ }
 \contentsline {figure}{\numberline {5.1}{\ignorespaces Test Setup\relax }}{23}{figure.caption.21}
 \contentsline {figure}{\numberline {5.2}{\ignorespaces Convergence time of the iSDX without Swift\relax }}{24}{figure.caption.22}
 \contentsline {figure}{\numberline {5.3}{\ignorespaces Convergence time of the iSDX without Swift\relax }}{24}{figure.caption.23}
-\contentsline {figure}{\numberline {5.4}{\ignorespaces Time spent on detection, prediction and reroute rule installation during a fast reroute\relax }}{25}{figure.caption.24}
+\contentsline {figure}{\numberline {5.4}{\ignorespaces Time spent on detection different activities during a fast reroute\relax }}{25}{figure.caption.24}
 \contentsline {figure}{\numberline {5.5}{\ignorespaces Time to process a single BGP Update with and without Swift\relax }}{25}{figure.caption.25}
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {6.1}{\ignorespaces Vmac of the iSDX with Swift\relax }}{27}{figure.caption.26}
+\contentsline {figure}{\numberline {6.1}{\ignorespaces VMAC of the iSDX with Swift\relax }}{27}{figure.caption.26}
 \addvspace {10\p@ }

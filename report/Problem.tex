@@ -16,9 +16,9 @@
 \chapter{\label{chapter3}Motivation}
 
 Routers using BGP can suffer from long convergence times after a remote failure. This also applies to routers connected to an iSDX. At an iSDX implementing Swift once promises to improve the convergence time of all the routers connected to the iSDX. 
-Convergence time being the time from the failure to occur to the packets being sent to the correct participant and not to a black hole. The idea being that Swift can push fast reroute flow rules into the SDN switch and redirect packets to backup participants.
+The idea being that Swift can push FR flow rules into the IXP fabric and redirect packets to backup participants.
 
-The main reason why implementing Swift in the iSDX is reasonable is the similarity of their architecture: Both the iSDX and Swift use an SDN switch to steer traffic. They are both connected to BGP speaking routers and receive BGP updates from them. Swift and iSDX both use the destination mac address to encode information about a prefix and use the next hop to map this VMAC to a prefix. In addition the Swift framework allows multiple swifted routers to be connected to the SDN switch, which in the iSDX's case means that all the participants will benefit from Swift.
+The main reason why implementing Swift in the iSDX is reasonable is the similarity of their architecture: both the iSDX and Swift use an SDN switch to steer traffic. They are both connected to BGP speaking routers and receive BGP updates from them. Swift and iSDX both use VMACs to encode information about a prefix and use the next hop to map this VMAC to a prefix. In addition the Swift framework allows multiple swifted routers to be connected to the SDN switch, which in the iSDX's case means that all the participants will benefit from Swift.
 
 The main challenge when implementing Swift into the iSDX is to change as little as possible in both systems. The iSDX with Swift should implement the full functionality of both the iSDX and Swift. At the same time the overhead added by Swift should not be too big.
 
