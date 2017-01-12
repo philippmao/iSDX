@@ -114,7 +114,7 @@ Swift uses an SDN switch connected to the swifted router, its neighbors and to t
 The architecture of Swift is similar to the architecture of the iSDX. Both use a SDN switch connected to multiple BGP speaking routers, the BGP controller like the central services forwards BGP updates to the corresponding Swift engine/participant controller and every participant controller implements the functionality of the SDN \& ARP controller. 
 
 \subsection{\label{chapter2:Swift:BPA}Burst Prediction Algorithm}
-Upon remote failure the burst prediction algorithm predicts the failed AS-link. It predicts the failed link after detecting a burst. The burst is detected once a the number of received updates in a short time frame reaches a threshold.
+Upon remote failure the burst prediction algorithm predicts the failed AS-link. It predicts the failed link after detecting a burst. The burst is detected once the number of received updates in a short time frame reaches a threshold.
 
 The burst prediction algorithm takes BGP updates. It uses the updates to build a AS-topology. It also stores prefixes and the AS-path to reach these prefixes. Once a burst is triggered the burst prediction algorithm uses the received updates, stored AS-paths and the AS-topology to predict the failed AS-link.
 
