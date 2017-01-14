@@ -32,13 +32,16 @@ In this section we will first examine the number of FR flow rules required for a
 
 \subsection{\label{chapter6:number of flow rules:number_of_Flow_Rules}Number of Flow Rules}
 
-After a FR message has been received the FR handler pushes FR rules into the IXP fabric. The number of FR rules does not depend on the number of withdrawn prefixes. It depends on the number of backup next hops and number of participant controllers. 
+After a FR message has been received FR rules are pushed into the IXP fabric. The number of FR rules does not depend on the number of withdrawn prefixes. It depends on the number of backup next hops and number of participant controllers. 
+In this subsection we examine the number of flow rules required for a fast reroute after a Swift-BPA module detects a failed link. Note that during a burst more than one failed link may be detected. 
 
 For every backup next hop that the participant controller has stored a rule is pushed. This means the maximum number of rules pushed by a participant controller after a fast reroute is $16$. $16$ is the number of backup next-hops available to every participant. (See \ref{chapter6:vmac evaluation}) \\
 FR messages get sent to every participant that is peering with the participant whose Swift-BPA triggered the fast reroute. This means the maximum number of flow rules pushed after a fast reroute is triggered is $256$*$16$ = $4096$. $256$ is the maximum number of participants the iSDX with Swift can have. (See \ref{chapter6:vmac evaluation}) 
 
 This amount of flow rules is not substantial enough to have a significant impact on the iSDX. With the number of participants limited to 256 and participants having a reasonable number policies, the flow rule limit for current SDN switches should not be reached. \cite[Figure 3 (a)]{gupta2016industrial}\\
 Usually this upper bound of flow rules should not be reached. Upon a fast reroute not all participants will be peering with the participant that triggered the fast reroute. Also the participants may not have reached the maximum number of backup next hops yet.
+
+\newpage
 
 \subsection{\label{chapter6:number of flow rules:outbound_FR}Outbound Policies and Fast Reroute Rules}
 

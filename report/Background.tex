@@ -109,14 +109,14 @@ In this section, we first show the Swift architecture in \ref{chapter2:Swift:Arc
 \caption{Example topology of a swifted router \cite{swift}}
 \end{figure}
 
-Swift uses an SDN switch connected to the swifted router, its neighbors and to the Swift controller. The Swift Controller has three main parts, \emph{(i)} the BGP controller, \emph{(ii)} the Swift engine and \emph{(iii)} the SDN \& ARP controller. The BGP controller receives BGP updates from the peers of the swifted router. The BGP controller forwards the updates to the Swift engine. The Swift engine consists of two main modules: \emph{(i)} the burst prediction algorithm and \emph{(ii)} the encoding of routing information. These two modules are the two main features of Swift. Every peer of the swifted router has its own Swift eninge running. The SDN \& ARP controller programs flow rules into the SDN switch and manages ARP requests. 
+Swift uses an SDN switch connected to the swifted router, its neighbors and to the Swift controller. The Swift Controller has three main parts, \emph{(i)} the BGP controller, \emph{(ii)} the Swift engine and \emph{(iii)} the SDN \& ARP controller. The BGP controller receives BGP updates from the peers of the swifted router. The BGP controller forwards the updates to the Swift engine. The Swift engine consists of two main modules: \emph{(i)} the burst prediction algorithm (BPA) and \emph{(ii)} the encoding of routing information. These two modules are the two main features of Swift. Every peer of the swifted router has its own burst prediction algorithm running. The SDN \& ARP controller programs flow rules into the SDN switch and manages ARP requests. 
 
 The architecture of Swift is similar to the architecture of the iSDX. Both use a SDN switch connected to multiple BGP speaking routers, the BGP controller like the central services forwards BGP updates to the corresponding Swift engine/participant controller and every participant controller implements the functionality of the SDN \& ARP controller. 
 
 \subsection{\label{chapter2:Swift:BPA}Burst Prediction Algorithm}
 Upon remote failure the burst prediction algorithm predicts the failed AS-link. It predicts the failed link after detecting a burst. The burst is detected once the number of received updates in a short time frame reaches a threshold.
 
-The burst prediction algorithm takes BGP updates. It uses the updates to build a AS-topology. It also stores prefixes and the AS-path to reach these prefixes. Once a burst is triggered the burst prediction algorithm uses the received updates, stored AS-paths and the AS-topology to predict the failed AS-link.
+The burst prediction algorithm takes BGP updates. It uses the updates to build a AS-topology. It also stores prefixes and the AS-path to reach these prefixes. Once a burst is triggered the burst prediction algorithm uses the received updates, stored AS-paths and the AS-topology to predict the failed AS-link. For every AS-link in the AS-topology the prediction algorithm computes a fitting score (FS). The FS takes into account the number of withdrawn routes traversing this AS-link and the number of still used routes traversing this AS-link. The link with the highest FS is predicted to be down. 
 
 Upon predicting a failed link the Swift Controller pushes FR flow rules into the SDN switch matching on the failed AS-link and on the corresponding backup next hop. In Figure~\ref{fig:swift_FR} the burst prediction module has predicted the AS-link 300 600 to be down. So it pushes rules matching on the AS-path 300 600 and the backup next hop in this case 400.
 
@@ -135,9 +135,9 @@ By predicting the failed link and pushing FR rules instead of waiting for all wi
 \subsection{\label{chapter2:Swift:encoding_of_routing_information}Encoding of Routing Information}
 Swift similarly to the iSDX uses virtual next hops and the destination MAC address to encode the necessary information about the packet and its backup paths.
 
-For every prefix Swift encodes the AS-path up to a certain depth and the backup next hops for each AS-link on that AS-path. Backup next hops are neighbors of the swifted router which also advertise the prefix and their advertised route does not traverse the specific AS-link. This encoding is then mapped to a VNH. When the swifted router wants to send a packet to any prefix it will use the VNH assigned by Swift. The VNH directly maps to the VMAC. 
+For every prefix Swift encodes the AS-path up to a certain depth and the backup next hops for each AS-link on that AS-path. Backup next hops are neighbors of the swifted router which also advertise the prefix and their advertised route does not traverse the specific AS-link. If no backup next hop is found Swift simply encodes the second best BGP next hop in place of the backup next hop. This encoding is then mapped to a VNH. When the swifted router wants to send a packet to any prefix it will use the VNH assigned by Swift. The VNH directly maps to the VMAC. 
 
-Figure~\ref{fig:swift_vmac} shows the Swifted router and the VMACs used for the prefixes advertised by the neighbors.
+Figure~\ref{fig:swift_vmac} shows the swifted router and the VMACs used for the prefixes advertised by the neighbors. The Swifted router sends all his traffic via AS 200. AS 400 is the backup next hop for AS-link 200 300 and 300 600. This is because AS 400 advertises the same prefixes as AS 200 and the advertised routes do not traverse the AS-links of the AS-path encoding (the AS-path of the routes advertised by AS 200).
 
 \begin{figure}[h]
 \center

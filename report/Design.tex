@@ -23,15 +23,22 @@ In the following sections, we explain the functionality of the new modules and o
 \center
 \includegraphics[scale = 0.5]{Figures/design_swift_bpa_cropped.pdf}
 \caption{Pipeline of the Swift-BPA module}
+\label{fig:PipelineBPA}
 \end{figure}
 
 The Swift-BPA module implements Swifts main functionality, encoding and prediction. It is part of the central services and exchanges BGP updates and FR messages with the route server and participant controllers.
 
 The Swift-BPA module is placed in the route server and processes each update received by the route server before passing it on to the participant controllers. 
-Similar to the participant controller every participant has a Swift-BPA process running. The Swift-BPA only receives BGP updates from his own routers. This way the Swift engine can be implemented without any modifications.
+Every participant has its own Swift-BPA process running. The Swift-BPA only receives BGP updates from his own routers. This way the Swift engine can be implemented without any modifications.
 
-When receiving a BGP update the Swift-BPA updates the AS-topology and adds the AS-path encoding to the BGP update. The AS-topology is used when predicting a failed AS-link, it stores AS-links and the number of received routes that traverse this link. Then the update gets sent to the participant controller. The AS-path encoding is used in the Swift part of the VMAC. 
-After the update is sent to the participant controller the burst detection checks if the update triggers a burst. If so the prediction module predicts the failed AS-link, the cause of the burst and sends FR messages to the participant controllers. 
+Figure~\ref{fig:PipelineBPA} shows the pipeline of the Swift-BPA module. When receiving a BGP update the Swift-BPA updates the AS-topology and adds the AS-path encoding to the BGP update. 
+
+The AS-topology is used when predicting a failed AS-link, it stores AS-links and the number of received routes that traverse this link.
+
+The BGP update with the encoded AS-path gets sent to the participant controller. The AS-path encoding is used in the Swift part of the VMAC.
+ 
+After the update is sent to the participant controller the burst detection checks if the update triggers a fast reroute. If so the prediction module predicts the failed AS-link, the cause of the burst and sends FR messages to the participant controllers. 
+
 The FR messages inform the participant controllers about the AS-link that is predicted to be down. In the following, we show how the participant controllers handle the FR messages.
 
 
@@ -45,7 +52,11 @@ The FR messages inform the participant controllers about the AS-link that is pre
 
 The FR-handler is placed in the participant controller and processes FR messages.
 Upon receiving a FR message the FR handler computes the FR rules. The FR rules are computed using the failed AS-link contained in the FR message and the backup next hops, which were computed by the participant controller. 
-The FR rules get sent to the reference monitor as flow rule messages. The reference monitor then installs the flow rules in the IXP fabric. Just like in Swift the FR rules match on the failed AS-link and on the backup next hop.    
+The FR rules get sent to the reference monitor as flow rule messages. The reference monitor then installs the flow rules in the IXP fabric.
+
+The reference monitor is shown in Figure~\ref{fig:isdx_architecture_with_swift}, it receives flow rule messages from the central services, participant controllers and FR handlers and installs the corresponding rules into the IXP fabric. 
+
+Just like in Swift the FR rules match on the failed AS-link and on the backup next hop.    
 
 \newpage
 
