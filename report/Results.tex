@@ -1,8 +1,8 @@
 \chapter{\label{chapter5}Evaluation}
 
-In this chapter, we present the results of the tests we ran to evaluate the convergence \\performance of the iSDX. We explain the test setup in \ref{chapter5:Test Setup}. We present the convergence time of the iSDX without Swift in \ref{chapter5:Convergence time without Swift}, the convergence time of the iSDX with Swift in \ref{chapter5:Convergence time with Swift} and examine the Swift overhead in \ref{chapter5:Swift overhead}.
+In this chapter, we present the results of the tests we ran to evaluate the convergence performance of the swifted iSDX. We explain the test setup in \ref{chapter5:Test Setup}. We present the convergence time of the iSDX without Swift in \ref{chapter5:Convergence time without Swift}, the convergence time of the iSDX with Swift in \ref{chapter5:Convergence time with Swift} and examine the Swift overhead in \ref{chapter5:Swift overhead}.
 
-The results show that iSDX with Swift converges about $60$ times faster. However, this comes at the cost of a $13\%$ increase in processing time for BGP updates. The majority of the convergence time is spent on detecting the burst.
+The results show that iSDX with Swift converges about 60 times faster. However, this comes at the cost of a 13\% increase in processing time for BGP updates. The majority of the convergence time is spent on detecting the burst.
 
 In the next chapter we discuss the results, examine the VMAC partitioning and the FR rules.
 
@@ -16,13 +16,13 @@ In the next chapter we discuss the results, examine the VMAC partitioning and th
 \end{figure}
 
 Figure~\ref{fig:test-setup} shows the test setup.
-The test setup has an iSDX with or without Swift connected to three participants. Participants \emph{B1} and \emph{C1} are connected to the rest of the internet via \emph{R1} and advertise up to $500'000$ prefixes to \emph{A1}. Participant \emph{A1} prefers routes from \emph{B1}. Remote failure is simulated by setting the link between \emph{B1} and \emph{R1} down. If this link is down \emph{A1} needs to updates his RIB, check if flow rules have changed and update the VNH/VMAC for every withdrawn prefix.
+The test setup has an iSDX with or without Swift connected to three participants. Participants \emph{B1} and \emph{C1} are connected to the rest of the internet via \emph{R1} and advertise up to 500'000 prefixes to \emph{A1}. Participant \emph{A1} prefers routes from \emph{B1}. Remote failure is simulated by setting the link between \emph{B1} and \emph{R1} down. If this link is down \emph{A1} needs to update its RIB, check if flow rules have changed and update the VNH/VMAC for every withdrawn prefix.
 
-The experiment setup is run on a server running Ubuntu 14.04 with the following specs: Intel Xeon CPU E5620 with four Cores at $2.4$\,GHz, $36$\,GB of RAM. We use Mininet~\cite{mininet} to simulate the network. The routers \emph{A1}, \emph{B1}, \emph{C1} and \emph{R1} are quagga~\cite{quagga} routers. The perl script bgpsimple~\cite{bgpsimple} is used to inject an arbitrary number of routes into \emph{R1}. 
+The experiment setup is run on a server running Ubuntu 14.04 with the following specs: Intel Xeon CPU E5620 with four Cores at 2.4\,GHz, 36\,GB of RAM. We use Mininet~\cite{mininet} to simulate the network. The routers \emph{A1}, \emph{B1}, \emph{C1} and \emph{R1} are quagga~\cite{quagga} routers. The perl script bgpsimple~\cite{bgpsimple} is used to inject an arbitrary number of routes into \emph{R1}. 
 
 \section{\label{chapter5:Convergence time without Swift}Convergence Time without Swift}
 
-We measure the convergence time as the time between the first withdraw arriving at the route server and the participant controller finishing to process the last withdraw. To measure the convergence time we use the built in iSDX log server.
+We measure the convergence time as the time between the first withdraw arriving at the route server and the participant controller finishing to process the last withdraw. To measure the convergence time we use the built-in iSDX log server.
 
 This convergence time does not take into account the hold timer or the time the participant router takes to process the withdrawals. But since these things are not under the control of the iSDX they are ignored in this evaluation.
 
@@ -56,11 +56,11 @@ This convergence time does not take into account the hold timer or the time the 
 
 Figure~\ref{fig:noswift} shows the convergence time in relation to the number of prefixes injected by bgpsimple. The results show that the convergence time increases linearly with the number of prefixes advertised by \emph{R1}.
 
-At $500'000$ prefixes the iSDX takes about $90$\,seconds to converge. During these $90$\,seconds \emph{A1} is still sending packet to \emph{B1} even though that route does not exist anymore. Hence, all the traffic is dropped. 
+At 500'000 prefixes the iSDX takes about 90\,seconds to converge. During these 90\,seconds \emph{A1} is still sending packet to \emph{B1} even though that route does not exist anymore. Hence, all the traffic is dropped. 
 
 \section{\label{chapter5:Convergence time with Swift}Convergence Time with Swift}
 
-In this section, we measure the convergence time as the time between the first withdraw arriving at the route server and the participant controller's FR handler finishing to push the FR rules. The number of withdrawals that need to be received to trigger a fast reroute is $2'500$.
+In this section, we measure the convergence time as the time between the first withdraw arriving at the route server and the participant controller's FR handler finishing to push the FR rules. The number of withdrawals that need to be received to trigger a fast reroute is 2'500.
 
 \begin{figure}[h]
 \centering
@@ -91,7 +91,7 @@ In this section, we measure the convergence time as the time between the first w
 \end{figure}
 
 Figure~\ref{fig:withswift} shows the convergence time in relation to the number of prefixes injected by bgpsimple.
-The convergence time increases slightly with higher number of prefixes. At $500'000$ prefixes the iSDX takes about $1.5$ seconds to push the FR rules. After these $1.5$ seconds packets sent from \emph{A1} get redirected to \emph{C1} and reach their destination. 
+The convergence time increases slightly with higher number of prefixes. At 500'000 prefixes the iSDX takes about 1.5\,seconds to push the FR rules. After these 1.5\,seconds packets sent from \emph{A1} get redirected to \emph{C1} and reach their destination. 
 
 \begin{figure}[h]
 \center
@@ -100,7 +100,7 @@ The convergence time increases slightly with higher number of prefixes. At $500'
 \label{fig:activities}
 \end{figure}
 
-Figure~\ref{fig:activities} shows what the convergence time is made up of. In blue is the time until a burst of withdrawals is detected. In red is the time it takes to predict the failed AS-link. In violet is the time after the Swift-BPA sends FR messages until the participant controller receives and pushes the FR rules. With a higher number of prefixes withdrawn rises the time until Fast Reroute rules are pushed. The time for the prediction increases slightly with a higher number of prefixes. The time to detect the burst is more or less constant since we used the same Swift configuration for all the experiments. 
+Figure~\ref{fig:activities} shows what the convergence time is made up of. The blue part shows the time from the first withdrawal until the burst is detected, which means that 2'500 withdrawals have been received. The blue part shows the time it takes to predict the failed AS-link. The purple part shows the time from sending the FR messages from the central services until the participant controller pushes the FR rules due to the FR messages. The higher the number of withdrawn prefixes, the higher the time until Fast Reroute rules are pushed. The time for the prediction increases slightly with a higher number of prefixes. The time to detect the burst is more or less constant since we used the same Swift configuration for all the experiments and always 2'500 withdrawals were needed for a burst. 
 
 \section{\label{chapter5:Swift overhead}Swift Overhead}
 
@@ -113,6 +113,6 @@ In this section we present the overhead that Swift adds to the processing of a s
 \label{fig:swiftoverhead}
 \end{figure}
 
-Figure~\ref{fig:swiftoverhead} shows the time to process a single BGP update. On average iSDX takes $987$\,ns without Swift and $1119$\,ns with Swift. We see that Swift increases the processing time by a factor $1.13$.
+Figure~\ref{fig:swiftoverhead} shows the time to process a single BGP update. On average iSDX takes 987\,ns without Swift and 1119\,ns with Swift. We see that Swift increases the processing time by a factor 1.13.
 
 \newpage
