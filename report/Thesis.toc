@@ -1,17 +1,17 @@
 \select@language {english}
-\contentsline {chapter}{\numberline {1}Introduction}{9}{chapter.1}
-\contentsline {chapter}{\numberline {2}Background}{11}{chapter.2}
-\contentsline {section}{\numberline {2.1}BGP}{11}{section.2.1}
-\contentsline {section}{\numberline {2.2}iSDX}{11}{section.2.2}
-\contentsline {subsection}{\numberline {2.2.1}iSDX Architecture}{12}{subsection.2.2.1}
-\contentsline {subsection}{\numberline {2.2.2}Policies}{12}{subsection.2.2.2}
-\contentsline {paragraph}{Outbound Policies:}{12}{section*.6}
-\contentsline {paragraph}{Inbound Policies:}{12}{section*.7}
-\contentsline {subsection}{\numberline {2.2.3}Virtual Next Hop, Virtual MAC Address}{13}{subsection.2.2.3}
-\contentsline {section}{\numberline {2.3}Swift}{14}{section.2.3}
-\contentsline {subsection}{\numberline {2.3.1}Architecture}{14}{subsection.2.3.1}
-\contentsline {subsection}{\numberline {2.3.2}Burst Prediction Algorithm}{15}{subsection.2.3.2}
-\contentsline {subsection}{\numberline {2.3.3}Encoding of Routing Information}{16}{subsection.2.3.3}
+\contentsline {chapter}{\numberline {1}Introduction}{7}{chapter.1}
+\contentsline {chapter}{\numberline {2}Background}{9}{chapter.2}
+\contentsline {section}{\numberline {2.1}BGP}{9}{section.2.1}
+\contentsline {section}{\numberline {2.2}iSDX}{9}{section.2.2}
+\contentsline {subsection}{\numberline {2.2.1}Policies}{10}{subsection.2.2.1}
+\contentsline {paragraph}{Outbound Policies:}{10}{section*.4}
+\contentsline {paragraph}{Inbound Policies:}{10}{section*.5}
+\contentsline {subsection}{\numberline {2.2.2}Virtual Next Hop, Virtual MAC Address}{10}{subsection.2.2.2}
+\contentsline {subsection}{\numberline {2.2.3}Architecture}{11}{subsection.2.2.3}
+\contentsline {section}{\numberline {2.3}Swift}{13}{section.2.3}
+\contentsline {subsection}{\numberline {2.3.1}Burst Prediction Algorithm}{13}{subsection.2.3.1}
+\contentsline {subsection}{\numberline {2.3.2}Encoding of Routing Information}{14}{subsection.2.3.2}
+\contentsline {subsection}{\numberline {2.3.3}Architecture}{14}{subsection.2.3.3}
 \contentsline {chapter}{\numberline {3}Motivation}{17}{chapter.3}
 \contentsline {chapter}{\numberline {4}Implementation}{19}{chapter.4}
 \contentsline {section}{\numberline {4.1}Architecture}{19}{section.4.1}
@@ -19,9 +19,9 @@
 \contentsline {section}{\numberline {4.3}FR Handler}{20}{section.4.3}
 \contentsline {section}{\numberline {4.4}VMAC Partitioning}{21}{section.4.4}
 \contentsline {section}{\numberline {4.5}Changes to the iSDX}{21}{section.4.5}
-\contentsline {paragraph}{Route Server:}{21}{section*.20}
-\contentsline {paragraph}{Local RIB:}{21}{section*.22}
-\contentsline {paragraph}{VMAC Encoding:}{22}{section*.23}
+\contentsline {paragraph}{Route Server:}{21}{section*.19}
+\contentsline {paragraph}{Local RIB:}{21}{section*.21}
+\contentsline {paragraph}{VMAC Encoding:}{22}{section*.22}
 \contentsline {chapter}{\numberline {5}Evaluation}{23}{chapter.5}
 \contentsline {section}{\numberline {5.1}Test Setup}{23}{section.5.1}
 \contentsline {section}{\numberline {5.2}Convergence Time without Swift}{23}{section.5.2}
@@ -32,5 +32,5 @@
 \contentsline {section}{\numberline {6.2}VMAC Evaluation}{27}{section.6.2}
 \contentsline {section}{\numberline {6.3}Fast Reroute Flow Rules}{28}{section.6.3}
 \contentsline {subsection}{\numberline {6.3.1}Number of Flow Rules}{28}{subsection.6.3.1}
-\contentsline {subsection}{\numberline {6.3.2}Outbound Policies and Fast Reroute Rules}{29}{subsection.6.3.2}
-\contentsline {chapter}{\numberline {7}Conclusion}{31}{chapter.7}
+\contentsline {subsection}{\numberline {6.3.2}Outbound Policies and Fast Reroute Rules}{28}{subsection.6.3.2}
+\contentsline {chapter}{\numberline {7}Conclusion}{29}{chapter.7}

@@ -15,7 +15,7 @@
 
 \chapter{\label{chapter2}Background}
 
-In this chapter, we give a brief overview of BGP in \ref{chapter2:BGP} and explain the problem of long convergence time upon remote failure in BGP. We highlight the architecture and key insights of both iSDX and Swift in \ref{chapter2:iSDX} and \ref{chapter2:Swift}, respectively. The architecture of both frameworks are very similar, they are based on an SDN switch, an SDN controller and a route server. In the next chapter, we explain how these similarities can be put to use in the implementation.
+In this chapter, we give a brief overview of BGP in \ref{chapter2:BGP} and explain the problem of long convergence time upon remote failure in BGP. We highlight the architecture and key insights of both iSDX and Swift in \ref{chapter2:iSDX} and \ref{chapter2:Swift}, respectively. The architecture of both frameworks are very similar, they are based on a SDN switch, a SDN controller and a route server. In the next chapter, we explain how these similarities can be put to use in the implementation.
 
 \section{\label{chapter2:BGP}BGP}
 
@@ -36,7 +36,7 @@ An Internet exchange point (IXP) is a physical location where multiple autonomou
 
 The iSDX allows its participants to not only make use of these additional routes, but also gives the participants  more fine-grained control over the routing decisions. A participant connects to the iSDX as if it were a traditional IXP and is able to specify special policies that allow the participant to use multiple routes at once and control routing beyond the prefix.
 
-We first explain how the iSDX allows participants more fine-grained control by using different policies in \ref{chapter2:iSDX:policies} and how the iSDX features are implemented using a virtual next hop and repurposing the destination mac address in \ref{chapter2:iSDX:VNH_VMAC}. Finally, we show the iSDX architecture in \ref{chapter2:iSDX:iSDX_architecture}.
+We first explain how the iSDX allows participants more fine-grained control by using different policies in \ref{chapter2:iSDX:policies} and how the iSDX features are implemented using a virtual next hop and repurposing the destination MAC address in \ref{chapter2:iSDX:VNH_VMAC}. Finally, we show the iSDX architecture in \ref{chapter2:iSDX:iSDX_architecture}.
 
 \subsection{\label{chapter2:iSDX:policies}Policies}
 Policies allow a participant to specify forwarding behavior which deviates from the default best path forwarding. They can be specified on any part of the header. Policies are implemented as flow rules that the participants controller programs into the SDN switch. Two types of policies exist: \emph{(i)} outbound policies that handle all out-going traffic and \emph{(ii)} inbound policies that handle all incoming traffic.
