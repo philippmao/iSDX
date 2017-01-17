@@ -45,7 +45,7 @@ Policies allow a participant to specify forwarding behavior which deviates from 
 Outbound policies let participants direct packets going from themselves to the iSDX. They allow the participants to forward packets onto another path than the best path and on multiple paths simultaneously. An example of an outbound policy is shown in Figure~\ref{fig:isdx_policies}, where participant \emph{A} has defined two outbound policies \emph{X} and \emph{Y} directing traffic away from the best path to either one of the other two participants.
 
 \paragraph{\label{chapter2:iSDX:policies:inbound policies}Inbound Policies:}
-Inbound policies allow participants to specify how incoming packets are handled. In effect, they allow the participant to choose to which of his own routers packets from the iSDX get sent to. An example of an inbound policy is shown in Figure~\ref{fig:isdx_policies}, where participant C has defined two inbound policies \emph{P} and \emph{Q} directing traffic to either one of its routers depending on the destination port. 
+Inbound policies allow participants to specify how incoming packets are handled. In effect, they allow the participant to choose to which of his own routers packets from the iSDX get sent to. An example of an inbound policy is shown in Figure~\ref{fig:isdx_policies}, where participant \emph{C} has defined two inbound policies \emph{P} and \emph{Q} directing traffic to either one of its routers depending on the destination port. 
 
 \begin{figure}[h]
 \center
@@ -70,7 +70,7 @@ In the VMAC the participant controller encodes the participants advertising the 
 
 Each border router replaces the destination MAC address with the corresponding VMAC before sending a packet to the iSDX fabric. It is possible to assign this task to the participant's border routers using the next hop attribute in the BGP announcement. Every prefix is assigned a virtual next hop (VNH) that maps to a VMAC. Before sending BGP updates to its border routers the participant controller sets the next hop attribute to the VNH corresponding to the prefix of the update.  When a packet arrives at the border router it checks its routing table and finds the next hop, in this case the VNH. The border routers learn the VMAC of the VNHs via ARP. The border router broadcasts an ARP request for the VNH which is received by the ARP proxy, forwarded to the corresponding participant controller and replied to with the corresponding VMAC.
 
-Figure~\ref{fig:isdx_vmac} shows the VNHs and VMACs used by participant A.
+Figure~\ref{fig:isdx_vmac} shows the VNHs and VMACs used by participant \emph{A}. Prefixes 24.0.0.0/24 and 25.0.0.0/24 are advertised by participants \emph{B} and \emph{C}. Prefix 26.0.0.0/24 is only advertised by \emph{C}. \emph{A} uses participant \emph{B} as best next hop if possible. 
 
 \begin{figure}[h]
 \center
@@ -97,14 +97,14 @@ Every participant has its own participant controller. This allows each participa
 
 \section{\label{chapter2:Swift}Swift}
 
-Swift is a prediction and fast reroute (FR) framework which improves the convergence time of a BGP speaking router upon remote failures. Swift speeds up the learning phase by predicting the cause of a burst of the withdrawals. Swifts prediction relies on the fact that the cause of the withdrawals can be predicted before receiving all the withdrawals using the attributes of the already received withdrawals. Swift also speeds up the updating of the data plane. After the cause of a burst of withdrawals is detected FR rules are installed into the SDN switch rerouting packets traversing the failed AS-link. The number of fast reroute rules is independent of the number of withdrawn prefixes thus the problem of having to update the data plane for every prefix is avoided. 
+Swift is a prediction and fast reroute (FR) framework which improves the convergence time of a BGP speaking router upon remote failures. Swift speeds up the learning phase by predicting the cause of a burst of the withdrawals. Swifts prediction relies on the fact that the cause of the withdrawals can be predicted before receiving all the withdrawals using the attributes of the already received withdrawals. Swift also speeds up the updating of the data plane. After the cause of a burst of withdrawals is detected FR rules are installed into the SDN switch rerouting packets traversing the failed AS-link. The FR rules match on the routing information which is encoded in the destination MAC address. The number of FR rules is independent of the number of withdrawn prefixes thus the problem of having to update the data plane on a per prefix basis is avoided.
 
 In this section, we first explain how Swift is able to reduce the convergence time of a router in \ref{chapter2:Swift:BPA}. Then, we explain the encoding in \ref{chapter2:Swift:encoding_of_routing_information}. Finally, we show the Swift architecture in \ref{chapter2:Swift:Architecture_SWift}.
 
 \subsection{\label{chapter2:Swift:BPA}Burst Prediction Algorithm}
-Upon remote failure the burst prediction algorithm predicts the failed AS-link. It predicts the failed link after detecting a burst. The burst is detected once the number of received updates in a short time frame reaches a threshold.
+Upon remote failure the burst prediction algorithm (BPA) predicts the failed AS-link. It predicts the failed link after detecting a burst. The burst is detected once the number of received updates in a short time frame reaches a threshold.
 
-The burst prediction algorithm takes BGP updates. It uses the updates to build an AS-topology. It also stores prefixes and the AS-path to reach these prefixes. Once a burst is triggered the burst prediction algorithm (BPA) uses the received updates, stored AS-paths and the AS-topology to predict the failed AS-link. For every AS-link in the AS-topology the prediction algorithm computes a fitting score (FS). The FS takes into account the number of withdrawn routes traversing this AS-link and the number of still used routes traversing this AS-link. The link with the highest FS is predicted to be down. 
+The BPA takes BGP updates. It uses the updates to build an AS-topology. It also stores prefixes and the AS-path to reach these prefixes. Once a burst is triggered the BPA uses the received updates, stored AS-paths and the AS-topology to predict the failed AS-link. For every AS-link in the AS-topology the prediction algorithm computes a fitting score (FS). The FS takes into account the number of withdrawn routes traversing this AS-link and the number of still used routes traversing this AS-link. The link with the highest FS is predicted to be down. 
 
 Upon predicting a failed link the Swift Controller pushes FR flow rules into the SDN switch matching on the failed AS-link and on the corresponding backup next hop. In Figure~\ref{fig:swift_FR} the burst prediction module has predicted the AS-link 300 600 to be down. Therefore, it pushes rules matching on the AS-path 300 600 and the backup next hop, in this case 400, in the data plane.
 
@@ -124,9 +124,8 @@ By predicting the failed link and pushing FR rules instead of waiting for all wi
 \subsection{\label{chapter2:Swift:encoding_of_routing_information}Encoding of Routing Information}
 Swift, similarly to the iSDX, uses virtual next hops and the destination MAC address to encode the necessary information about the packet and its backup paths.
 
-For every prefix Swift encodes the AS-path up to a certain depth and the backup next hops for each AS-link on that AS-path. Backup next hops are neighbors of the swifted router which also advertise the prefix and their advertised route does not traverse the specific AS-link. If no backup next hop is found Swift simply encodes the second best BGP next hop in place of the backup next hop. This encoding is then mapped to a VNH. When the swifted router wants to send a packet to any prefix it will use the VNH assigned by Swift. The VNH directly maps to the VMAC containing all backup next hops for the different links the packet will traverse. 
+For every prefix Swift encodes the AS-path up to a certain depth and the backup next hops for each AS-link on that AS-path. Backup next hops are neighbors of the swifted router which also advertise the prefix and their advertised route does not traverse the specific AS-link. If no backup next hop is found Swift simply encodes the second best BGP next hop in place of the backup next hop. This encoding is then mapped to a VNH. When the swifted router wants to send a packet to any prefix it will use the VNH assigned by Swift. The VNH directly maps to the VMAC containing the backup next hops and the encoded AS-path. 
 
-Figure~\ref{fig:swift_vmac} shows the swifted router and the VMACs used for the prefixes advertised by the neighbors. The Swifted router sends all his traffic via AS 200. AS 400 is the backup next hop for AS-link 200 300 and 300 600. This is because AS 400 advertises the same prefixes as AS 200 and the advertised routes do not traverse the AS-links of the AS-path encoding (the AS-path of the routes advertised by AS 200).
 
 \begin{figure}[h]
 \center
@@ -134,13 +133,16 @@ Figure~\ref{fig:swift_vmac} shows the swifted router and the VMACs used for the 
 \caption{Swift VMAC}
 \end{figure}
 
+Figure~\ref{fig:swift_vmac} shows the swifted router and the VMACs used for the prefixes advertised by the neighbors. The Swifted router sends all his traffic via AS 200. AS 400 is the backup next hop for AS-link 200 300 and 300 600. This is because AS 400 advertises the same prefixes as AS 200 and the advertised routes do not traverse the AS-links of the AS-path encoding (the AS-path of the routes advertised by AS 200).
 
 \begin{figure}[h]
 \center
-\includegraphics[scale = 0.24]{Figures/bckgrnd_swift_topology.pdf}
+\includegraphics[scale = 0.25]{Figures/bckgrnd_swift_topology.pdf}
 \caption{Example of the Swift VMAC}
 \label{fig:swift_vmac}
 \end{figure}
+
+\newpage
 
 \subsection{\label{chapter2:Swift:Architecture_SWift}Architecture}
 
@@ -150,7 +152,7 @@ Figure~\ref{fig:swift_vmac} shows the swifted router and the VMACs used for the 
 \caption{Example topology of a swifted router \cite{swift}}
 \end{figure}
 
-Swift uses an SDN switch connected to the swifted router, its neighbors and to the Swift controller. The Swift Controller has three main parts, \emph{(i)} the BGP controller, \emph{(ii)} the Swift engine and \emph{(iii)} the SDN \& ARP controller. The BGP controller receives BGP updates from the peers of the swifted router. The BGP controller forwards the updates to the Swift engine. The Swift engine consists of two main modules: \emph{(i)} the burst prediction algorithm (BPA) and \emph{(ii)} the encoding of routing information. These two modules are the two main features of Swift. Every peer of the swifted router has its own burst prediction algorithm running. The SDN \& ARP controller programs flow rules into the SDN switch and manages ARP requests. 
+Swift uses an SDN switch connected to the swifted router, its neighbors and to the Swift controller. The Swift Controller has three main parts, \emph{(i)} the BGP controller, \emph{(ii)} the Swift engine and \emph{(iii)} the SDN \& ARP controller. The BGP controller receives BGP updates from the peers of the swifted router. The BGP controller forwards the updates to the Swift engine. The Swift engine consists of two main modules: \emph{(i)} BPA and \emph{(ii)} the encoding of routing information. These two modules are the two main features of Swift. Every peer of the swifted router has its own burst prediction algorithm running. The SDN \& ARP controller programs flow rules into the SDN switch and manages ARP requests. 
 
 The architecture of Swift is similar to the architecture of the iSDX. Both use a SDN switch connected to multiple BGP speaking routers, the BGP controller like the central services forwards BGP updates to the corresponding Swift engine/participant controller and every participant controller implements the functionality of the SDN \& ARP controller. 
 

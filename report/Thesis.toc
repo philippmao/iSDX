@@ -11,7 +11,7 @@
 \contentsline {section}{\numberline {2.3}Swift}{13}{section.2.3}
 \contentsline {subsection}{\numberline {2.3.1}Burst Prediction Algorithm}{13}{subsection.2.3.1}
 \contentsline {subsection}{\numberline {2.3.2}Encoding of Routing Information}{14}{subsection.2.3.2}
-\contentsline {subsection}{\numberline {2.3.3}Architecture}{14}{subsection.2.3.3}
+\contentsline {subsection}{\numberline {2.3.3}Architecture}{15}{subsection.2.3.3}
 \contentsline {chapter}{\numberline {3}Motivation}{17}{chapter.3}
 \contentsline {chapter}{\numberline {4}Implementation}{19}{chapter.4}
 \contentsline {section}{\numberline {4.1}Architecture}{19}{section.4.1}

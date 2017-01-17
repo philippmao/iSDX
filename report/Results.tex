@@ -16,7 +16,7 @@ In the next chapter we discuss the results, examine the VMAC partitioning and th
 \end{figure}
 
 Figure~\ref{fig:test-setup} shows the test setup.
-The test setup has an iSDX with or without Swift connected to three participants. Participants \emph{B1} and \emph{C1} are connected to the rest of the internet via \emph{R1} and advertise up to 500'000 prefixes to \emph{A1}. Participant \emph{A1} prefers routes from \emph{B1}. Remote failure is simulated by setting the link between \emph{B1} and \emph{R1} down. If this link is down \emph{A1} needs to update its RIB, check if flow rules have changed and update the VNH/VMAC for every withdrawn prefix.
+The test setup has an iSDX with or without Swift connected to three participants. Participants \emph{B} and \emph{C} are connected to the rest of the internet via \emph{R1} and advertise up to 500'000 prefixes to \emph{A}. Participant \emph{A} prefers routes from \emph{B}. Remote failure is simulated by setting the link between \emph{B1} and \emph{R1} down. If this link is down \emph{A} needs to update its RIB, check if flow rules have changed and update the VNH/VMAC for every withdrawn prefix.
 
 The experiment setup is run on a server running Ubuntu 14.04 with the following specs: Intel Xeon CPU E5620 with four Cores at 2.4\,GHz, 36\,GB of RAM. We use Mininet~\cite{mininet} to simulate the network. The routers \emph{A1}, \emph{B1}, \emph{C1} and \emph{R1} are quagga~\cite{quagga} routers. The perl script bgpsimple~\cite{bgpsimple} is used to inject an arbitrary number of routes into \emph{R1}. 
 
@@ -104,7 +104,7 @@ Figure~\ref{fig:activities} shows what the convergence time is made up of. The b
 
 \section{\label{chapter5:Swift overhead}Swift Overhead}
 
-In this section we present the overhead that Swift adds to the processing of a single BGP update. We measure the time between the BGP update arriving in the route server and the participant controller finishing to process the update. To measure this we use \emph{R1} to advertise a single route and set the link between \emph{B1} and \emph{R1} down and then up. This gives \emph{A1} a single withdrawal and then a single announcement to process. 
+In this section we present the overhead that Swift adds to the processing of a single BGP update. We measure the time between the BGP update arriving in the route server and the participant controller finishing to process the update. To measure this we use \emph{R1} to advertise a single route and set the link between \emph{B1} and \emph{R1} down and then up. This gives \emph{A} a single withdrawal and then a single announcement to process. 
 
 \begin{figure}[h]
 \center
@@ -113,6 +113,6 @@ In this section we present the overhead that Swift adds to the processing of a s
 \label{fig:swiftoverhead}
 \end{figure}
 
-Figure~\ref{fig:swiftoverhead} shows the time to process a single BGP update. On average iSDX takes 987\,ns without Swift and 1119\,ns with Swift. We see that Swift increases the processing time by a factor 1.13.
+Figure~\ref{fig:swiftoverhead} shows the time to process a single BGP update. On average the iSDX takes 987\,ns without Swift and 1119\,ns with Swift to process a single BGP update. We see that Swift increases the processing time by a factor 1.13.
 
 \newpage

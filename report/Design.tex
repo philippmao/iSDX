@@ -1,14 +1,13 @@
 \chapter{\label{chapter4}Implementation}
 
 In this chapter, we show how we integrated Swift into the iSDX. We give an overview of the modified iSDX architecture in \ref{chapter4:Architecture}. We explain the two new modules that were added to the iSDX in \ref{chapter4:Swift-BPA} and  \ref{chapter4:FR-handler}. We then show how we combined the VMAC schemes of Swift and iSDX and partitioned the available bits among the two in \ref{chapter4:vmac_partitioning}. At last, we explain how the default iSDX modules had to be adapted in \ref{chapter4:Changes_to_the_iSDX}.
-
 In the next chapter, we present the results of the tests done to measure the convergence performance of the iSDX.
 
 \section{\label{chapter4:Architecture}Architecture}
 
 \begin{figure}[h]
 \center
-\includegraphics[scale = 0.5]{Figures/design_sdx_swift_cropped.pdf}
+\includegraphics[scale = 0.6]{Figures/design_sdx_swift_cropped.pdf}
 \caption{iSDX architecture with Swift}
 \label{fig:isdx_architecture_with_swift}
 \end{figure}
@@ -16,6 +15,8 @@ In the next chapter, we present the results of the tests done to measure the con
 Figure~\ref{fig:isdx_architecture_with_swift} shows the iSDX~\cite{feamster2013sdx} architecture with Swift. The orange modules represent the new modules we had to add to the iSDX to implement Swift. The iSDX receives two additional modules the Swift-BPA module in the central services and the FR handler in the participant controller. With these two modules the iSDX is able to detect bursts of withdrawals, predict the failed AS-link that caused the burst and push FR rules into the IXP fabric.
 
 In the following sections, we explain the functionality of the new modules and other changes to the iSDX in more detail.
+
+\newpage
 
 \section{\label{chapter4:Swift-BPA}Swift-BPA}
 
@@ -62,15 +63,15 @@ Just like in Swift the FR rules match on the failed AS-link and on the backup ne
 
 \section{\label{chapter4:vmac_partitioning}VMAC Partitioning}
 
-Both Swift and iSDX use the destination MAC address as a VMAC to attach additional information to the packet. It is not easy to use another field of the header as only the destination MAC address can be changed by modifying the next hop attribute. Therefore the VMAC has to be shared between the iSDX and the Swift. The number of bits available to encode information for the iSDX and Swift is reduced. This is because the iSDX and Swift encode different information about the prefix. The iSDX encodes the participants advertising the prefix and the BGP best next hop. Swift encodes the AS-path starting from the second AS and the backup next hops for each link on the AS-path. The first AS of the AS-path is not in the Swift encoding because the iSDX already encodes the best next hop. 
-
-Figure~\ref{fig:sixdsvmac} shows an example of a VMAC in a simple topology with a Swifted iSDX connected to three participants. 
+Both Swift and the iSDX use the destination MAC address as a VMAC to attach additional information to the packet. It is not easy to use another field of the header as only the destination MAC address can be changed by modifying the next hop attribute. Therefore the VMAC has to be shared between the iSDX and the Swift. The number of bits available to encode information for the iSDX and Swift is reduced. This is because the iSDX and Swift encode different information about the prefix. The iSDX encodes the participants advertising the prefix and the BGP best next hop. Swift encodes the AS-path starting from the second AS and the backup next hops for each link on the AS-path. The first AS of the AS-path is not in the Swift encoding because the iSDX already encodes the best next hop. 
 
 \begin{figure}[h]
 \center
 \includegraphics[scale = 0.5]{Figures/design_vmac3_cropped.pdf}
 \caption{VMAC of the iSDX with Swift}
 \end{figure}
+
+Figure~\ref{fig:sixdsvmac} shows an example of a VMAC in a simple topology with a swifted iSDX connected to three participants. All prefixes are advertised by participants \emph{B} (AS 200) and \emph{C} (AS 300). Participant \emph{A} uses participant \emph{B} as best next hop. The encoded AS-path is 300 700 600. For all AS-links on the AS-path the backup next hop is \emph{C}.
 
 \begin{figure}[h]
 \center
