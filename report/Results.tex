@@ -18,7 +18,7 @@ In the next chapter we discuss the results, examine the VMAC partitioning and th
 Figure~\ref{fig:test-setup} shows the test setup.
 The test setup has an iSDX with or without Swift connected to three participants. Participants \emph{B} and \emph{C} are connected to the rest of the internet via \emph{R1} and advertise up to 500'000 prefixes to \emph{A}. Participant \emph{A} prefers routes from \emph{B}. Remote failure is simulated by setting the link between \emph{B1} and \emph{R1} down. If this link is down \emph{A} needs to update its RIB, check if flow rules have changed and update the VNH/VMAC for every withdrawn prefix.
 
-The experiment setup is run on a server running Ubuntu 14.04 with the following specs: Intel Xeon CPU E5620 with four Cores at 2.4\,GHz, 36\,GB of RAM. We use Mininet~\cite{mininet} to simulate the network. The routers \emph{A1}, \emph{B1}, \emph{C1} and \emph{R1} are quagga~\cite{quagga} routers. The perl script bgpsimple~\cite{bgpsimple} is used to inject an arbitrary number of routes into \emph{R1}. 
+The experiment setup is run on a server running Ubuntu 14.04 with the following specs: Intel Xeon CPU E5620 with four Cores at 2.4\,GHz, 36\,GB of RAM. We use Mininet~\cite{mininet} to simulate the network. The routers \emph{A1}, \emph{B1}, \emph{C1} and \emph{R1} are quagga~\cite{quagga} routers. The perl script bgpsimple~\cite{bgpsimple} is used to inject an arbitrary number of routes/prefixes into \emph{R1}. 
 
 \section{\label{chapter5:Convergence time without Swift}Convergence Time without Swift}
 
@@ -56,7 +56,7 @@ This convergence time does not take into account the hold timer or the time the 
 
 Figure~\ref{fig:noswift} shows the convergence time in relation to the number of prefixes injected by bgpsimple. The results show that the convergence time increases linearly with the number of prefixes advertised by \emph{R1}.
 
-At 500'000 prefixes the iSDX takes about 90\,seconds to converge. During these 90\,seconds \emph{A1} is still sending packet to \emph{B1} even though that route does not exist anymore. Hence, all the traffic is dropped. 
+At 500'000 prefixes the iSDX takes about 90\,seconds to converge. During these 90\,seconds \emph{A1} is still sending packets to \emph{B1} even though that route does not exist anymore. Hence, all these packets are dropped by \emph{B1}. 
 
 \section{\label{chapter5:Convergence time with Swift}Convergence Time with Swift}
 
@@ -96,7 +96,7 @@ The convergence time increases slightly with higher number of prefixes. At 500'0
 \begin{figure}[h]
 \center
 \includegraphics[scale = 1]{Figures/barplot.pdf}
-\caption{Time spent on detection different activities during a fast reroute}
+\caption{Time spent on different activities during a fast reroute}
 \label{fig:activities}
 \end{figure}
 

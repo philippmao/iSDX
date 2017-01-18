@@ -23,7 +23,7 @@ The Border Gateway Protocol (BGP) allows autonomous systems to exchange routing 
 
 There are two types of updates, announcements and withdraws. Announcements inform that the prefix can be reached via this route and withdraws inform that the previously announced prefix cannot be reached via this route anymore. 
 
-Upon receiving a BGP update routers make a routing decision using the attributes of the BGP update and then send updates to their peers. Routers only send announcements with their own best route to the prefix and if the routers do not know a route to the prefix they send withdraws.
+Upon receiving a BGP update routers make a routing decision using the attributes of the BGP update and then send updates to their peers. Routers only send announcements with their own best route to the prefix and if the routers do not know a route to the prefix anymore they send withdraws.
 
 Convergence time in BGP upon remote failure can be slow.
 This is because of the way updates propagate trough the network. Changes are only passed on once routers have finished computing the best route to the prefix. Only once all the updates have reached a router and it has finished the best path computation for all the updates, has the router converged. Meaning the router is able to make sure packets do not get sent into a loop or to a black hole anymore. The convergence time of a router is lower bounded by the time it takes for all the information/updates to be received. Because all routers before also have to process  the updates, the convergence time increases the further away the failure takes place. 
@@ -32,7 +32,7 @@ This is because of the way updates propagate trough the network. Changes are onl
 \section{\label{chapter2:iSDX}iSDX}
 
 The iSDX is an Internet exchange point enhanced with a software defined networking (SDN) switch and a SDN controller.
-An Internet exchange point (IXP) is a physical location where multiple autonomous systems meet to exchange traffic and BGP routes. An exchange point provides a fabric for the networks to interconnect. Each network attaches with one or multiple routers to this fabric. To reduce the burden on the network operators, Internet exchange points often provide a route server. Thanks to the route server, each border router only has to peer with the route server instead of all other participants. This allows participants to receive BGP updates from all other participants. However, even though many different routes might be available for a single prefix, participants of a traditional IXP can only use a single route per prefix.
+An Internet exchange point (IXP) is a physical location where multiple autonomous networks meet to exchange traffic and BGP routes. An exchange point provides a fabric for the networks to interconnect. Each network attaches with one or multiple routers to this fabric. To reduce the burden on the network operators, IXPs often provide a route server. Thanks to the route server, each border router only has to peer with the route server instead of all other participants. This allows participants to receive BGP updates from all other participants. However, even though many different routes might be available for a single prefix, participants of a traditional IXP can only use a single route per prefix.
 
 The iSDX allows its participants to not only make use of these additional routes, but also gives the participants  more fine-grained control over the routing decisions. A participant connects to the iSDX as if it were a traditional IXP and is able to specify special policies that allow the participant to use multiple routes at once and control routing beyond the prefix.
 
@@ -59,7 +59,7 @@ Inbound policies allow participants to specify how incoming packets are handled.
 
 Note that when specifying a policy, the network operator does not have to take into account whether the specified destination is actually able to handle that traffic. Some policies might direct packets to participants that did not advertise the prefix to that participant or simply do not know a route to the prefix. Nevertheless, participants are not restricted when defining outbound policies. This is a problem because outbound policies can end up violating BGP advertisements. It is not possible to require participants to only specify feasible policies as the routing information is quite volatile and network operators would constantly need to update their policies to make sure none of the traffic is sent to a black hole. 
 
-The iSDX solves this problem by attaching additional information to each packet. This additional information is embedded into the destination MAC address, transforming the destination MAC addresses of packets traversing the SDN switch into a Virtual Mac Address (VMAC).
+The iSDX solves this problem by attaching additional information to each packet. This additional information is embedded into the destination MAC address, transforming the destination MAC addresses of packets traversing the SDN switch into a Virtual MAC Address (VMAC).
 In the VMAC the participant controller encodes the participants advertising the prefix of the packet (reachability) and the BGP best next hop participant for this prefix. The first part is used every time a outbound policy is applied. The outbound policy checks if the participant the outbound policy is sending packets to has advertised the prefix. The second part is used if the packet does not match any outbound policy. Default rules in the SDN switch match on the best next hop participant and send the packet to this participant.
 
 \begin{figure}[h]
@@ -89,7 +89,7 @@ Figure~\ref{fig:isdx_vmac} shows the VNHs and VMACs used by participant \emph{A}
 
 The iSDX architecture consists of two main parts: \emph{(i)} the central services and \emph{(ii)} the participant controller.
 
-The Central Services has two tasks. \emph{(i)} It collects all BGP updates and ARP queries centrally and forwards them to the corresponding participant controller. \emph{(ii)} It makes sure that BGP connection, default forwarding and ARP traffic is correctly handled by installing flow rules.
+The Central Services has two tasks. \emph{(i)} It collects all BGP updates and ARP queries centrally and forwards them to the corresponding participant controller. \emph{(ii)} It makes sure that BGP traffic, default forwarding and ARP traffic is correctly handled by installing flow rules.
 
 Every participant has its own participant controller. This allows each participant to make its own best path decision. The participant controller receives and processes BGP updates from the central route server. Every participant controller has a local routing information base (RIB), which keeps track of all the received routes, currently used routes and routes advertised to other participants. It takes care of the virtual next hop (VNH) and virtual MAC address (VMAC) assignment. It handles ARP requests and sends out gratuitous ARP replies. Before BGP updates get sent to the participants border router they are processed by the participant controller. It also installs all the flow rules which are necessary for its policies to be enforced.
 
@@ -106,7 +106,7 @@ Upon remote failure the burst prediction algorithm (BPA) predicts the failed AS-
 
 The BPA takes BGP updates. It uses the updates to build an AS-topology. It also stores prefixes and the AS-path to reach these prefixes. Once a burst is triggered the BPA uses the received updates, stored AS-paths and the AS-topology to predict the failed AS-link. For every AS-link in the AS-topology the prediction algorithm computes a fitting score (FS). The FS takes into account the number of withdrawn routes traversing this AS-link and the number of still used routes traversing this AS-link. The link with the highest FS is predicted to be down. 
 
-Upon predicting a failed link the Swift Controller pushes FR flow rules into the SDN switch matching on the failed AS-link and on the corresponding backup next hop. In Figure~\ref{fig:swift_FR} the burst prediction module has predicted the AS-link 300 600 to be down. Therefore, it pushes rules matching on the AS-path 300 600 and the backup next hop, in this case 400, in the data plane.
+Upon predicting a failed link the Swift Controller pushes FR flow rules into the SDN switch matching on the failed AS-link and on the corresponding backup next hop. In Figure~\ref{fig:swift_FR} the BPA has predicted the AS-link 300 600 to be down. Therefore, it pushes rules matching on the AS-link 300 600 and the backup next hop, in this case 400, into the SDN switch.
 
 Every packet that traverses the failed link (has the failed AS-link in it's AS-path encoding) will be rerouted to the backup neighbor.
 
@@ -152,7 +152,7 @@ Figure~\ref{fig:swift_vmac} shows the swifted router and the VMACs used for the 
 \caption{Example topology of a swifted router \cite{swift}}
 \end{figure}
 
-Swift uses an SDN switch connected to the swifted router, its neighbors and to the Swift controller. The Swift Controller has three main parts, \emph{(i)} the BGP controller, \emph{(ii)} the Swift engine and \emph{(iii)} the SDN \& ARP controller. The BGP controller receives BGP updates from the peers of the swifted router. The BGP controller forwards the updates to the Swift engine. The Swift engine consists of two main modules: \emph{(i)} BPA and \emph{(ii)} the encoding of routing information. These two modules are the two main features of Swift. Every peer of the swifted router has its own burst prediction algorithm running. The SDN \& ARP controller programs flow rules into the SDN switch and manages ARP requests. 
+Swift uses an SDN switch connected to the swifted router, its peers and to the Swift controller. The Swift Controller has three main parts, \emph{(i)} the BGP controller, \emph{(ii)} the Swift engine and \emph{(iii)} the SDN \& ARP controller. The BGP controller receives BGP updates from the peers of the swifted router. The BGP controller forwards the updates to the Swift engine. The Swift engine consists of two main modules: \emph{(i)} the BPA and \emph{(ii)} the encoding of routing information. These two modules are the two main features of Swift. Every peer of the swifted router has its own BPA process running. The SDN \& ARP controller programs flow rules into the SDN switch and manages ARP requests. 
 
 The architecture of Swift is similar to the architecture of the iSDX. Both use a SDN switch connected to multiple BGP speaking routers, the BGP controller like the central services forwards BGP updates to the corresponding Swift engine/participant controller and every participant controller implements the functionality of the SDN \& ARP controller. 
 

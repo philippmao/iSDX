@@ -1,10 +1,10 @@
 \chapter{\label{chapter6}Discussion}
 
-In this chapter, we discuss the results of the previous chapter in \ref{chapter6:Convergence time}. We look at the VMAC partitioning in \ref{chapter6:vmac evaluation} and examine the number of required FR flow rules in \ref{chapter6:number of flow rules}.
+In this chapter, we discuss the results of the previous chapter in \ref{chapter6:Convergence time}. We look at the VMAC partitioning in \ref{chapter6:vmac evaluation} and examine the FR flow rules in \ref{chapter6:number of flow rules}.
 
 \section{\label{chapter6:Convergence time}Convergence Performance}
 
-As clearly seen in Figure~\ref{fig:noswift} and Figure~\ref{fig:withswift} iSDX with Swift has a much shorter convergence time. At 500'000 prefixes the convergence time is improved by a factor of 60. The convergence time of the iSDX with Swift increases slightly with a higher number of prefixes. As seen in Figure~\ref{fig:activities} with more prefixes more time is spent until the FR rules are pushed into the IXP fabric. We suppose that this is because the participant controller has to process more BGP updates before it can process the FR message, as the FR messages and BGP udpates get sent over the same channel.
+As clearly seen in Figure~\ref{fig:noswift} and Figure~\ref{fig:withswift} iSDX with Swift has a much shorter convergence time. At 500'000 prefixes the convergence time is improved by a factor of 60. The convergence time of the iSDX with Swift increases slightly with a higher number of prefixes. As seen in Figure~\ref{fig:activities} with more prefixes more time is spent until the FR rules are pushed into the IXP fabric. We suppose that this is because the server slows down the channel between the route server and the FR handler, with a higher number of routes advertised by \emph{R1}.
 
 The improvement in the convergence time comes at a cost. That is the overhead Swift adds to the processing of a single BGP update. Since the updates get sent to the Swift-BPA module before getting sent to the participant controller it takes iSDX with Swift longer to process a single BGP update. On average it takes iSDX with Swift about 132\,ns longer to process a single BGP update, that is an increase of a factor 1.13. 
 
@@ -42,7 +42,7 @@ FR messages get sent to every participant that is peering with the participant w
 
 This amount of flow rules is not substantial enough to have a significant impact on the iSDX. With the number of participants limited to 256 and participants having a reasonable number policies, the flow rule limit for current SDN switches should not be reached \cite[Figure 3 (a)]{gupta2016industrial}.
 
-Usually this upper bound of FR rules should not be reached. Upon a fast reroute not all participants will be peering with the participant that triggered the fast reroute. Also the participants may not have reached the maximum number of backup next hops yet.
+Usually this upper bound of FR rules should not be reached. Upon a fast reroute not all participants will be peering with the participant that triggered the fast reroute. Also the participants may not have reached the maximum number of backup next hops.
 
 \subsection{\label{chapter6:number of flow rules:outbound_FR}Outbound Policies and Fast Reroute Rules}
 
