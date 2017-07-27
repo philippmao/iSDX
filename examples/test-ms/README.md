@@ -3,12 +3,13 @@
 
 ## Topology
 
-![Experimental Setup]
-(iSDX Swift test setup.png)
+![Experimental Setup]("iSDX Swift test setup.png")
 
 The setup consists of 3 participants (participating ASes) A, B and C. These participants have the following routers:
 
-`Router A1, Router B1, Router C1
+* Router A1
+* Router B1
+* Router C1
 
 These routers are running the zebra and bgpd daemons, part of the `Quagga` routing engine. We've used the `MiniNext` emulation tool to create this topology. In this example we have three switches representing SDX switch: (1) Main Switch, (2) Outbound Switch, and (3) Inbound Switch. 
 
@@ -71,7 +72,7 @@ $ cd ~/iSDX/xctrl
 $ python xctrl.py ~/iSDX/examples/test-ms/config/sdx_global.cfg
 ```
 
-The IXP controller initializes the sdx fabric and installs all static default forwarding rules. It also handles ARP queries and replies in the fabric and ensures that these messages are forwarded to the respective participants’ controllers via ARP relay.
+The IXP controller initializes the sdx fabric and installs all static default forwarding rules. It also handles ARP queries and replies in the fabric and ensures that these messages are forwarded to the respective participantsâ€™ controllers via ARP relay.
 
 #### arpproxy (ARP Relay)
 ```bash
@@ -111,9 +112,9 @@ $ exabgp examples/test-ms/config/bgp.conf
 
 It is part of the `xrs` module itself and it handles the BGP sessions with all the border routers of the SDX participants.
 
-###Bgpsimple
+### Bgpsimple
 ```bash
-sudo /home/vagrant/iSDX/Bgpdump/bgp_simple.pl -myas 64000 -myip 173.0.255.252 -peerip 173.0.0.31 -peeras 400 -holdtime 180 - keepalive 60 -p /home/vagrant/iSDX/Bgpdump/myroutes -m �number of prefixes� -n
+sudo /home/vagrant/iSDX/Bgpdump/bgp_simple.pl -myas 64000 -myip 173.0.255.252 -peerip 173.0.0.31 -peeras 400 -holdtime 180 - keepalive 60 -p /home/vagrant/iSDX/Bgpdump/myroutes -m “number of prefixes” -n
 ```
 
 Bgpsimple will advertise a certain amount of prefixes ("number of prefixes") to r1. It takes these routes from the myroutes file. To advertise all 300000 prefixes in myroutes remove -m "number of prefixes" from the command.
@@ -153,7 +154,7 @@ See the pushed FR rules:
 sudo ovs-ofctl dump-flows s1 -O OpenFlow13
 ```
 
-####Cleanup
+#### Cleanup
 Run the `clean` script:
 ```bash
 $ sh ~/iSDX/pctrl/clean.sh
